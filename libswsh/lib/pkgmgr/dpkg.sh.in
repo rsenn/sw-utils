@@ -47,6 +47,25 @@ dpkg_locate()
   }'
 }
 
+# dpkg_is_installed <package>
+# -------------------------------------------------------------------------
+dpkg_is_installed()
+{
+
+ (for ARG; do
+
+  OUTPUT=$( dpkg --list "$ARG"  2>/dev/null | (IFS="|$IFS "; grep -E  "^ii\\s+($ARG)\\s") )
+
+   if [ -n "$OUTPUT" ]; then
+     if [ $# -gt 1 ]; then
+       echo "Package $ARG not installed" 1>&2 
+     fi
+     exit 1
+   fi
+   done
+    exit 0)
+}
+
 # dpkg_list [options...]
 #
 # List all installed packages.

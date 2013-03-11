@@ -108,10 +108,11 @@ sourceforge_files()
 {
   require "www"
  (url=`sourceforge_url "$1" download`
-  www_links "$url/" | sed \
-    -e '\,/$,d' \
-    -e "\\,^${url%/*}\$,d" \
-    -e "\\,^${url}/?,d"
+  lftp "${url%/}" -e "find ${url%/}; exit;" 2>/dev/null
+  #www_links "$url/" | sed \
+  #  -e '\,/$,d' \
+  #  -e "\\,^${url%/*}\$,d" \
+  #  -e "\\,^${url}/?,d"
     )
 }
 

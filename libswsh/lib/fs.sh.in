@@ -27,14 +27,90 @@ fs_exists()
   test -e "$1" || errormsg "The path '$1' doesn't exist."
 }
 
+# fs_ls <path>
+# -------------------------------------------------------------------------
+fs_ls()
+{
+  ls -1 -d -n --time-style="${TIME_STYLE:-+%s}" --color=no -la "$@"
+}
+
+# fs_lseval <cmd> <path...> 
+# -------------------------------------------------------------------------
+fs_lseval()
+{
+  local CMD="$1" old_IFS="$IFS"
+  IFS=" "
+  shift
+
+  fs_ls "$@" |
+
+  while read -r PERM N USR GRP SIZE TIME P; do
+ 
+    eval "$CMD"
+
+  done 
+
+}
+
+# fs_lscol <column> <path...>
+# -------------------------------------------------------------------------
+fs_lscol()
+{
+  (IFS=" "
+   COL="$1" N=
+   CMD= PFX=
+  shift  
+   [ -n "$COL" ] && N=`expr ${COL:-1} - 1`
+   if [ -n "$N"  ] ; then
+      [ "$N" -gt 0 ] && CMD="shift $N${CMD:+; $CMD}"
+   fi
+   if [ -n "$N" -a "$COL" -lt 7 ] ; then
+     CMD="${CMD:+$CMD; }OUTPUT=\"\$1\""
+   else
+     CMD="${CMD:+$CMD; }OUTPUT=\"\$*\""
+   fi  
+
+ if [ $# -gt 1 ]; then
+   N=`expr 6 -  ${N}`
+   if [ "$N" -gt 0 ]; then
+      [ "$N" -gt 0 ] && CMD="${CMD:+$CMD; }shift $N"
+   fi 
+   CMD="${CMD:+$CMD; }FILENAME=\"\$*\""
+ else
+   CMD="${CMD:+$CMD; }unset FILENAME"
+fi
+   CMD="${CMD:+$CMD; }echo \"\${FILENAME:+\$FILENAME: }\${OUTPUT}\""
+
+   CMD="fs_ls \"\$@\" |
+     while read -r P; do 
+     (set -- \$P
+      $CMD
+      )
+   done"
+   eval "$CMD"
+)
+}
+
+# fs_time <path...>
+# -------------------------------------------------------------------------
+fs_time()
+{
+ (while :; do
+    case "$1"  in
+      -t|--time-style|-s) TIME_STYLE="$2"; shift 2 ;;
+      -[ts]=*|--time-style=*) TIME_STYLE="${1#*=}"; shift ;;
+      -[ts]*) TIME_STYLE="${1#-[ts]}"; shift ;;
+      *) break ;;
+      esac
+      done
+  fs_lscol 6 "$@")
+}
+
 # fs_size <path>
-#
-# return fs size
 # -------------------------------------------------------------------------
 fs_size()
 {
-  ls -1 -n --color=no -la "$@" | \
-    sed '/^total/ d; s,[-a-z]\+[ \t]\+[0-9]\+[ \t]\+[0-9]\+[ \t]\+[0-9]\+[ \t]\+\([0-9]\+\).*,\1,'
+  fs_lscol 5 "$@"
 }
 
 fs_type()

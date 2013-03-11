@@ -215,10 +215,10 @@ script_getvar()
 # ----------------------------------------------------------------------------
 script_fnlist()
 {
- (expr="\\([A-Za-z_][A-Za-z0-9_]*\\)\\s*()" ob='{' cb='}'
+ (expr="\\([A-Za-z_][-A-Za-z0-9_]*\\)\\s*()" ob='{' cb='}'
 
   script_nocomments "$@" | sed -n "/$expr/ {
-      s/^.*[^\$_0-9A-Za-z]$expr/\1/
+      s/^.*[^-\$_0-9A-Za-z]$expr/\1/
       
       /^$expr/ {
         :lp2
