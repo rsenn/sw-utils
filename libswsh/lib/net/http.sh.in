@@ -1,0 +1,45 @@
+# $Id: http.sh.in 518 2008-08-12 10:32:46Z enki $
+#
+# net/http.sh: HTTP client interface
+#
+# -------------------------------------------------------------------------
+@DEBUG_TRUE@test $lib_net_http_sh || {
+
+# -------------------------------------------------------------------------
+: ${HTTP_implementations="curl wget lynx"}
+: ${HTTP_chooser="http_choose"}
+
+# http_choose
+# -------------------------------------------------------------------------
+http_choose()
+{
+  IFS=" "
+  set -- $HTTP_implementations
+  while [ "$#" -gt 0 ]; do
+    if type "$1" 2>/dev/null; then
+      HTTP_impl=$1
+      HTTP_chooser=:
+      require "net/www/$HTTP_impl"
+      break  
+    fi
+  done
+}
+
+# http_set [option=value...]
+# -------------------------------------------------------------------------
+http_set()
+{
+  ${HTTP_chooser}
+  ${HTTP_impl}_set "$@"
+}
+
+# http_get [option=value] <host> <path> [path...]
+# -------------------------------------------------------------------------
+http_get()
+{
+  ${HTTP_chooser}
+  ${HTTP_impl}_get "$@"
+}
+
+# --- eof ---------------------------------------------------------------------
+@DEBUG_TRUE@lib_net_http_sh=:;}

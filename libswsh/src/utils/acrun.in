@@ -1,0 +1,247 @@
+#! /bin/sh
+#
+# Bootstraps GNU autotools source trees.
+#
+# $Id: acbootstrap.in 698 2007-04-19 19:33:44Z  $
+# ---------------------------------------------------------------------------
+
+# Provide defaults for the required directory variables
+# ---------------------------------------------------------------------------
+prefix=`dirname "$0"`/..
+exec_prefix="$prefix"
+libdir="$exec_prefix/lib"
+shlibdir="$libdir/sh"
+sysconfdir="$prefix/etc"
+localstatedir="$prefix/var"
+program_name=`basename "$0"`
+
+case $program_name in
+  *-acrun) program_prefix=${program_name%-acrun} ;;
+  *) program_prefix= ;;
+esac
+
+# Load library dependencies
+# ---------------------------------------------------------------------------
+. $shlibdir/buildsys/autotools.sh
+. $shlibdir/util.sh
+. $shlibdir/std/array.sh
+. $shlibdir/std/algorithm.sh
+
+# Initialize global variables.
+# ---------------------------------------------------------------------------
+ARGS=
+VARS=
+IFS="
+"
+if [ -d "$1" ]; then
+  autotools_test "$1" && SRCDIR="$1" || BUILDDIR="$1"
+else
+  autotools_test "." && SRCDIR="." || BUILDDIR="."
+fi
+
+if [ -z "$BUILDDIR" ]; then
+  BUILDDIR="$SRCDIR"
+fi
+
+if [ -z "$SRCDIR" ]; then
+  SRCDIR="$BUILDDIR"
+
+  while ! autotools_test "$SRCDIR"; do
+    PREV="$SRCDIR"
+    SRCDIR="$SRCDIR/.."
+    if [ "$PREV" -ef "$SRCDIR" ]; then
+      error "No source dir found"
+    fi
+    msg "Checking for source dir in $SRCDIR"
+  done
+fi
+
+ACTION="run"
+
+if [ -d "$1" ]; then
+  SRCDIR="$1"
+  shift
+fi
+
+# Parse arguments
+# ---------------------------------------------------------------------------
+while [ "$#" -gt 0 ]; do
+  if [ "$#" = 1 ]; then
+    case $1 in
+      run | status | rerun | args)
+        ACTION="$1"
+      ;;
+    esac
+  fi
+  case $1 in
+    --action) 
+      ACTION="$2"
+      shift
+    ;;
+    --action=*)
+      ACTION="${1#*=}"
+    ;;
+    --*-maintainer-mode)
+      MAINTAINER_MODE=${1#--}
+      MAINTAINER_MODE=${MAINTAINER_MODE%-maintainer-mode}
+    ;;
+    --*-dependency-tracking)
+      DEPENDENCY_TRACKING=${1#--}
+      DEPENDENCY_TRACKING=${DEPENDENCY_TRACKING%-dependency-tracking}
+    ;;
+    --*-debug)
+      DEBUG=${1#--}
+      DEBUG=${DEBUG%-debug}
+    ;;
+    --run | --status | --rerun | --args)
+      ACTION=${1#--}
+    ;;
+    -I | --output | --warnings)
+      pushv ARGS "$1" "$2"
+      shift 
+    ;;
+    *=*)
+      if is_name "${1%%=*}"; then
+        pushv VARS "$1"
+      else
+        pushv ARGS "$1"
+      fi
+    ;;
+    *) 
+      pushv ARGS "$1" 
+    ;;
+  esac
+  shift
+done
+
+unset -f msg
+
+msg()
+{
+  echo "$@"
+}
+
+#autotools_bootstrap $ARGS $(autotools_scan "$@") || exit $?
+
+CC=${program_prefix:+$program_prefix-}gcc
+#BUILD_CC=gcc
+
+host=`${CC-gcc} -dumpmachine 2>/dev/null`
+build=`${BUILD_CC-gcc} -dumpmachine 2>/dev/null`
+prefix=`
+  ${CC-gcc} -print-search-dirs 2>/dev/null | 
+  sed -ne '/^install:/ s|^install: \([^ ]\+\)/lib/.*|\1| p'
+`
+bindir="$prefix/$host/bin"
+#libdir="$prefix/lib"
+
+pathmunge "$bindir"
+
+export PATH
+msg "PATH is $PATH" 
+
+# setup_pkgconfig <prefix> [host]
+#
+# Setup proper paths for pkg-config(1)
+# ---------------------------------------------------------------------------
+
+setup_pkgconfig()
+{
+  for PKG_CONFIG in $1/bin/${2:-$host}-pkg-config $1/${2:-$host}/bin/pkg-config; do
+    if [ -x "$PKG_CONFIG" ]; then
+      break
+    fi
+    unset PKG_CONFIG
+  done
+
+  export PKG_CONFIG
+
+  if [ "$PKG_CONFIG" ]; then
+    msg "PKG_CONFIG is $PKG_CONFIG"
+  elif [ -d "$prefix${2:+/$2}/pkgconfig" ]; then
+    PKG_CONFIG_PATH="$prefix${2:+/$2}/pkgconfig${PKG_CONFIG_PATH+:$PKG_CONFIG_PATH}"
+    msg "PKG_CONFIG_PATH is $PKG_CONFIG_PATH"
+  fi
+}
+
+# ---------------------------------------------------------------------------
+
+setup_pkgconfig "$prefix" "$host"
+
+msg "Configuring for host $host and installation in $prefix ..."
+msg
+
+case $prefix in
+  "/usr")
+    sysconfdir="/etc"
+    localstatedir="/var"
+    bindir="/bin"
+  ;;
+esac
+
+ar_configure_script="$SRCDIR/configure"
+
+set -- "$ar_configure_script" \
+      --host="$host" \
+      --build="${build=$host}" \
+      --target="${target=$host}" \
+      --prefix="$prefix" \
+      --sysconfdir="${sysconfdir=$prefix/etc}" \
+      --localstatedir="${localstatedir=$prefix/var}" \
+      --program-prefix="" \
+      --program-suffix=""
+
+if grep -q "able[-_]dependency[-_]tracking" "$ar_configure_script"; then
+  set -- "$@" --${DEPENDENCY_TRACKING:-enable}-dependency-tracking
+fi
+
+if grep -q "able[-_]maintainer[-_]mode" "$ar_configure_script"; then
+  set -- "$@" --${MAINTAINER_MODE:-enable}-maintainer-mode
+fi
+
+if grep -q "able[-_]debug" "$ar_configure_script"; then
+  set -- "$@" --${DEBUG:-disable}-debug
+fi
+
+case $ACTION in
+  run)
+    exec "$@" $ARGS
+  ;;
+
+  status)
+    if [ config.status -nt configure ]; then
+      echo "config.status is up to date"
+
+      echo "config.status has been configured using ./configure" `autotools_args`
+    fi
+  ;;
+
+  rerun)
+    set -- "$SRCDIR/configure"
+    
+    OLDARGS=`autotools_args "$SRCDIR"`
+
+    if [ "$OLDARGS" ]; then
+      for A in $OLDARGS; do
+        case $A in
+          --host=*) OLDARGS=`filter_out host_alias="${A#*=}" $OLDARGS` ;;
+          --build=*) OLDARGS=`filter_out build_alias="${A#*=}" $OLDARGS` ;;
+        esac
+      done
+
+      echo "Previous argumens were" 
+      for A in $OLDARGS; do
+        echo "    $A"
+      done
+      echo
+      set -- "$@" $OLDARGS
+    fi
+
+    exec "$@" \
+      $ARGS
+  ;;
+
+  args)
+  ;;
+esac
+

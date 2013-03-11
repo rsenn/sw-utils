@@ -1,0 +1,201 @@
+#!/bin/sh
+#
+# xtra.sh: information extraction functions
+#
+# $Id: xtra.sh.in 761 2008-10-09 06:23:35Z enki $
+test $lib_xtra_sh || {
+
+: ${prefix:="@prefix@"}
+
+. $shlibdir/util.sh
+
+# xtra_is_name <str>
+#
+# -------------------------------------------------------------------------
+xtra_is_name()
+{ 
+  local IFS="${alnum}-_"
+  test "$1" != "${1#[A-Za-z]}" && set -- $1 && test -z "$1"
+}
+
+xtra_is_addon()
+{
+  xtra_is_name "$@"
+}
+
+# xtra_is_ext <str>
+#
+# -------------------------------------------------------------------------
+xtra_is_ext()
+{
+  local IFS="${alnum}_"
+  test "$1" != "${1#.}" &&
+  test -n "${1#.}" &&
+  eval set -- ${1#.} &&
+  test "$#" = 0
+}
+
+# xtra_is_date <str>
+#
+# -------------------------------------------------------------------------
+xtra_is_date()
+{
+  local s=${1//"-/"}
+  test -n "$s" && test -z "${s#[0-9][0-9][0-9][0-9][01][0-9][0-3][0-9]}"
+}
+
+# xtra_is_number <str>
+#
+# -------------------------------------------------------------------------
+xtra_is_number()
+{
+  local IFS="$digit"
+  eval set -- $1
+  test "$#" = 0
+}
+
+# xtra_is_version <str>
+#
+# -------------------------------------------------------------------------
+xtra_is_version()
+{
+  local v s="$1" IFS="$newline$space$tabstop."
+  case $s in
+    *[A-Za-z0-9].[A-Za-z0-9]*) return 0 ;;
+  esac
+  for v in $s; do
+    case $v in
+      [!0-9]*) return 1
+    esac
+  done
+  return 0
+}
+
+# xtra_detect <str>
+#
+# -------------------------------------------------------------------------
+xtra_detect()
+{
+  local p w n='' o=''
+  for p; do
+    if test -n "$n"; then
+      xtra_is_$n "$p" || break
+      array_push 'o' "$p"
+    else
+      if array_isin 'v' 'ext'; then
+        xtra_is_ext "$p" && n="ext" && array_push 'o' "$p" && break
+      fi
+      for w in $v; do
+        xtra_is_$w "$p" && n="$w" && array_push 'o' "$p" && continue 2
+      done
+      break
+    fi
+  done
+  echo ${n:-"-"}${o:+ $o}
+}
+
+# xtra_split <str> <delims>
+# -------------------------------------------------------------------------
+xtra_split()
+{
+  local IFS="$space$newline$tabstop$2"
+  echo $1
+}
+
+# xtra_walk <str> [delims]
+#
+# -------------------------------------------------------------------------
+xtra_walk()
+{
+  local s="$1" d ds dt IFS="$space$newline$tabstop" x n
+  test "${text-unset}" = "unset" && local text="$1"
+  test "${u-unset}" = "unset" && local u='' v=$(array ext ext name version date # addon
+  )
+  shift
+  d="$1"
+
+  shift
+  ds="$*"
+
+  while test -n "$d"; do
+    IFS="$d$space$newline$tabstop"
+    dt=${d#?}
+    d=${d%$dt}
+    if [ "$d" = "." ]; then
+      IFS="$space$newline$tabstop"
+      set --
+      for x in ${text//./$space.}; do
+        set -- "$x" "$@"
+      done
+      local df=-1 c=$(($#-1))
+    else
+      set -- $text
+      local c=0 df=1
+    fi
+    while test -n "$1"; do
+      local t=${*//$space$d/$d} tp wd w IFS="$space$newline$tabstop"
+      set -- `xtra_detect $*`
+      tp=$1
+      shift
+      wd="$*" n=$#
+      for w; do
+        eval 'case ${w#$d} in
+                *['${ds//$space/}'$space]*) set -- $ds; test "$#" -gt 0 && xtra_walk "$s" "$@" ;;
+                *) s=${s//$w/$space} ;;
+              esac'
+      done
+      test $n = 0 && break
+      set -- $wd && wd="" && for w in ${*//$space$d/$d}; do
+        case $d in
+          .) wd="${w#$d}${wd:+$d$wd}" ;;
+          *) wd="${wd:+$wd$d}$w" ;;
+        esac
+      done
+
+      if test "$d" = "." && test "$tp" = "version"; then
+        :
+
+      elif array_isin 'v' "$tp"; then
+        echo "$tp" "$d" $((c)) "$wd"
+        array_remove 'v' "$tp"
+
+        if test "$tp" = ext; then
+          text=${text%.$wd}
+        else
+          text=${text#$wd$d}
+        fi
+      fi
+
+      set -- $t
+      shift $n
+      c=$((c+(n*df)))
+    done
+    d="$dt"
+  done
+  array_print 'u'
+}
+
+# xtra_obj
+#
+# -------------------------------------------------------------------------
+xtra_obj()
+{
+  local t s n x out= value ps='' tmpl IFS="$space$newline$tabstop"
+  sort -k3 |
+  {
+    while read t s n x
+    do
+      if test -n "$t"
+      then
+        value=`obj_get "$out" $t`
+
+        obj_set out $t "${value:+$value$s}$x"
+        ps="$s"
+      fi
+    done
+    echo "$out"
+  }
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_xtra_sh=:;}

@@ -1,0 +1,594 @@
+#!/bin/sh
+#
+# array.sh: array functions
+#
+# $Id: array.sh.in 862 2009-02-19 08:54:21Z enki $
+@DEBUG_FALSE@test $lib_array_sh || {
+
+#EXPORT=array array_new array_delete array_clear array_empty array_length array_print array_quote array_match array_imatch array_nomatch array_range array_push array_push_unique array_pop array_truncate array_unshift array_shift array_first array_last array_insert array_index array_set array_implode array_explode array_isin array_search array_remove array_except array_order array_sort array_subst array_for_each array_clean array_sed array_grep
+#REQUIRE=
+
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# -------------------------------------------------------------------------
+. $shlibdir/util.sh
+. $shlibdir/std/var.sh
+
+# -------------------------------------------------------------------------
+ARRAY_s="
+"                              # newline is the array separator
+ARRAY_split="
+"                              # <space><tab><nl> are default splitting
+                               # characters while exploding
+ARRAY_nn="need an array name"  # error msg when no list name is supplied
+ARRAY_ni="need a valid index"  # error msg when no valid index is supplied
+ARRAY_nv="need a value"        # error msg when no value is supplied
+
+# array [items...]
+#
+# output arguments as an array, one argument per line.
+# an array item cannot contain ${ARRAY_s} (it'll be converted to a space).
+#
+# this function is mainly used internally for assembling parameters to lists.
+# -------------------------------------------------------------------------
+array()
+{
+  local IFS="$ARRAY_s"
+  echo "$*"
+}
+
+# array_new <name> [items]...
+#
+# initialize a variable for use as an array
+# -------------------------------------------------------------------------
+array_new()
+{
+  local IFS="$ARRAY_s" n="${1:?${ARRAY_nn}}"
+  shift
+  var_set "$n" "$*"
+}
+
+# completely destroy an array
+#
+# array_delete <name>
+# -------------------------------------------------------------------------
+array_delete()
+{
+  var_unset "${1:?${ARRAY_nn}}"
+}
+
+# only clear an array
+#
+# array_clear <name>
+# -------------------------------------------------------------------------
+array_clear()
+{
+  var_set "${1:?${ARRAY_nn}}" ""
+}
+
+# array_empty <name>
+# -------------------------------------------------------------------------
+array_empty()
+{
+  eval "test -z \"\${$1}\""
+}
+
+# get the size of an array
+#
+# array_length <name>
+# -------------------------------------------------------------------------
+array_length()
+{
+  local IFS="$ARRAY_s"
+  eval set -- '${'${1:?${ARRAY_nn}}'}'
+  echo $#
+}
+
+# print an array, one item per line
+#
+# array_print <name>
+# -------------------------------------------------------------------------
+array_print()
+{
+  local IFS="$ARRAY_s"
+  eval set -- '${'${1:?${ARRAY_nn}}'}'
+  IFS=$newline
+  echo "$*"
+}
+
+# Print an array, each item in its quotes.
+#
+# array_quote <name>
+# -------------------------------------------------------------------------
+array_quote()
+{
+  local IFS="$ARRAY_s" e
+
+  eval for e in '${'${1:?$ARRAY_nn}'};' \
+  do \
+    str_quote '"$e";' \
+  done
+}
+
+# print matching entries from an array, one item per line
+#
+# array_match <name> <mask>
+# -------------------------------------------------------------------------
+array_match()
+{
+  local IFS="$ARRAY_s" item
+
+  for item in `var_get "${1:?${ARRAY_nn}}"`; do
+    case "$item" in
+      $2) echo "$item" && return 0 ;;
+      *) return 1 ;;
+    esac
+  done
+}
+
+array_imatch()
+{
+  array_match "$1" "`str_tolower "$2"`"
+}
+# print NOT matching entries from an array, one item per line
+#
+# array_nomatch <name> <mask>
+# -------------------------------------------------------------------------
+array_nomatch()
+{
+  local IFS="$ARRAY_s"
+  local item
+  for item in `var_get "${1:?${ARRAY_nn}}"`; do
+    case "$item" in
+      $2) ;;
+      *) echo "$item" ;;
+    esac
+  done
+}
+
+# output a range of items
+#
+# array_range <name> <start> [end]
+# -------------------------------------------------------------------------
+array_range()
+{
+  local IFS="$ARRAY_s"
+  local name="${1:?${ARRAY_nn}}"
+  local start="${2:?${ARRAY_ni}}" end="${3:-`array_length ${name}`}"
+  local count=0
+
+  # loop through array items
+  for item in `var_get "$name"`
+  do
+    # within range? if so, then output
+    if test $((count)) -ge $((start)) && test $((count)) -lt $((end))
+    then
+      echo "$item"
+    fi
+    : $((++count))
+  done
+}
+
+# array_push <name> <fields...>
+#
+# append one or more items to an array
+# -------------------------------------------------------------------------
+array_push()
+{
+  local IFS="$ARRAY_s" n=${1:?$ARRAY_nn}
+  shift
+  eval $n='"${'$n':+$'$n'$ARRAY_s}$*"'
+}
+
+array_push_unique()
+{
+  local IFS="$ARRAY_s" name="${1:?${ARRAY_nn}}" item n=0
+  shift
+  for item; do
+    if ! array_isin "$name" "$item"; then
+      array_push "$name" "$item"
+    else
+      : $((n++))
+    fi
+  done
+  return $n
+}
+
+# array_pop <name> <var>
+# -------------------------------------------------------------------------
+array_pop()
+{
+  local IFS="$ARRAY_s" n=$1 v=$2
+
+  eval 'set -- ${'$n'}'
+
+  if test -n "$v"
+  then
+    eval $v='${'$#'}'
+  fi
+  eval $n='${'$n'%$ARRAY_s*}'
+}
+
+# truncate an array to the specified size <n>
+#
+# if <n> is negative, then <n> trailing items are removed
+#
+# array_truncate <name> <n>
+# -------------------------------------------------------------------------
+array_truncate()
+{
+  local IFS="$ARRAY_s"
+  local name="${1:?${ARRAY_nn}}" n="${2:?need new array size}"
+
+  # handle negative size
+  if test $((n)) -lt 0; then
+    n=$((`array_length "$name"` + n))
+  fi
+
+  var_set "$name" "`array_range "$name" 0 $n`"
+}
+
+# prepend one or more items to an array
+#
+# array_unshift <name> [fields]
+# -------------------------------------------------------------------------
+array_unshift()
+{
+  local IFS="$ARRAY_s"
+  local name="${1:?${ARRAY_nn}}"
+  shift
+  set -- "$@" `var_get "$name"`
+  var_set "$name" "$*"
+}
+
+# remove one or more items from the beginning of an array
+#
+# array_shift <name> [number]
+# -------------------------------------------------------------------------
+array_shift()
+{
+  local IFS="$ARRAY_s"
+  local name="${1:?${ARRAY_nn}}" count="${2:-1}"
+  #shift 2
+  set -- `var_get "$name"`
+
+  # shift if count greater than 0
+  while test $((count)) -gt 0; do
+    echo "$1"
+    shift
+    : $((count--))
+  done
+
+  var_set "$name" "`array "$@"`"
+}
+
+# -------------------------------------------------------------------------
+array_first()
+{
+  local IFS="$ARRAY_s" __n=${1:?$ARRAY_nn}
+  eval set -- '${'$__n'}'
+  echo "$1"
+}
+
+# -------------------------------------------------------------------------
+array_last()
+{
+  local IFS="$ARRAY_s" __n=${1:?$ARRAY_nn}
+  eval set -- '${'$__n'}'
+  eval echo '"${'$#'}"'
+}
+
+# array_insert <name> <position> [fields]
+#
+# insert one or more items to an array
+# -------------------------------------------------------------------------
+array_insert()
+{
+  local IFS="$ARRAY_s"
+  local name="${1:?${ARRAY_nn}}" item insert count=0
+
+  # get realistic position
+  #local pos="$(clamp ${2-0} 0 `array_length $1`)"
+  local pos="${2:?${ARRAY_ni}}"
+
+  # items to be inserted
+  shift 2; insert="`array "${@?${ARRAY_nv}}"`"; set --
+
+  # loop through present array
+  for item in `var_get "$name"`
+  do
+    # now we're at the wanted position, so lets insert
+    if [ ${count} = ${pos} ]; then
+      set -- "$@" ${insert}
+    fi
+
+    # add items from present array
+    set -- "$@" ${item}
+
+    count=$((count + 1))
+  done
+
+  # doh, array_push would be faster
+  if test $((count)) = $((pos)); then
+    set -- "$@" ${insert}
+  fi
+
+  # set new array value
+  var_set "$name" "`array "$@"`"
+}
+
+# array_index <array-name> <index>
+#
+# index an item from an array
+# -------------------------------------------------------------------------
+array_index()
+{
+  local IFS="$ARRAY_s" __index=$2
+  eval set -- '${'${1:?${ARRAY_nn}}'}'
+  eval echo '${'$((__index+1))'}'
+}
+
+# array_set <name> <position> <value>
+#
+# set the value of an item inside the list
+# -------------------------------------------------------------------------
+array_set()
+{
+  local IFS="$ARRAY_s"
+  local name="${1:?${ARRAY_nn}}"
+  local pos="${2:?${ARRAY_ni}}"
+  local value="${3?${ARRAY_nv}}"
+  local item count=0
+
+  set --
+
+  # loop through present array
+  for item in `var_get "$name"`
+  do
+    # now we're at the wanted position, so lets replace
+    if test $((count)) = $((pos)); then
+      set -- "$@" "$value"
+    else
+      set -- "$@" "$item"
+    fi
+
+    count=$((count + 1))
+  done
+
+  # set new array value
+  var_set "$name" "`array "$@"`"
+}
+
+# array_implode <name> [separator]
+#
+# Implode an array to a flat string. If no separator is supplied, a space (' ')
+# is assumed.
+# -------------------------------------------------------------------------
+array_implode()
+{
+  local IFS="$ARRAY_s"
+  local name="${1:?${ARRAY_nn}}"
+  local separator="${2- }"
+  local out="" item count=0
+
+  for item in `var_get "$name"`; do
+    # add separator if it isn't the first item
+    if [ "$count" -gt 0 ]; then
+      out="${out}${separator}"
+    fi
+
+    # concatenate item
+    out="${out}${item}"
+
+    count=$((count + 1))
+  done
+
+  echo "$out"
+}
+
+# array_explode <name> <string> [separators]
+#
+# Explode a flat string to an array.
+# If no separators are supplied, space, tab and nl are assumed.
+#
+# -------------------------------------------------------------------------
+array_explode()
+{
+  local IFS="${3-${ARRAY_split}}"
+  local name="${1:?${ARRAY_nn}}"
+  local value="${2-${ARRAY_nv}}"
+  array_new "$name" ${value}
+}
+
+# returns true if one of the specified items is in the array
+#
+# array_isin <name> <items>...
+# -------------------------------------------------------------------------
+array_isin()
+{
+  local IFS="$ARRAY_s"
+  local name="${1:?${ARRAY_nn}}"
+  local item check
+
+  shift
+
+  for item in `var_get "$name"`
+  do
+    for check in "$@"
+    do
+      if [ "$item" = "$check" ]; then
+        return 0
+      fi
+    done
+  done
+
+  return 1
+}
+
+# outputs index of the searched item or nothing if not found
+# returns 0 if found, 1 if not
+#
+# array_search <name> <item>
+# -------------------------------------------------------------------------
+array_search()
+{
+  local IFS="$ARRAY_s"
+  local name="${1:?${ARRAY_nn}}"
+  local item check count=0
+
+  shift
+
+  for item in `var_get "$name"`; do
+    if [ "$item" = "$1" ]; then
+      echo $((count))
+      return 0
+    fi
+    count=$((count + 1))
+  done
+
+  return 1
+}
+
+# removes an item from an array
+# returns 0 if found and removed, 1 if not
+#
+# array_remove <name> <item>
+# -------------------------------------------------------------------------
+array_remove()
+{
+  local IFS="$ARRAY_s"
+  local name="${1:?${ARRAY_nn}}"
+  shift
+  local remove="$*" check ret=1
+
+  set --
+
+  for item in `var_get "$name"`; do
+    if #test "$ret" = "1" &&
+      array_isin remove "$item"; then
+      ret=0
+    else
+      set -- "$@" "$item"
+    fi
+  done
+
+  var_set "$name" "`array "$@"`"
+  return $((ret))
+}
+
+# array_except <name> [items...]
+# -------------------------------------------------------------------------
+array_except()
+{
+  local IFS="$ARRAY_s"
+  local name="${1:?${ARRAY_nn}}"
+  local item
+
+  shift
+  local except=`array "$@"`
+
+  for item in `var_get "$name"`; do
+    if ! array_isin 'except' "$item"; then
+      echo "$item"
+    fi
+  done
+}
+
+# array_order <name> [masks...]
+# -------------------------------------------------------------------------
+array_order()
+{
+  local name="${1:?${ARRAY_nn}}"
+  local IFS="$ARRAY_s"
+  local mask match
+  local pos=0
+
+  shift
+
+  for mask; do
+    local matches=`array_match "$name" "$mask"`
+    for match in $matches; do
+      array_remove "$name" "$match"
+      array_insert "$name" "$pos" "$match"
+      pos=$((pos + 1))
+    done
+  done
+}
+
+# array_sort <name>
+# -------------------------------------------------------------------------
+array_sort()
+{
+  local name="${1:?${ARRAY_nn}}"
+  local IFS="$ARRAY_s"
+  shift
+
+  var_set "$name" "`var_get "$name" | sort "$@"`"
+}
+
+# array_subst <name> <from> <to>
+# -------------------------------------------------------------------------
+array_subst()
+{
+  local IFS="$ARRAY_s"
+  var_set "$1" "`array_print "$1" | sed -e "s°$2°$3°$4"`"
+}
+
+# for_each <array-name> <commands>
+#
+# Executes a list of commands for every element in the array. The question
+# mark serves as a placeholder for the value of the current element during
+# iteration.
+# -------------------------------------------------------------------------
+array_for_each()
+{
+  local IFS="$ARRAY_s" array_n=${1:?$ARRAY_nn} array_e=
+
+  shift
+  eval \
+ 'for array_e in ${'$array_n'}
+  do
+    '`echo "$*" | sed 's,?,${array_e},g'`'
+  done'
+}
+
+# array_clean <array-name> [chars]
+#
+# -------------------------------------------------------------------------
+array_clean()
+{
+  local IFS="$ARRAY_s" array_n=${1:?$ARRAY_nn}
+
+  var_set "$array_n" \
+    `for_each "$array_n" 'IFS="'${2-'$space$nl$tabstop'}'" && echo ?'`
+}
+
+# -------------------------------------------------------------------------
+array_sed()
+{
+  local IFS="$ARRAY_s" array_n=${1:?$ARRAY_nn}
+
+  shift
+  array_print "$array_n" | sed "$@"
+}
+
+# -------------------------------------------------------------------------
+array_grep()
+{
+  local IFS="$ARRAY_s" array_n=${1:?$ARRAY_nn} array_a=
+
+  shift
+
+  case $1 in
+    -*) array_a=$1 && shift ;;
+  esac
+
+  array_print "$array_n" | (IFS="|" && egrep $array_a "($*)")
+}
+
+# --- eof ---------------------------------------------------------------------
+@DEBUG_FALSE@lib_array_sh=:;}

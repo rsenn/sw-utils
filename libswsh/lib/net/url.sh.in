@@ -1,0 +1,264 @@
+#!/bin/sh
+#
+# net/url.sh: URL functions
+#
+# $Id: util.sh.in 560 2008-08-22 02:19:03Z enki $
+
+# Set any directory variable needed and not yet set
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# is_url <string>
+# ---------------------------------------------------------------------------
+is_url()
+{
+  case $1 in
+    *://*) ;;
+    *) return 1 ;;
+  esac
+
+  return 0
+}
+
+# url_proto <url>
+# ---------------------------------------------------------------------------
+url_proto()
+{
+  echo "${1%%://*}"
+}
+
+# url_obj <url>
+# ---------------------------------------------------------------------------
+url_obj()
+{
+  local url="$1" temp="$1" proto user pass host port path
+
+  submatch temp \
+      proto='%%://*'  temp='#*://' \
+      host='%%/*'     temp='#*/' \
+      user='host%%@*' host='host#*@' \
+      pass='user#*:'  user='user%%:*' \
+      port='host##*:' port='port%:*' \
+      location='blah'
+
+  obj proto="$proto" \
+      user="$user" \
+      pass="$pass" \
+      host="$host" \
+      port="$port" \
+      path="$path"
+}
+
+# is_local <url/path>
+# ---------------------------------------------------------------------------
+is_local()
+{
+  if is_url "$1"; then
+    [ "`url_proto "$1"`" = "file" ]
+  else
+    return 0
+  fi
+}
+
+# is_scm <url>
+# ---------------------------------------------------------------------------
+is_scm()
+{
+  is_url "$1" && case $1 in
+    svn*://* | git*://* | hg*://*) return 0 ;;
+  esac
+  return 1
+}
+
+# url_get <url> <what>
+# ---------------------------------------------------------------------------
+url_get()
+(
+  URL="$1"
+
+  case "$2" in
+    proto)
+      URL=${URL%%://*}
+    ;;
+    host)
+      URL=${URL#*://}
+      URL=${URL%%/*}
+      URL=${URL##*@}
+      URL=${URL%%:*}
+    ;;
+    user)
+      URL=${URL#*://}
+      URL=${URL%%/*}
+
+      [ "${URL%%[@:]*}" = "$URL" ] && return 1
+
+      URL=${URL%%[@:]*}
+    ;;
+    pass)
+      URL=${URL#*://}
+      URL=${URL%%/*}
+    
+      [ "${URL%%@*}" = "$URL" ] && return 1
+      URL=${URL%%@*}
+
+      [ "${URL#*:}" = "$URL" ] && return 1
+      URL=${URL#*:}
+    ;;
+    path|location)
+      URL=${URL#*://}
+      URL=/${URL#*/}
+      URL=${URL%%'?'*}
+    ;;
+  esac
+ 
+  echo "$URL"
+)
+
+# url_download <url> [destdir-or-file] [destdir]
+# ---------------------------------------------------------------------------
+url_download()
+{
+ (URL="$1"
+
+  msg url_download "$@"
+
+  if [ -d "$2/" ]; then
+    DEST="$2" 
+    FILE="${URL##*/}"
+
+  elif [ -n "$2" ]; then
+    DEST="${2%/*}" 
+    FILE="${2##*/}"
+  else
+    DEST="." 
+    FILE="${URL##*/}"
+  fi
+
+  set --
+
+  case $URL in
+    https://*) set -- "$@" --no-check-certificate ;;
+    ftp://*) set -- "$@" --passive-ftp ;;
+  esac
+
+  [ -e "$DEST/$FILE" ] && msg "Removing destination $DEST/$FILE" && rm -rf "$DEST/$FILE"
+  #if [ -d "${3:-$DEST}" -a "${3:-$DEST}" != "." ]; then
+  #  rm -rf "${3:-$DEST}"
+  #fi
+
+  case $FILE in
+    *:*)
+      FILE=${FILE##*:}
+      URL=${URL%:*}
+    ;;
+  esac
+
+  case $URL in
+    git*://*) 
+    (mkdir -p "${3:-$DEST}" && cd "${3:-$DEST}" && git clone "$URL" 1>&2)
+    ;;
+
+    svn+http*://*) 
+      svn export "${URL#svn+}" "${3:-$DEST}"
+    ;;
+
+    svn*://*) 
+      svn export "$URL" "${3:-$DEST}"
+    ;;
+
+    *)
+      set -- "$@" \
+        --timeout=60 \
+        --waitretry=1 \
+        --no-directories \
+        --directory-prefix="$DIR"
+
+     
+     #if [ "$FILE" != "${URL##*/}" ]; then
+       set -- "$@" -O "$DEST/$FILE"
+#     else
+#       set -- "$@" --save-headers --content-disposition
+     #fi
+
+     if ! (cd "${DIR:-.}" && wget "$@" "$URL"); then
+       rm -f "$DIR/$FILE"
+       return 1
+     fi
+
+   ;;
+ esac)
+}
+
+# url_encode_args key[=value] [key[=value]]....
+# ---------------------------------------------------------------------------
+url_encode_args()
+{
+ (unset OUTPUT
+  
+  for ARG; do
+    echo "${ARG#*=}"
+  done | url_encode_stream | {
+    while read VALUE; do
+      OUTPUT="${OUTPUT+$OUTPUT&}${1%%=*}=$VALUE"
+      shift
+    done
+    echo "$OUTPUT"
+  })
+}
+
+
+# ---------------------------------------------------------------------------
+url_encode_stream()
+{
+ (encode_eol=
+  [ "$1" = "-l" ] && encode_eol=yes
+  awk '
+      BEGIN {
+      # We assume an awk implementation that is just plain dumb.
+      # We will convert an character to its ASCII value with the
+      # table ord[], and produce two-digit hexadecimal output
+      # without the printf("%02X") feature.
+      EOL = "%0A"    # "end of line" string (encoded)
+      split ("1 2 3 4 5 6 7 8 9 A B C D E F", hextab, " ")
+      hextab [0] = 0
+      for ( i=1; i<=255; ++i ) ord [ sprintf ("%c", i) "" ] = i + 0
+      if ("'"$encode_eol"'" == "yes") encode_eol = 1; else encode_eol = 0
+      previous_line = ""
+      }
+      {
+      encoded = ""
+      for ( i=1; i<=length ($0); ++i ) {
+          c = substr ($0, i, 1)
+          if ( c ~ /[a-zA-Z0-9.-]/ ) {
+          encoded = encoded c    # safe character
+          } else if ( c == " " ) {
+          encoded = encoded "+"  # special handling
+          } else {
+          # unsafe character, encode it as a two-digit hex-number
+          lo = ord [c] % 16
+          hi = int (ord [c] / 16);
+          encoded = encoded "%" hextab [hi] hextab [lo]
+          }
+      }
+      # Prints the line encoded in the previous Awk-iteration, so
+      # to avoid printing an EOL at the end of the file.
+      if ( NR > 1 ) {
+        if ( encode_eol ) {
+            printf ("%s", previous_line EOL)
+        } else {
+            print previous_line
+        }
+      }
+      previous_line = encoded
+      }
+    
+      END {
+      print previous_line
+        #if ( encode_eol ) print ""
+      }
+  ')
+}
+# ---[ EOF ]-------------------------------------------------------------------

@@ -1,0 +1,92 @@
+#!/bin/sh
+#
+# distrib/gentoo.sh: Gentoo based distribution detection.
+#
+# $Id: gentoo.sh.in 730 2008-10-02 05:56:12Z enki $
+# ------------------------------------------------------------------------- 
+test $lib_distrib_gentoo_sh || {
+
+: ${prefix:="@prefix@"}
+: ${sysconfdir:="@sysconfdir@"}
+
+# is_gentoo [gentoo-release-file]
+#
+# Checks whether the underlying distribution is a Gentoo based one.
+# ---------------------------------------------------------------------------
+is_gentoo()
+{
+  local rf=`gentoo_relfile "$@"`
+
+  test -r "$rf" &&
+  case "${rf##*/}" in
+    *-release) return 0 ;;
+  esac
+  return 1
+}
+
+# gentoo_relfile [gentoo-release-file]
+#
+# Prints the gentoo release file name.
+# ---------------------------------------------------------------------------
+gentoo_relfile()
+{
+  echo "${@-$ROOT/etc/gentoo-release}"
+}
+
+# gentoo_release [gentoo-release-file]
+#
+# Reads information from a gentoo release file (/etc/gentoo-release).
+# ---------------------------------------------------------------------------
+gentoo_release() 
+{
+  local rf=`gentoo_relfile "$@"` IFS="="
+
+  if test -r "$rf"
+  then
+   (IFS="
+ "  release=`<$rf`
+    case $release in
+      *' '*' 'release' '*)
+        set -- $release
+        id=
+        while test "$#" -gt 2
+        do
+          id="${id:+$id }$1"
+          shift
+        done
+        case $id in
+          *' '*) echo "id=\"$id\"" ;;
+              *) echo "id=$id" ;;
+        esac
+        if test "$1" = release
+        then
+          echo "release=$2"
+        fi
+        ;;
+    esac)
+  else
+    errormsg "Cannot read $rf"
+  fi
+}
+
+# gentoo_pkgmgr
+#
+# The kind of package manager used by Gentoo based distributions.
+# ---------------------------------------------------------------------------
+gentoo_pkgmgr()
+{
+  echo 'emerge'
+}
+
+# gentoo_distfiles
+#
+# Print a list of the distfiles repository (source package downloads)
+# ---------------------------------------------------------------------------
+gentoo_distfiles()
+{
+  www_links "http://distfiles.gentoo.org/distfiles/" |
+  command grep '/distfiles/[^.]'
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_distrib_gentoo_sh=:;}

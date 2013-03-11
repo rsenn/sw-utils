@@ -1,0 +1,146 @@
+# $Id: curl.sh.in 507 2008-08-11 23:55:36Z enki $
+#
+# curl.sh: curl HTTP/FTP implementation
+#
+# -------------------------------------------------------------------------
+test $lib_net_www_curl_sh || {
+
+# default values for required directories
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# dependencies
+# -------------------------------------------------------------------------
+. $shlibdir/util.sh
+. $shlibdir/std/var.sh
+. $shlibdir/std/str.sh
+. $shlibdir/compat/declare.sh
+
+# curl related global variables
+# -------------------------------------------------------------------------
+: ${CURL:="curl"}
+
+CURL_OPTIONS="timeout,data,user,passwd,secure,location,silent,form,header"
+
+# have_curl
+# -------------------------------------------------------------------------
+have_curl()
+{
+  if $CURL --help; test "$?" = 2; then
+    return 0
+  fi
+  return 1
+}
+
+# curl_set [option=[value]]
+# -------------------------------------------------------------------------
+curl_set()
+{
+  if [ "$#" -gt 0 ]; then
+    for CURL_OPT; do
+     var_set "CURL_${CURL_OPT%%=*}" "${CURL_OPT#*=}"
+  #    declare CURL_${CURL_OPT%%=*}="${CURL_OPT#*=}"
+    done
+  else
+   (IFS=","
+    for OPTION in $CURL_OPTIONS; do
+      VALUE=`var_get "CURL_${OPTION}"`
+      if test -n "$VALUE"; then
+        echo $OPTION=`str_quote "$VALUE"`
+      fi
+    done)
+  fi
+}
+
+# curl_options [temporary-option=[temporary-value]]
+# -------------------------------------------------------------------------
+curl_options()
+{
+ (if [ "$#" -gt 0 ]; then
+    curl_set "$@"
+  fi
+
+  IFS="
+"
+  set --
+
+  test -n "$CURL_timeout" && set -- "$@" --connect-timeout "$CURL_timeout" 
+  test -n "$CURL_data" && set -- "$@" --data "$CURL_data"
+  test -n "$CURL_user" && set -- "$@" --user "$CURL_user${CURL_passwd+:$CURL_passwd}"
+
+#  test -n "$CURL_header" && for HEADER in $CURL_header; do set -- "$@" --header "$HEADER"; done
+  test -n "$CURL_dump_header" && set -- "$@" --dump-header "$CURL_dump_header"
+  test -n "$CURL_head" && set -- "$@" --head "$CURL_head"
+  test -n "$CURL_agent" && set -- "$@" --user-agent "$CURL_agent"
+
+  is_true "$CURL_secure" || set -- "$@" --insecure
+  is_true "$CURL_location" && set -- "$@" --location
+  is_true "$CURL_progress" || set -- "$@" --silent
+  is_true "$CURL_include" && set -- "$@" --include
+  
+  if test -n "$CURL_form"; then
+    for VALUE in $CURL_form; do
+      set -- "$@" --form "$VALUE"
+    done
+  fi
+
+  if test -n "$CURL_header"; then
+    for VALUE in $CURL_header; do
+      set -- "$@" --header "$VALUE"
+    done
+  fi
+
+  if test -n "$__data_urlencode"; then
+    for VALUE in $__data_urlencode; do
+      set -- "$@" --data-urlencode "$VALUE"
+    done
+  fi
+
+  echo "$*")  
+}
+
+# curl_get [options] <url>
+# -------------------------------------------------------------------------
+curl_get()
+{
+ (OPTIONS= URL= IFS="
+"
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      *://*=*) URL="$1" ;;
+      *=*) pushv OPTIONS "$1" ;;
+      *) URL="$1" ;;
+    esac
+    shift
+  done
+
+  is_true "$CURL_debug" && msg curl_get $OPTIONS "$URL"
+
+  $CURL `curl_options $OPTIONS` "$URL")
+}
+
+# curl_head [options] <url>
+# -------------------------------------------------------------------------
+curl_head()
+{
+  curl_get head=true "$@"
+}
+
+
+# curl_location [options] <url>
+# -------------------------------------------------------------------------
+curl_location()
+{
+ (LOCATION=`curl_head "$@" | info_get "Location"`
+
+  if [ "$LOCATION" ]; then
+    echo "$LOCATION"
+  else
+    exit 1
+  fi)
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_net_www_curl_sh=:;}

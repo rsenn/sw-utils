@@ -1,0 +1,48 @@
+#!/bin/sh
+. @prefix@/etc/pkgmk.conf
+
+if [ -z "$1" ] || [ ! -d "$1" ]; then
+  echo "$0 <directory>"
+  exit 1
+fi
+
+get_filename() {
+        local FILE="`echo $1 | sed 's|^.*://.*/||g'`"
+
+        if [ "$FILE" != "$1" ]; then
+                FILE="$PKGMK_SOURCE_DIR/$FILE"
+        fi
+
+        echo $FILE
+}
+
+for cat in $PKGMK_PORTS_DIR/*; do
+
+  if [ "$cat" = "$PKGMK_PORTS_DIR/CVS" ]; then
+    continue
+  fi
+
+  for pkg in $cat/*; do
+    if [ "$pkg" = "$cat/CVS" ]; then
+      continue
+    fi
+
+    if [ ! -f "$pkg/Pkgfile" ]; then
+		  continue
+		fi
+
+    source $pkg/Pkgfile || break 3
+
+    for FILE in ${source[@]}; do
+ 
+      LFILE=$(get_filename $FILE)
+
+      if [ "$FILE" != "$LFILE" ]; then
+        echo $LFILE
+      fi
+    done
+  done
+done | sort -u | while read src
+do
+  cp -v "$src" "$1" || break
+done

@@ -1,0 +1,170 @@
+# $Id: sed.sh.in 761 2008-10-09 06:23:35Z enki $
+#
+# utils/sed.sh: wrapper functions for sed
+# -------------------------------------------------------------------------
+test $lib_sed_sh || {
+
+: ${prefix:="@prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/util.sh
+
+sed_s='°'     # expression separator
+sed_lbl=0x0000
+
+# sed_compile [expression list...]
+# -------------------------------------------------------------------------
+sed_compile()
+{
+ (IFS="
+";for expr; do
+    eval sed_emit_${expr%% *} "${expr#* }"
+  done)
+}
+
+# sed_label [base]
+# -------------------------------------------------------------------------
+sed_label()
+{
+  sed_lbl=$(printf "%04x\n" $(( ($sed_lbl + 1) & 0xffff )))
+  echo "${1-lbl}$sed_lbl"
+}
+
+# sed_expr - Expression composition library.
+#
+# =============================================================================
+
+# sed_emit_subst <expr> <replacement> [flags]
+#
+#
+# -------------------------------------------------------------------------
+sed_emit_subst()
+{
+  echo "s$sed_s$1$sed_s$2$sed_s$3"
+}
+
+# sed_emit_label <name>
+# -------------------------------------------------------------------------
+sed_emit_label()
+{
+  sed_label >/dev/null
+
+  echo ":${1-lbl}$sed_lbl;"
+}
+
+# sed_emit_branch <label>
+# -------------------------------------------------------------------------
+sed_emit_branch()
+{
+  echo "b $1;"
+}
+
+# sed_emit_while <expr> [exec] [flags]
+#
+# generates a match expression from <expr> and a loop which executes
+# the instructions in <exec> as long as the expression is true.
+# the instructions default to 'n' which discards the pattern space and fetches
+# a new line each iteration.
+# -------------------------------------------------------------------------
+sed_emit_while()
+{
+ (lbl=`sed_label`
+  sed_emit_label "$lbl"
+  sed_emit_match "$1" "${2-n}; b $lbl" ${3+"$3"})
+}
+
+# sed_emit_match <expr> [exec] [flags]
+# -------------------------------------------------------------------------
+sed_emit_match()
+{
+  echo "\\$sed_s$1$sed_s$3{$2;};"
+}
+
+# sed_emit_nomatch <expr> <exec> [flags]
+# -------------------------------------------------------------------------
+sed_emit_nomatch()
+{
+  echo "\\$sed_s$1$sed_s$3!{$2;};"
+}
+
+# sed_emit_recursive <exec> <flags> <expressions...>
+# -------------------------------------------------------------------------
+sed_emit_recursive()
+{
+  local exec=$1 flags=$2 expr=$3
+  shift 3
+  if [ "$#" -gt 0 ]; then
+    exec=`sed_emit_recursive "$exec" "$flags" "$@"`
+  fi    
+  echo "\\${sed_s}${expr}${sed_s}$flags{$exec;}"
+}
+
+# sed_emit_chain <exec> <flags> <expressions...>
+# -------------------------------------------------------------------------
+sed_emit_chain()
+{
+  local exec=$1 flags=$2 expr=$3
+  shift 3
+  echo "\\${sed_s}${expr}${sed_s}$flags{$exec;}"
+  if [ "$#" -gt 0 ]; then
+    exec=`sed_emit_recursive "$exec" "$flags" "$@"`
+  fi    
+}
+
+# sed_emit_extract <expr>
+# -------------------------------------------------------------------------
+sed_emit_extract()
+{
+  local lb=`sed_label`
+  echo ":$lb;\\${sed_s}.*$1.*${sed_s} {
+    s${sed_s}.*\($1\)\(.*\)${sed_s}\1\n\2${sed_s}
+    P
+    s/^[^\n]*\n//
+    b $lb
+  }"
+}
+
+# sed_silent [options...] [files...]
+# -------------------------------------------------------------------------
+sed_silent()
+{
+  sed -n "$@"
+}
+
+# sed_passthru [options...] [files...]
+# -------------------------------------------------------------------------
+sed_passthru()
+{
+  sed -n "$@"
+}
+
+# sed_extract <expr> [files...]
+# 
+# Extracts partial matches from the input stream.
+# -------------------------------------------------------------------------
+sed_extract()
+{
+  local expr=$1
+  shift
+  sed -n "`sed_emit_extract "$expr"`" "$@"
+}
+
+# sed_escape [extra-expressions]
+# 
+# Escapes a string to match its literal value within an expression.
+# -------------------------------------------------------------------------
+sed_escape()
+{
+ (expr= IFS=';'
+  
+  pushv expr 's/\\/\\\\/g'
+  pushv expr 's/\n/\\n/g'
+  pushv expr 's/\[/\[/g'
+  pushv expr 's/\]/\\\]/g'
+
+  sed -e ":lp;N;\$! b lp;$*;$expr;")
+}
+
+# --- eof ---------------------------------------------------------------------
+@DEBUG_FALSE@lib_sed_sh=:;}

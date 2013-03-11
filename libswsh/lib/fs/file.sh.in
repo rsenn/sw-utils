@@ -1,0 +1,193 @@
+#!/bin/sh
+#
+# file.sh: reading/writing uncompressed/compressed local/remote text files.
+#
+# $Id: file.sh.in 761 2008-10-09 06:23:35Z enki $
+# ---------------------------------------------------------------------------
+test $lib_file_sh || {
+
+: ${prefix:="@prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# ---------------------------------------------------------------------------
+. $shlibdir/util.sh
+. $shlibdir/shell/cmd.sh
+
+# file_read [files-to-read...]
+#
+# Read the content of several (remote) files.
+# ---------------------------------------------------------------------------
+file_read()
+{
+  local arg file host cmd
+
+  for arg; do
+    case $arg in
+      *:*)
+        file="${arg#*:}"
+        host="${arg%%:*}"
+        ;;
+      *)
+        file="$arg"
+        unset host
+        ;;
+    esac
+
+    # Quote the filename.
+    file=`escape_dquote "$file"`
+
+    # Emit the command.
+    cmd="cat \"$file\" 2>/dev/null"
+
+    # Execute the command
+    if ! cmd_exec "$cmd" ${host+"$host"}; then
+      return 1
+    fi
+  done
+}
+
+# file_write [options] <content> [files-to-write...]
+#
+# Write the content of several (remote) files.
+#
+#    -a        Append to file
+# ---------------------------------------------------------------------------
+file_write()
+{
+  local arg file host cmd content opts= redir=">"
+
+  # Get options
+  while [ "$1" != "${1#-}" ]; do
+    case $1 in
+      -a) redir=">>" ;;
+       *) opts="${opts:+$opts }$1" ;;
+    esac
+    shift
+  done
+
+  # Quote the content once.
+  content=`escape_dquote "$1"`
+
+  shift
+
+  # No newline on empty content
+  if test -z "$content"; then
+    opts="-n"
+  fi
+
+  # Process every file.
+  for arg; do
+    case $arg in
+      -*)
+        opts="${opts:+$opts }$arg"
+        ;;
+
+      *:*)
+        file="${arg#*:}"
+        host="${arg%%:*}"
+        ;;
+
+      *)
+        file="${arg}"
+        unset host
+        ;;
+    esac
+
+    # Quote the filename once.
+    file=`escape_dquote "$file"`
+
+    # Then redirect an echo of the content into the target.
+    cmd="echo $opts \"$content\" $redir\"$file\""
+
+    # Remove the file before creating it..
+    if test "$redir" != ">>"
+    then
+      cmd="rm -f \"$file\" && $cmd"
+    fi
+  done
+}
+
+# file_sed <script> [files-to-process...]
+#
+# Run a sed-script on several (remote) files.
+# ---------------------------------------------------------------------------
+file_sed()
+{
+  local arg file host cmd script opts=
+
+  # Get options
+  while [ "$1" != "${1#-}" ]; do
+    case $1 in
+      -a) redir=">>" ;;
+       *) opts="${opts:+$opts }$1" ;;
+    esac
+    shift
+  done
+
+  # Quote the script once.
+  script=`escape_dquote "$1"`
+  shift
+
+  # Process every arg.
+  for arg; do
+    case $arg in
+       -*) opts="${opts:+$opts }${arg}" && continue ;;
+      *:*) host="${arg%%:*}" && file="${arg#$host:}" ;;
+        *) host= && file="$arg" ;;
+    esac
+
+    # Quote the filename once.
+    file=`escape_dquote "$file"`
+
+    # Create the sed command line.
+    cmd="sed -e \"$script\" $opts \"$file\""
+
+    # Execute the command
+    if ! cmd_exec "$cmd" ${host+"$host"}; then
+      return 1
+    fi
+  done
+}
+
+# file_grep [options] <expression> [files-to-process...]
+#
+# Run a sed-script on several (remote) files.
+# ---------------------------------------------------------------------------
+file_grep()
+{
+  local arg file host cmd expr opts=
+
+  # Get options
+  while [ "$1" != "${1#-}" ]; do
+    opts="${opts:+$opts }$1"
+    shift
+  done
+
+  # Quote the expression once.
+  expr=`escape_dquote "$1"`
+  shift
+
+  # Process every arg.
+  for arg; do
+    case $arg in
+       -*) opts="${opts:+$opts }${arg}" && continue ;;
+      *:*) host="${arg%%:*}" && file="${arg#$host:}" ;;
+        *) host= ;;
+    esac
+
+    # Quote the filename once.
+    file=`escape_dquote "$file"`
+
+    # Create the grep command line.
+    cmd="grep $opts \"$expr\" \"$file\""
+
+    # Execute the command
+    if ! cmd_exec "$cmd" ${host+"$host"}; then
+      return 1
+    fi
+  done
+}
+
+#--- eof ---------------------------------------------------------------------
+lib_file_sh=:;}

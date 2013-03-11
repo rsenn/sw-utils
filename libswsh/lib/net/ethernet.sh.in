@@ -1,0 +1,87 @@
+# -*-mode: shell-script-*-
+#
+# net/ethernet.sh
+#
+# Ethernet address and interface functions
+#
+# $Id: ethernet.sh.in 507 2008-08-11 23:55:36Z enki $
+# ---------------------------------------------------------------------------
+@DEBUG_FALSE@test $lib_net_ethernet_sh || {
+
+# static ethernet related variables
+# -------------------------------------------------------------------------
+hh="[0-9A-Fa-f][0-9A-Fa-f]" &&
+ethernet_mask="$hh:$hh:$hh:$hh:$hh:$hh" &&
+unset -v hh
+
+# ethernet_interfaces
+#
+# Get the list of (ethernet) network interfaces
+# -------------------------------------------------------------------------
+ethernet_interfaces()
+{
+  local proc="/proc/net/dev"
+
+  if test -f "$proc"; then
+    sed -e "{
+      1d
+      2d
+      s,^[ \t]*\(eth.*\):.*,\1,
+    }" "$proc"
+  else
+    ifconfig -a | sed -n -e "/^\$/d" -e "/^[ \t]\+/! {
+      s,[ \t:]\+.*,,
+      p
+    }" | sort -u
+  fi
+}
+
+# ethernet_address [interface]
+#
+# Get the MAC address of the specified ethernet interface.
+# -------------------------------------------------------------------------
+ethernet_address()
+{
+  ifconfig ${1:--a} | sed -n "/HWaddr/ {
+    s/^.*\\($ethernet_mask\\).*\$/\\1/i; p
+  }"
+}
+
+# ethernet_name <address>
+#
+# Get ethernet interface name by MAC address.
+# -------------------------------------------------------------------------
+ethernet_name()
+{
+  ifconfig -a | sed -n "{
+    :lp
+    /\\n\$/! N
+    /\\n\$/ { d; b lp; }
+    /[ \t]HWaddr $1/i { s,[ \t].*,,; p; q; }
+    b lp
+  }"
+}
+
+# ethernet_list
+# -------------------------------------------------------------------------
+ethernet_list()
+{
+  ifconfig -a | sed -n "/HWaddr/ {
+    s/^\([^ ]\+\) \+[^ ].*\($ethernet_mask\)\$/\1 \2/i; p
+  }"
+}
+
+# is_ethernet <address>
+#
+# Is the given argument a valid MAC address?
+# -------------------------------------------------------------------------
+ethernet_valid()
+{
+  case $1 in
+    $ethernet_mask) return 0 ;;
+                 *) return 1 ;;
+  esac
+}
+
+# --- eof ---------------------------------------------------------------------
+@DEBUG_FALSE@lib_net_ethernet_sh=:;}

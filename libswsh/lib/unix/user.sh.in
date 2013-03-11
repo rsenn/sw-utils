@@ -1,0 +1,192 @@
+#!/bin/sh
+#
+# user.sh: user
+#
+# $Id: user.sh.in 586 2008-08-27 03:24:45Z enki $
+# -------------------------------------------------------------------------
+test $lib_user_sh || {
+
+: ${prefix:="@prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/std/array.sh
+
+user_file="/etc/passwd"
+
+# outputs a list of users
+# -------------------------------------------------------------------------
+user_list()
+{
+  sed 's,:.*,,' ${user_file}
+}
+
+# outputs the user names, and in the second column the user realnames
+# -------------------------------------------------------------------------
+user_table()
+{
+  sed "s,:.*:.*:.*:\(.*\):.*:.*, '\1'," ${user_file}
+}
+
+# outputs a list of uids
+# -------------------------------------------------------------------------
+user_uids()
+{
+  sed -n 's,^.*:\([0-9]\+\):[0-9]\+:.*$,\1,p' ${user_file} | sort -n
+}
+
+# gets user name by id
+# -------------------------------------------------------------------------
+user_name()
+{
+  grep "^.*:x:$1:" ${user_file} | sed 's,:.*,,'
+}
+
+# gets group names of a user
+# -------------------------------------------------------------------------
+user_groups()
+{
+  array `id -Gn "$1"`
+}
+
+user_gids()
+{
+  array `id -G "$1"`
+}
+
+# gets effective group of a user
+# -------------------------------------------------------------------------
+user_group()
+{
+  id -gn "$1"
+}
+
+user_gid()
+{
+  id -g "$1"
+}
+
+# checks if a user exists
+# -------------------------------------------------------------------------
+user_exists()
+{
+  grep -q "^$1:" ${user_file}
+}
+
+# checks if a user is available
+# -------------------------------------------------------------------------
+user_avail()
+{
+  setuidgid "$1" true 2>/dev/null
+}
+
+# searches /etc/passwd for users matching the supplied masks
+# -------------------------------------------------------------------------
+user_find()
+{
+  local mask user list=`user_list` IFS="
+"
+  for mask in ${@}
+  do
+    for user in ${list}
+    do
+      case ${user} in
+        *${mask}*)
+          echo ${user}
+          return 0
+          ;;
+      esac
+    done
+  done
+  return 1
+}
+
+# user_lowuid [start]
+#
+# get the lowest available uid starting from start (defaults to 0).
+# -------------------------------------------------------------------------
+user_lowuid()
+{
+  local uid start=${1-0} previous=0 IFS="
+"
+  set -- `user_uids`
+
+  if test $((start - 1)) -ge 0
+  then
+    previous=$((start - 1))
+
+    while test "$1" -lt $((previous))
+    do
+      shift
+    done
+  fi
+
+  for uid
+  do
+    # got available uids between last entry and this one?
+    if test $((previous + 1)) -lt ${uid}
+    then
+      echo $((previous + 1))
+      return 0
+    fi
+
+    previous=${uid}
+  done
+  # did not find an available uid inbetween
+  echo $((uid + 1))
+  return 1
+}
+# user_lowuidgid [start]
+#
+# get the lowest available uid-gid pair
+# -------------------------------------------------------------------------
+user_lowuidgid()
+{
+  local uid previous=0 start=${1-0} IFS="
+"
+  set -- ` { user_uids && group_gids; } | sort -u -n `
+
+  if test $((start - 1)) -ge 0
+  then
+    previous=$((start - 1))
+
+    while test "$1" -lt $((previous))
+    do
+      shift
+    done
+  fi
+
+  for uidgid
+  do
+    # got available uids between last entry and this one?
+    if test $((previous + 1)) -lt $((uidgid))
+    then
+      echo $((previous + 1))
+      return 0
+    fi
+    previous=${uidgid}
+  done
+
+  # did not find an available uid inbetween
+  echo $((uidgid + 1))
+
+  return 1
+}
+
+# adds a new user
+#
+# user_add <user> [group] [home] [shell] [comment]
+# -------------------------------------------------------------------------
+user_add()
+{
+  local uid=`user_lowid`
+  useradd -u "$uid" \
+     ${2:+-g "$2"} \
+     ${3:+-d "$3"} \
+     ${4:+-s "$4"} \
+     ${5:+-c "$5"} \
+     "$1"
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_user_sh=:;}

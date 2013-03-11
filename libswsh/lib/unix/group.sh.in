@@ -1,0 +1,128 @@
+#!/bin/sh
+#
+# group.sh: user group management.
+#
+# $Id: group.sh.in 575 2008-08-26 12:07:20Z enki $
+test $lib_group_sh || {
+
+: ${prefix:="@prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/util.sh
+
+group_file="/etc/group"
+
+# outputs a list of groups
+# -------------------------------------------------------------------------
+group_list()
+{
+  sed 's,:.*,,' ${group_file}
+}
+
+# outputs group table
+# -------------------------------------------------------------------------
+group_table()
+{
+  sed "s,:.*:.*:\(.*\), '\1'," ${group_file}
+}
+
+# outputs a list of gids
+# -------------------------------------------------------------------------
+group_gids()
+{
+  sed -n 's,^[^:]*:[^:]*:\([0-9]\+\):.*$,\1,p' ${group_file} | sort -n
+}
+
+# gets group name by id
+# ----------------------------------------------------------------------------
+group_name()
+{
+  grep "^.*:x:$1:" ${group_file} | sed 's,:.*,,'
+}
+
+# checks if a group exists
+# -------------------------------------------------------------------------
+group_exists()
+{
+  grep -q "^$1:" ${group_file}
+}
+
+# searches /etc/group for groups matching the supplied masks
+# -------------------------------------------------------------------------
+group_find()
+{
+  local mask group list IFS="$space$tabstop$newline"
+  list=`group_list`
+
+  for mask in ${@}
+  do
+    for group in ${list}
+    do
+      case ${group} in
+        *${mask}*)
+          echo ${group}
+          return 0
+          ;;
+      esac
+    done
+  done
+
+  return 1
+}
+
+# create new group
+# -------------------------------------------------------------------------
+group_add()
+{
+  groupadd "$1"
+}
+
+# get the lowest available gid
+# -------------------------------------------------------------------------
+group_lowgid()
+{
+  local gid start=${1-0} previous=0 IFS="
+"
+  set -- `group_gids`
+
+  if test $((start - 1)) -ge 0
+  then
+    previous=$((start - 1))
+
+    while test "$1" -lt $((previous))
+    do
+      shift
+    done
+  fi
+
+  for gid
+  do
+    # got available gids between last entry and this one?
+    if test $((previous + 1)) -lt $((gid))
+    then
+      echo $((previous + 1))
+      return 0
+    fi
+
+    previous=$((gid))
+  done
+
+  # did not find an available gid inbetween
+  echo $((gid + 1))
+  return 1
+}
+
+# adds a new group
+#
+# group_add <group>
+# -------------------------------------------------------------------------
+group_add()
+{
+  local gid=`group_lowgid`
+
+  groupadd -f -g "$gid" "$1"
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_group_sh=:;}

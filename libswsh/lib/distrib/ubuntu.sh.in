@@ -1,0 +1,64 @@
+#!/bin/sh
+#
+# distrib/ubuntu.sh: Ubuntu distribution detection and handling of distribution-specific things.
+#
+# $Id: ubuntu.sh.in 655 2008-09-12 00:21:46Z enki $
+# ------------------------------------------------------------------------- 
+test $lib_distrib_ubuntu_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/distrib/lsb.sh
+
+# is_ubuntu [ubuntu-release-file]
+#
+# Checks whether the underlying distribution is an Ubuntu. 
+# ---------------------------------------------------------------------------
+is_ubuntu()
+{
+  (IFS="
+" &&
+  eval `lsb_release "$@"` 2>/dev/null &&
+  test "$id" = "Ubuntu")
+}
+
+# ubuntu_relfile [ubuntu-release-file]
+#
+# Print the path to the Ubuntu (LSB) release file.
+# ---------------------------------------------------------------------------
+ubuntu_relfile() 
+{
+  echo "${@-$ROOT/etc/lsb-release}"
+}
+
+# ubuntu_release [ubuntu-release-file]
+#
+# Get Ubuntu release information via the common LSB release information.
+# ---------------------------------------------------------------------------
+ubuntu_release() 
+{
+  lsb_release "$@"
+}
+
+# ubuntu_pkgmgr
+#
+# The kind of package manager used by Ubuntu distributions.
+# ---------------------------------------------------------------------------
+ubuntu_pkgmgr()
+{
+  echo 'dpkg'
+}
+
+# ubuntu_mirrors
+# ---------------------------------------------------------------------------
+ubuntu_mirrors()
+{
+  http_get "https://launchpad.net/ubuntu/+archivemirrors" | 
+  xml_get a href | sed -n '/:\/\/.*\/.*[Uu]buntu/p'
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_distrib_ubuntu_sh=:;}

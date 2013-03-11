@@ -1,0 +1,111 @@
+#!/bin/sh
+#
+# pkgmgr/rpm.sh: rpm package manager abstraction
+#
+# $Id: rpm.sh.in 780 2008-10-23 19:00:16Z enki $
+# -------------------------------------------------------------------------
+@DEBUG_FALSE@test $lib_pkgmgr_rpm_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${localstatedir:="@localstatedir@"}
+: ${rpmlibdir:="@rpmlibdir@"}
+: ${rpminfolibdir:="@rpminfolibdir@"}
+
+# rpm_files <package...>
+#
+# List the files in one or more packages...
+# -------------------------------------------------------------------------
+rpm_files()
+{
+  local pkg arg cmd='rpm -q -l' flt= IFS="
+"
+  case $1 in
+    -p) flt='| sed "s|^|$pkg: |"' && shift ;;
+  esac
+
+  for pkg 
+  do
+    case $pkg in
+      *.rpm) arg='-p "$pkg"' ;;
+          *) arg='"$pkg"' ;;
+    esac
+    eval "$cmd $arg $flt"
+  done
+}
+
+# rpm_list [options...]
+#
+# List all installed packages.
+#
+#    -a    List ALL (known) packages.
+# -------------------------------------------------------------------------
+rpm_list()
+{
+  local flags
+  
+#  case $1 in
+#    -a) flags="[a-z][a-z]" && shift ;;
+#  esac
+
+  rpm -q --all "$@"
+}
+
+# rpm_installed [packages...]
+#
+# Returns true if all the specified packages are installed.
+# -------------------------------------------------------------------------
+rpm_installed()
+{
+  local rpm st
+
+  for rpm
+  do
+    case $rpm in
+      *.rpm) rpm=`rpm -q -p "$rpm" 2>/dev/null` ;;
+    esac
+
+    st=`rpm -q "$rpm" | sed -e '/ is not installed$/d'`
+  
+    test -z "$st" && return 1
+  done
+}
+
+# rpm_info <package>
+# -------------------------------------------------------------------------
+rpm_info()
+{
+  local capn="[A-Z][0-9A-Za-z]\+"
+
+  case $1 in
+    *.rpm) set -- "-p" "$@" ;;
+  esac        
+
+  rpm -q --info "$@" | \
+    sed \
+      -e "/^$capn\( $capn\)\? *:/ {
+            s/^\($capn\)\( $capn\)\? *\?:/\1\2:/
+            s/ \+ \($capn\)\( $capn\)\?:/\n\1\2:/ 
+          }" \
+      -e "/^$capn\( $capn\)\? *:/! {
+            /^--\+$/d
+            s/^/ /
+          }"
+}
+
+# rpm_description <package>
+# -------------------------------------------------------------------------
+rpm_description()
+{
+  local info summary description
+  
+  info=`rpm_info "$@"`
+  summary=`echo "$info" | info_get "Summary"`
+  description=`echo "$info" | info_get "Description" | text_unwrap`
+  
+  str_trim "$summary"
+  str_wrap "$description"
+}
+
+# --- eof ---------------------------------------------------------------------
+@DEBUG_FALSE@lib_pkgmgr_rpm_sh=:;}

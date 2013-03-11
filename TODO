@@ -1,0 +1,132 @@
+- Fix and migrate the pkg* scripts
+
+  Added: 20080420  Completed: incomplete
+  Duration: incomplete  Priority: veryhigh
+
+
+  - Add support for the /etc/pkgmk.d/* host-configurations
+
+    Added: 20080420  Completed: incomplete
+    Duration: incomplete  Priority: veryhigh
+
+
+  - make pkgadd work with different categories and hosts
+
+    Added: 20080420  Completed: incomplete
+    Duration: incomplete  Priority: medium
+
+
+- libswsh - Shell Script Library TODO
+
+  Added: 19700101  Completed: incomplete
+  Duration: incomplete  Priority: high
+
+
+  - Fix the problem in port_create() which breaks initialization of the source=
+    variable in the newly created Pkgfile\
+
+    Added: 20080420  Completed: incomplete
+    Duration: incomplete  Priority: veryhigh
+
+
+  - findutils -wholename is not portable
+
+    Added: 20080804  Completed: incomplete
+    Duration: incomplete  Priority: high
+
+
+  - implement an ask() funktion for user-interaction in util.sh
+
+    Added: 20080802  Completed: incomplete
+    Duration: incomplete  Priority: medium
+
+
+  - possible names could be: stdlibsh stdshlib libstdsh libshstd
+
+    Added: 20080802  Completed: incomplete
+    Duration: incomplete  Priority: medium
+
+
+  - Implement a version sort()
+
+    Added: 20080812  Completed: incomplete
+    Duration: incomplete  Priority: medium
+
+
+  - need a function to calculate broadcast from ip/network/netmask
+
+    Added: 20080812  Completed: incomplete
+    Duration: incomplete  Priority: medium
+
+
+  - web services
+
+    Added: 20080827  Completed: incomplete
+    Duration: incomplete  Priority: medium
+
+
+    - implement a command-line interface to guerillamail.com
+
+      Added: 20080827  Completed: incomplete
+      Duration: incomplete  Priority: medium
+
+
+- Definition issues
+
+  Added: 20080420  Completed: incomplete
+  Duration: incomplete  Priority: high
+
+
+  - pkgmk and the whole portage should always compile with debugging symbols
+
+    Added: 20080420  Completed: incomplete
+    Duration: incomplete  Priority: high
+
+
+- Usability
+
+  Added: 20080420  Completed: incomplete
+  Duration: incomplete  Priority: medium
+
+
+  - packages like daemontools, bash, etc. should provide hooks (shell scripts)
+    which are put into /usr/local/lib/pkgmk and which are able to handle a
+    specific type of function within a package file. (services, completions,
+    etc.)
+
+    Added: 20080420  Completed: incomplete
+    Duration: incomplete  Priority: high
+
+
+  - pkgmk should detect if the package which is to be built was already
+    released. in this case it MUST increment the release number and inform the
+    developer about it.
+
+    Added: 20080420  Completed: incomplete
+    Duration: incomplete  Priority: medium
+
+
+- Abstraction & Data modelling
+
+  Added: 20080420  Completed: incomplete
+  Duration: incomplete  Priority: medium
+
+
+  - a library to operate on shell scripts
+
+    Added: 20080420  Completed: incomplete
+    Duration: incomplete  Priority: high
+
+
+  - write a generic linker/symbol lib...
+
+    Added: 20080420  Completed: incomplete
+    Duration: incomplete  Priority: medium
+
+
+- temporary debug mode and/or compiler flags override using cmdline options
+
+  Added: 20080625  Completed: incomplete
+  Duration: incomplete  Priority: medium
+
+

@@ -1,0 +1,125 @@
+#!/bin/sh
+#
+# crontab.sh: functions for manipulating the crontab
+#
+# $Id: crontab.sh.in 586 2008-08-27 03:24:45Z enki $
+test $lib_crontab_sh || {
+
+: ${prefix:="@prefix@"}
+: ${libdir:="@libdir@"}
+: ${bindir:="@bindir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/std/array.sh
+
+# read crontab of a user
+#
+# crontab_list [user]
+# -------------------------------------------------------------------------
+crontab_list()
+{
+  $bindir/crontab -l $1 | grep -v '^$'
+}
+
+# delete crontab of a user
+#
+# crontab_delete [user]
+# -------------------------------------------------------------------------
+crontab_delete()
+{
+  $bindir/crontab -d $1
+}
+
+# set crontab of a user
+#
+# crontab_set <entries> [user]
+# -------------------------------------------------------------------------
+crontab_set()
+{
+  local IFS="$ifs"
+  echo "${1%${list_separator}}" | $bindir/crontab - ${2:+"-u"} $2
+}
+
+# match entries in the crontab of a user
+#
+# crontab_match <mask> [user]
+# -------------------------------------------------------------------------
+crontab_match()
+{
+  local crontab IFS="$list_separator"
+
+  array_new 'crontab' `crontab_list $2`
+  array_match 'crontab' "$1"
+}
+
+# print not-matching entries from the crontab of a user
+#
+# crontab_nomatch <mask> [user]
+# -------------------------------------------------------------------------
+crontab_nomatch()
+{
+  local crontab IFS="$list_separator"
+
+  array_new 'crontab' `crontab_list $2`
+  array_nomatch 'crontab' "$1"
+}
+
+# add a crontab entry
+#
+# crontab_add <entry> [user]
+# -------------------------------------------------------------------------
+crontab_add()
+{
+  local crontab IFS="$list_separator"
+
+  array_new 'crontab' `crontab_list $2`
+
+  if array_isin 'crontab' "$1"; then
+    return 1
+  fi
+
+  array_push 'crontab' "$1"
+
+  crontab_set "$crontab" $2
+}
+
+# remove a crontab entry
+#
+# crontab_remove <entry> [user]
+# -------------------------------------------------------------------------
+crontab_remove()
+{
+  local index crontab IFS="$list_separator"
+
+  array_new 'crontab' `crontab_list $2`
+
+  if ! array_remove 'crontab' "$1"; then
+    return 1
+  fi
+
+  crontab_set "$crontab" $2
+}
+
+# remove crontab entries (by mask)
+#
+# crontab_remove_matches <mask> [user]
+# -------------------------------------------------------------------------
+crontab_remove_matches()
+{
+  local crontab match IFS="$list_separator" ret=1
+
+  array_new 'crontab' `crontab_list $2`
+
+  for match in `array_match 'crontab' "$1"`
+  do
+    array_remove 'crontab' "$match"
+    ret=0
+  done
+
+  crontab_set "$crontab" $2
+
+  return ${ret}
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_crontab_sh=:;}

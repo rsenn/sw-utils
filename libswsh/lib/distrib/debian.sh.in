@@ -1,0 +1,91 @@
+#!/bin/sh
+#
+# distrib/debian.sh: debian based distribution detection.
+#
+# $Id: debian.sh.in 655 2008-09-12 00:21:46Z enki $
+# ------------------------------------------------------------------------- 
+test $lib_distrib_debian_sh || {
+
+: ${prefix:="@prefix@"}
+: ${sysconfdir:="@sysconfdir@"}
+
+# is_debian [debian-release-file]
+#
+# Checks whether the underlying distribution is a debian based one.
+# ---------------------------------------------------------------------------
+is_debian()
+{
+  local rf=`debian_relfile "$@"`
+
+  test -r "$rf" &&
+  case "${rf##*/}" in
+    *_version) return 0 ;;
+  esac
+  return 1
+}
+
+# debian_relfile [debian-release-file]
+#
+# Prints the debian release file name.
+# ---------------------------------------------------------------------------
+debian_relfile()
+{
+  echo "${@-$ROOT/etc/debian_version}"
+}
+
+# debian_sources
+#
+# Prints all debian package sources
+# ---------------------------------------------------------------------------
+debian_sources()
+{
+  grep -ERh '^[ \t]*deb(|-src)[ \t]' /etc/apt/sources.list{,.d} 2>/dev/null
+}
+
+# debian_codename
+#
+# Prints the codename of the particular debian distribution
+# ---------------------------------------------------------------------------
+debian_codename()
+{
+  debian_sources | 
+  {
+    IFS=" "
+    while read debtype url repository sections; do
+       echo "${repository%%[- ]*}"
+    done | awk '{a[$1]++ } END{for(i in a){print i}}' | head -n1
+  }
+}
+
+# debian_release [debian-release-file]
+#
+# Reads information from a debian release file (/etc/debian_version).
+# ---------------------------------------------------------------------------
+debian_release() 
+{
+  local rf=`debian_relfile "$@"` IFS="="
+
+  if test -r "$rf"
+  then
+   (IFS="
+ "  release=`<$rf`
+    codename=`debian_codename "$@"`
+    echo "id=Debian"
+    echo "release=$release"
+    test -n "$codename" && echo "codename=$codename")
+  else
+    errormsg "Cannot read $rf"
+  fi
+}
+
+# debian_pkgmgr
+#
+# The kind of package manager used by debian based distributions.
+# ---------------------------------------------------------------------------
+debian_pkgmgr()
+{
+  echo 'dpkg'
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_distrib_debian_sh=:;}

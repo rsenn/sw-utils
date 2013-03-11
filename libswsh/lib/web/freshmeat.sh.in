@@ -1,0 +1,348 @@
+# $Id: freshmeat.sh.in 946 2009-04-12 14:54:50Z enki $
+#
+# web/freshmeat.sh: freshmeat.net information retrieval
+#
+# -------------------------------------------------------------------------
+test $lib_web_freshmeat_sh || {
+
+# provide default value for needed directory paths
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${sysconfdir:="@sysconfdir@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+: ${bindir:="@bindir@"}
+: ${localstatedir:="@localstatedir@"}
+
+# source script dependencies
+# -------------------------------------------------------------------------
+. $shlibdir/data/obj.sh
+. $shlibdir/std/str.sh
+. $shlibdir/std/algorithm.sh
+. $shlibdir/net/http.sh
+. $shlibdir/data/xml.sh
+. $shlibdir/data/text.sh
+. $shlibdir/data/html.sh
+
+# set up static variables
+# -------------------------------------------------------------------------
+FRESHMEAT_proto="http"
+FRESHMEAT_host="freshmeat.net"
+FRESHMEAT_project_url="$FRESHMEAT_proto://$FRESHMEAT_host/projects"
+FRESHMEAT_xml= 
+FRESHMEAT_project=
+FRESHMEAT_cachedir="$localstatedir/cache/freshmeat"
+FRESHMEAT_file=
+
+# -------------------------------------------------------------------------
+freshmeat_dump()
+{
+  local page IFS="$nl" name=$1 title=
+
+  page=`lynx \
+    -hiddenlinks=ignore \
+    -stderr \
+    -nobold \
+    -nounderline \
+    -dump \
+    -width=1024 \
+    "$FRESHMEAT_project_url/$1"`
+ 
+  for line in $page; do
+    case $line in
+      *' About:') line=`echo "$line" | sed "s, About:,\n  &,"` ;;
+      *'downloads for '*) title=${line##*'downloads for '} ;;
+
+      '['* | '+'* | '*'*) ;;
+      
+      [0-9A-Za-z]*) 
+        if [ "$title" = "$line" ]; then
+          echo "ok"
+        fi
+        ;;
+    esac
+      
+    echo "$line"
+  done
+  
+  
+#  echo "$page" | text_unwrap
+}
+
+# freshmeat_html <project-name>
+# -------------------------------------------------------------------------
+freshmeat_html()
+{
+  http_get "$FRESHMEAT_host/projects/$1"
+}
+
+# freshmeat_xml <project-name | xml-string>
+# -------------------------------------------------------------------------
+freshmeat_xml()
+{
+ (# pass-through
+  if [ "$1" = - ]; then
+    cat
+    return 0
+  fi
+  
+  # the 1st argument can be a string containing the already downloaded XML
+  if is_xml "$1"; then
+    xml="$1"
+  else
+    xml=`http_get "$FRESHMEAT_host/projects-xml/$1"`
+  fi
+  
+  # if we have valid XML now, we output it
+  if is_xml "$xml"; then
+    echo "$xml"
+  fi)
+}
+
+# creates a new tempfile, possibly deleting the previous one
+# -------------------------------------------------------------------------
+freshmeat_temp()
+{
+  if [ -n "$FRESHMEAT_file" -a -e "$FRESHMEAT_file" ]; then
+    rm -f "$FRESHMEAT_file"
+  fi
+
+  FRESHMEAT_file=`mktemp` 
+}
+
+freshmeat_persist()
+{
+  FRESHMEAT_file="$FRESHMEAT_cachedir/$1.xml"
+
+  if [ ! -d "$FRESHMEAT_cachedir" ]; then
+    mkdir -p "$FRESHMEAT_cachedir"
+  fi
+}
+
+# when the project changed it caches the XML in a newly created temporary
+# file which will be returned in $FRESHMEAT_file.
+# -------------------------------------------------------------------------
+freshmeat_cache()
+{
+  if [ "$FRESHMEAT_project" != "$1" -o ! -s "$FRESHMEAT_file" ]; then
+    FRESHMEAT_project="$1"
+    
+    freshmeat_persist "$1"
+  
+    msg "cache file: $FRESHMEAT_file"
+
+    if ! freshmeat_html >$FRESHMEAT_file "$1"; then
+      rm -f "$FRESHMEAT_file"
+      unset FRESHMEAT_file
+    fi 
+    
+  fi
+  [ -n "$FRESHMEAT_file" -a -s "$FRESHMEAT_file" ]
+}
+
+# freshmeat_description <project-name> [short|full]
+# -------------------------------------------------------------------------
+freshmeat_description()
+{
+ (unset SHORT_DESC FULL_DESC
+  case $2 in
+    "" | full)
+      FULL_DESC=`
+        freshmeat_html "$1" |
+        xml_get "div class=.*project-detail." |
+        xml_get "p" |
+        text_unwrap
+      `
+    ;;
+  esac
+  case $2 in
+    "" | short)
+      INFO_URL=`freshmeat_url "$1" info`
+      SHORT_DESC=`
+        http_get "$INFO_URL" |
+        xml_get "dd" | 
+        sed -n -e "s/.*>Description[^:]*: //p"
+      `
+    ;;
+  esac
+  echo "${SHORT_DESC+$SHORT_DESC
+}$FULL_DESC")
+}
+
+# freshmeat_get <project-name|xml-string> <property-names...>
+# 
+# Gets the specified properties from the freshmeat project.
+# -------------------------------------------------------------------------
+freshmeat_get()
+{
+ (PROJECT="$1"
+  shift
+  while [ "$#" -gt 0 ]; do
+    freshmeat_html "$PROJECT" | 
+    case $1 in
+      latest_release_version | version)
+        xml_get "li .*release." |
+        xml_get "a [^>]*" | 
+        head -n1
+      ;;
+    esac
+    shift
+  done)
+}
+
+# -------------------------------------------------------------------------
+freshmeat_url()
+{
+ (PROJECT="$1"
+  shift
+  [ "$1" ] || set -- homepage
+
+  while [ "$#" -gt 0 ]; do
+    RURL=`
+     freshmeat_html "$PROJECT" | 
+      case $1 in
+        [Mm]ore* | [Ii]nfo*)
+          xml_get "div class=.moreinfolink."
+        ;; 
+        *)
+          xml_get "li [^>]*" | 
+          case "$1" in
+            archive|pkg) egrep ">(Tar/.*|Zip)<" ;;
+            t*bz*) grep ">Tar/BZ2<" ;;
+            t*gz*) grep ">Tar/GZ<" ;;
+            zip) grep ">Zip<" ;;
+            [Cc]hangelog) grep ">Changelog<" ;;
+            [Ww]ebsite | [Hh]ome*) grep ">Website<" ;;
+            [Cc][Vv][Ss]*) grep ">CVS tree<" ;;
+            [Mm]ore* | [Ii]nfo*) grep ">More Information<" ;;
+          esac
+        ;;
+      esac |
+      xml_get a href
+    `
+    RURL=`http_head "freshmeat.net" "$RURL" | sed -n -e 's,\r,,g' -e '/^Location:/ s,Location:\s*,,p'`
+    echo "$RURL"
+    shift
+  done)
+}
+
+# -------------------------------------------------------------------------
+freshmeat_search()
+{
+ (base="http://$FRESHMEAT_host/search/?q="
+  query=`echo "$*" | sed "s, ,+,g"`
+
+  www_links "$base$query" | {
+    n=0 prev=
+    while read url; do
+      case $url in
+        */projects/*)
+          url=${url%/}
+          url=${url##*/}
+        ;;
+        
+        $base*=$((n+25))*)
+          test -z "$prev" && continue
+
+          n=$((n+25)) freshmeat_search "${url#$base}"
+          break
+        ;;
+        
+        *)
+          continue
+          ;;
+      esac
+      test "$url" = "$prev" && continue
+      echo "$url"
+      prev=$url
+    done
+  })
+}
+
+# freshmeat_trovecategory <trove-category-ids...>
+# -------------------------------------------------------------------------
+freshmeat_trovecategory()
+{
+  local id title
+  
+  for id
+  do
+    title=`http_get "$FRESHMEAT_host/browse/$id/" | xml_get title`
+  
+    echo ${title#"$FRESHMEAT_host: Browse project tree - "}
+  done
+}
+
+# freshmeat_project <project-name | url | xml-data>
+#
+# Determines the project name
+# -------------------------------------------------------------------------
+freshmeat_project()
+{
+  if is_xml "$1"; then
+    xml_getvalue "$1" projectname_short
+  else
+    case $1 in
+      *freshmeat.net/projects/*)
+        set -- "${1#*freshmeat.net/projects/}"
+        echo "${1%%[/\?\&]*}"
+      ;;
+
+      *)
+        echo "$1"
+      ;;
+     esac
+  fi
+}
+
+# freshmeat_categories <project-name | xml-data>
+# -------------------------------------------------------------------------
+freshmeat_categories()
+{
+  local project category what value
+  
+  project=`freshmeat_project "$1"`
+  
+  test -n "$project" || return 1
+  
+  freshmeat_html "$project" | 
+  xml_getvalue 'tr bgcolor="#[0-9A-F]\+"><td valign="top" nowrap><small' |
+  sed -n -e "/^<b>\[/p" |
+  while read category
+  do
+    case $category in
+      '<b>['*)
+        what=`echo "$category" | xml_getvalue 'b'`
+        what=${what#"["}
+        what=${what%"]"}
+    
+        echo "$category" | xml_getvalue 'small' |
+        while read value; do
+          echo "$what :: ${value# }"
+        done
+      ;;
+    esac
+  done
+}
+
+# freshmeat_info <project-name>
+# -------------------------------------------------------------------------
+freshmeat_info()
+{
+  if freshmeat_cache "$1"; then
+    cat <<EOF
+Project: $1
+Description: `freshmeat_description "$1" short`
+`freshmeat_description "$1" full |
+   sed -e "s,^\s*\$,.," -e "s,^, ,"`
+Homepage: `freshmeat_url "$1"`
+Package: `freshmeat_url "$1" tgz bz2 zip`
+Author: `freshmeat_get "$1" author_name`
+License: `freshmeat_get "$1" license`
+EOF
+  fi
+}
+
+# ---[ EOF ]-----------------------------------------------------------------
+lib_web_freshmeat_sh=:;}

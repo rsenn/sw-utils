@@ -1,0 +1,20 @@
+Requirements
+
+  A bourne shell compatible, like bash, ash, dash, ksh, pdksh, zsh.
+  
+  grep
+  
+  sed
+  
+  coreutils (cat, ls)
+
+  On ubuntu: sudo aptitude install libtool automake autoconf gcc g++ libbz2-dev libz-dev libdb4.7-dev make gawk fakeroot
+
+
+Building/Script preparation
+
+  sh setup.sh build
+
+Installation (as root)
+
+  sh setup.sh install --prefix=DIRECTORY

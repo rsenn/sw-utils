@@ -1,0 +1,89 @@
+#!/bin/sh
+#
+# buildsys/pysetup.sh: python setuptools build-system implementation
+#
+# $Id: pysetup.sh.in 597 2008-08-27 11:41:43Z enki $
+test $lib_buildsys_pysetup_sh || {
+
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"} # default for prefix
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"} # default value for libdir
+: ${shlibdir:="@shlibdir@"} 
+
+# -------------------------------------------------------------------------
+. $shlibdir/std/array.sh
+. $shlibdir/shell/emit.sh
+
+# -------------------------------------------------------------------------
+pysetup_files="setup.py"
+
+# pysetup_scan [directories...]
+#
+# searches one or more directory trees for any of $pysetup_files.
+# -------------------------------------------------------------------------
+pysetup_scan()
+{
+  pysetup_find "$@" | sed -e "s,/[^/]\+$,," | sort -u
+}
+
+# pysetup_find [directories...]
+#
+# searches one or more directory trees for any of $pysetup_files.
+# -------------------------------------------------------------------------
+pysetup_find()
+{
+ (set -f
+  IFS=" "
+  find "${@:-.}" -type f -iname setup.py | sed -e "s,^\.\/,,")
+}
+
+# -------------------------------------------------------------------------
+pysetup_subdirs()
+{
+  local dirs
+  array_print dirs
+}
+
+# pysetup_check [directories...]
+#
+# checks one or more directories for the presence of $pysetup_files
+# -------------------------------------------------------------------------
+pysetup_check()
+{
+  local n names='' IFS=" $newline$tabstop"
+
+ (for dir
+  do
+    eval set -- $pysetup_files
+    for src
+    do
+      test -e "$SRC" && echo "$dir" && continue 2
+    done
+    errormsg "Not a valid python source tree: '$dir'." 
+    return 1
+  done)
+}
+
+# pysetup_buildfn <vars...>
+# -------------------------------------------------------------------------
+pysetup_buildfn()
+{
+  local IFS="$obj_s$nl" dir args name version srcdir
+
+#  emit_startfn 'build'
+
+  name=`obj_get "$*" name`
+  version=`obj_get "$*" version`
+  srcdir=`obj_get "$*" srcdir`
+
+  emit_cmd "cd ${srcdir//$version/\$version}"
+  emit_cmd
+  
+  emit_cmd_ml 'python setup.py install --prefix="$ROOT"'
+
+#  emit_endfn
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_buildsys_pysetup_sh=:;}

@@ -1,0 +1,35 @@
+#!
+#
+# tree.sh: filesystem tree functions
+#
+# $Id: tree.sh.in 586 2008-08-27 03:24:45Z enki $
+# -------------------------------------------------------------------------
+test $lib_tree_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/std/array.sh
+
+tree_subdirs=`array etc bin include lib share`
+
+# tree_prefixes
+#
+# Reads a file hierarchy tree from the standard input and determines the prefix
+# of any directory structure containing at least one of the following directories:
+# etc/ bin/ include/ lib/ share/
+# -------------------------------------------------------------------------
+tree_prefixes()
+{
+  local dir
+  for dir in $tree_subdirs
+  do
+    set -- -e "s:/$dir/.*::p"
+  done
+  sed -n "$@" | sort -u
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_tree_sh=:;}

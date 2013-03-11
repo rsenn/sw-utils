@@ -1,0 +1,45 @@
+#!/bin/bash
+
+build=i686-pc-linux-gnu
+host=i686-pc-linux-gnu
+target=i686-pc-linux-gnu
+
+prefix=/usr
+exec_prefix=/usr
+libdir=${exec_prefix}/lib
+shlibdir=$libdir/sh
+
+if [ $build = $host ]; then
+  root=$exec_prefix
+else
+  root=$exec_prefix/$host
+fi
+
+source $shlibdir/util.sh
+
+export PATH="$root/bin:$prefix/bin"
+
+bin=$1
+
+usage()
+{
+  msg "Usage: ${0##*/} <command> [arguments]"
+  exit 1
+}
+
+if [ -z "$1" ]; then 
+  usage
+fi
+
+# relative path?
+if [ "$bin" = "${bin##*/}" ]; then
+
+  binpath=$(which "$bin")
+
+  if [ "$binpath" != "$root/bin/$1" ]; then
+    echo "WARNING: invoking binary '$1' outside of root path '$root'." 1>&2
+  fi
+fi
+
+#set -x
+exec "$@"

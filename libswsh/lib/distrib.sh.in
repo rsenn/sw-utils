@@ -1,0 +1,130 @@
+#!/bin/sh
+#
+# distrib.sh: Abstract distribution.
+#
+# $Id: distrib.sh.in 937 2009-03-29 10:12:12Z enki $
+# -------------------------------------------------------------------------
+[ "$lib_distrib_sh" ] || {
+
+# Required directories
+# ---------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# Required libraries
+# ---------------------------------------------------------------------------
+. $shlibdir/util.sh
+. $shlibdir/std/str.sh
+
+# Static variables
+# ---------------------------------------------------------------------------
+DISTRIB_known="cygwin ubuntu debian gentoo centos mandrake redhat lsb"
+
+# distrib_list
+#
+# List canonical names of all known distrib implementations.
+# ---------------------------------------------------------------------------
+distrib_list()
+{
+ (#cd $shlibdir/distrib
+
+  for name in $DISTRIB_known
+  do
+    echo ${name%.sh}
+  done)
+}
+
+# distrib_relfile
+#
+# Prints the path to the distribution release file (distribution dependant).
+# ---------------------------------------------------------------------------
+distrib_relfile()
+{
+  local impl=`distrib_detect ${1+"$1"}`
+
+  if test -n "$impl"
+  then
+    require distrib/$impl
+
+    ${impl}_relfile ${1+"$1"}
+  fi
+}
+
+# distrib_detect
+#
+# Guess the appropriate distribution implementation.
+# ---------------------------------------------------------------------------
+distrib_detect()
+{
+ (distrib=
+  IFS=" ""
+"
+  for name in `distrib_list`
+  do
+    . $shlibdir/distrib/$name.sh
+
+    if is_${name%.sh} ${1+"$1"} 2>/dev/null
+    then
+      distrib=${name%.sh}
+      break
+    fi
+  done
+
+  if test -z "$distrib"
+  then
+    warn "Failed to detect distribution"${1+" from release file $1"}
+    exit 1
+  else
+    echo "$distrib"
+  fi)
+}
+
+# distrib_release
+#
+# Guess the appropriate distribution implementation.
+# ---------------------------------------------------------------------------
+distrib_release()
+{
+  DISTRIB_this=`distrib_detect` && require "distrib/$DISTRIB_this" || return $?
+
+  ${DISTRIB_this}_release
+}
+
+# distrib_get <property>
+# ---------------------------------------------------------------------------
+distrib_get()
+{
+  require "var"
+
+ (IFS="
+"
+  eval `distrib_release`
+  echo `var_get "$1"`)
+}
+
+# distrib_canonical
+# ---------------------------------------------------------------------------
+distrib_canonical()
+{
+  local id release
+  
+  id=`distrib_get id`
+  release=`distrib_get release | sed 's,[^.0-9A-Za-z],-,g'`
+
+  echo `str_tolower "${id%%[!A-Za-z0-9_]*}"`"${release:+-$release}"
+}
+
+# distrib_mirrors
+# ---------------------------------------------------------------------------
+distrib_mirrors()
+{
+  { test -n "$DISTRIB_this" || DISTRIB_this=`distrib_detect`; } && 
+  { require "distrib/$DISTRIB_this" || return $?; }
+
+  ${DISTRIB_this}_mirrors "$@"
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_distrib_sh=:;}
+

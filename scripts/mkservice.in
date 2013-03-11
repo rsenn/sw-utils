@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+#
+# Install a freedt service directory
+#
+
+: ${prefix="@prefix@"}
+: ${libdir="@libdir@"}
+
+. @shlibdir@/util.sh
+
+
+
+
+mkservice_main()
+{
+  :
+}
+
+mkservice_main "$@"

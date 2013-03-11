@@ -1,0 +1,196 @@
+#!/bin/sh
+#
+# pkgmgr/dpkg.sh: dpkg package manager abstraction
+#
+# $Id: dpkg.sh.in 780 2008-10-23 19:00:16Z enki $
+# -------------------------------------------------------------------------
+@DEBUG_TRUE@test $lib_pkgmgr_dpkg_sh || {
+
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir="@libdir@"}
+: ${shlibdir="@shlibdir@"}
+: ${localstatedir:="@localstatedir@"}
+: ${dpkglibdir:="$localstatedir/lib/dpkg"}
+: ${dpkginfolibdir:="$dpkglibdir/info"}
+
+# -------------------------------------------------------------------------
+. $shlibdir/data/info.sh
+
+# dpkg_files <package...>
+#
+# List the files in one or more packages...
+# -------------------------------------------------------------------------
+dpkg_files()
+{
+  case "$1" in
+    *.deb)
+      dpkg-deb --contents "$1" | \
+        sed 's,^[^ ]\+ [^ ]\+ \+[0-9]\+ [^ ]\+ [^ ]\+ \.,,'
+      ;;
+    *)
+      dpkg -L "$@"
+      ;;
+  esac
+}
+
+# dpkg_locate [paths]
+#
+# Search for files in the package database.
+# -------------------------------------------------------------------------
+dpkg_locate()
+{
+  dpkg -S "$@" 2>&1 | sed -e '/^dpkg: .* not found\./ { 
+    s,^dpkg: ,-: ,
+    s, not found\.$,,
+  }'
+}
+
+# dpkg_list [options...]
+#
+# List all installed packages.
+#
+#    -a    List ALL (known) packages.
+# -------------------------------------------------------------------------
+dpkg_list()
+{
+  local flags
+  
+  case $1 in
+    -a) flags="[a-z][a-z]" && shift ;;
+  esac
+
+  dpkg --list "$@" | sed -n -e "s,^${flags:-ii}  \([^ ]\+\) .*\$,\1,p"
+}
+
+# dpkg_dump
+#
+# Dump info of all known packages
+# -------------------------------------------------------------------------
+dpkg_dump()
+{
+  dpkg_list -a | xargs dpkg-query --status
+}
+
+# dpkg_match <patterns...>
+#
+# List the matching packages...
+# -------------------------------------------------------------------------
+dpkg_match()
+{
+  local IFS="
+"
+  { set -f
+    dpkg_list $(echo "$*" | sed -e '/^-/! {
+      /^\^/! s/^/*/
+      /\$$/! s/$/*/
+      s,^\^,,
+      s,\$$,,
+      s,\.\*,*,g
+    }')
+  } | {
+    IFS="|" && grep -E "($*)"
+  }
+}
+
+# dpkg_installed [packages...]
+#
+# Returns true if all the specified packages are installed.
+# -------------------------------------------------------------------------
+dpkg_installed()
+{
+  local st
+
+  st=`dpkg --status "$@" | sed -n -e '/^Status:\s.*\snot-installed/p'`
+  
+  test -z "$st"
+}
+
+# dpkg_info [package]
+# -------------------------------------------------------------------------
+dpkg_info()
+{
+  case "$1" in
+    *.deb|-)
+     (for pkg
+      do
+        dpkg-deb --info "$pkg" control
+      done)
+    ;;
+
+    *)
+      dpkg-query --status "$@"
+    ;;
+  esac
+}
+
+# dpkg_get [package]
+# -------------------------------------------------------------------------
+dpkg_get()
+{
+  dpkg_info "$1" | (shift; info_get "$@")
+}
+
+# dpkg_depends [packages...]
+# -------------------------------------------------------------------------
+dpkg_depends()
+{
+  dpkg_info "$@" | sed -n -e "/^Depends: / {
+    s/^Depends: //
+    s/, /\n/g
+    p
+  }"
+}
+
+# dpkg_list_files <package> [control|data]
+#
+# List control/data files of the given packages...
+# -------------------------------------------------------------------------
+dpkg_list_files()
+{
+  ar p "$1" ${2-data}.tar.gz | tar -tz | sed -e 's,^\./,,' -e '/^$/d'
+}
+
+# dpkg_control_files [packages...]
+#
+# List control files of the given packages...
+# -------------------------------------------------------------------------
+dpkg_control_files()
+{
+  while test "$#" -gt 0
+  do
+    dpkg_list_files "$1" control
+    shift
+  done
+}
+
+# dpkg_info_files [packages...]
+#
+# List info files of installed packages...
+# -------------------------------------------------------------------------
+dpkg_info_files()
+{
+  local pkg ftype="*" IFS="
+"
+  case $1 in
+    -t) ftype="$2" && shift 2 ;;
+    -t*) ftype="${1#-t}" && shift ;;
+  esac
+
+  for pkg
+  do
+    if ! dpkg_installed "$pkg"
+    then
+      warn "The package $pkg is not installed"
+      continue
+    fi
+    
+    set -- $dpkginfolibdir/$pkg.$ftype
+    
+    test -e "$1" && echo "$*"
+  done
+}
+
+# --- eof ---------------------------------------------------------------------
+@DEBUG_TRUE@lib_pkgmgr_dpkg_sh=:;}

@@ -1,0 +1,115 @@
+#!/bin/sh
+#
+# archive/deb.sh: deb archiving functions.
+#
+# $Id: deb.sh.in 575 2008-08-26 12:07:20Z enki $
+
+test $swsh_deb || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/util.sh
+
+# deb_cmd [options] <deb-archive> [files/directories...]
+#
+# Outputs a suitable command-line for the deb program.
+#
+#     -l, --level NUM         Compression level: 0 = store -> 9 = best.
+#     -d, --dereference       Dump the files instead of symlink pointing to.
+#     -x, --exclude PATTERN   Exclude files matching PATTERN.
+# -------------------------------------------------------------------------
+deb_cmd()
+{
+  local cmd= uncmd= un= arg= xcl= a= s=' ' c=false IFS=$nl
+  eval "set -- $(getopt --name=deb --shell=sh \
+                        --longoptions=level:,dereference,exclude:,no-recursion,create,delete,list,unpack -o 0123456789hx:Rcdlu -- "$@")"
+
+  cmd="dpkg-deb"
+  
+  local filter= 
+  local unfilter= 
+
+  while test -n "$1"; do
+    case $1 in
+      # compression level
+      -[0-9]|--level)
+         ;;
+
+      # exclude files/dirs...
+      -x|--exclude)
+
+         xcl=${xcl:+$xcl$s}'--exclude="'"`escape_dquote "$2"`"'"'
+         shift
+         ;;
+
+      -c|--create)
+         cmd=${cmd//-[cxtv]$s/} && cmd=${cmd%$s-[cxtv]}
+         cmd=${cmd:+$cmd$s}'-c'$s'-v'
+         ;;
+         
+      -l|--list)
+         cmd=${cmd#*deb${s}[a-z]*$s}
+         cmd=${cmd#-p-$s}
+         cmd="undeb${s}vb${s}-p-"
+         arg="${arg:+$arg$s}2>/dev/null"
+         ;;
+
+      -u|--unpack)
+         cmd=${cmd:+$cmd$s}"--extract"
+         arg="${arg:+$arg$s}."
+         ;;
+
+      -h|--dereference)  cmd=${cmd:+$cmd$s}'-h' ;;
+      -R|--no-recursion) cmd=${cmd:+$cmd$s}'--no-recursion' ;;
+
+      --) shift && break ;;
+    esac
+    shift
+  done
+  a=$1
+  shift
+  while test -n "$1"; do
+    arg="${arg:+$arg$s}\"`escape_dquote "$1"`\""
+    shift
+  done
+  echo $cmd "\"`escape_dquote "$a"`\"" $arg $xcl #`var_get ${un}filter`
+}
+
+# deb_create <deb-archive> [files/directories...]
+#
+# Pack the specified files and directories into a newly created deb-archive.
+# -------------------------------------------------------------------------
+deb_create()
+{
+  local IFS= a=${1:?archive name required}
+  msg "Creating deb-archive '$1'..."
+  eval `deb_cmd --create "$@"`
+}
+
+# deb_update <deb-archive> [files/directories]
+#
+# Update the deb-archive (adding when necessary) with the specified files
+# and directories.
+# -------------------------------------------------------------------------
+deb_update()
+{ 
+  local IFS= a=${1:?archive name required}
+  msg "Creating deb-archive '$1'..."
+  eval `deb_cmd --update "$@"`  
+}
+
+# deb_list <deb-archive> [files/directories]
+#
+# List either all or only the specified files and directories from the deb-archive.# -------------------------------------------------------------------------
+deb_list()
+{ 
+  local IFS= a=${1:?archive name required}
+  msg "Listing contents of deb-archive '$1'..."
+  eval `deb_cmd --list "$@"`  
+}
+
+# --- eof ---------------------------------------------------------------------
+swsh_deb=1; }

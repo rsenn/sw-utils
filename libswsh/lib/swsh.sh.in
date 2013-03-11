@@ -1,0 +1,741 @@
+#!@SHELL@
+
+# paths and platform-triplet variables
+# ---------------------------------------------------------------------------
+: ${prefix="@prefix@"}
+: ${libdir="$prefix/lib"}
+: ${shlibdir="$libdir/sh"}
+: ${localstatedir="@localstatedir@"}
+: ${cachedir="@localstatedir@"}
+: ${pkgcachedir="$cachedir/sw"}
+: ${build="@host@"}
+: ${host="@target@"}
+: ${target="@target@"}
+
+swsh_scripts=''
+
+# ---------------------------------------------------------------------------
+. $shlibdir/util.sh
+. $shlibdir/std/array.sh
+. $shlibdir/net/inet.sh
+. $shlibdir/std/str.sh
+. $shlibdir/port.sh
+. $shlibdir/devel/toolchain.sh
+. $shlibdir/shdoc.sh
+. $shlibdir/shell/fn.sh
+. $shlibdir/fs/path.sh
+
+# ---------------------------------------------------------------------------
+swsh_scripts()
+{
+  array_empty swsh_scripts &&
+  swsh_load && 
+  {
+    msg "Found $(array_length swsh_scripts) scripts..."
+  }
+
+ (ABSOLUTE=no IFS="
+"
+  while :; do
+    case $1 in
+      -f) ABSOLUTE=yes ;;
+      *) break ;;
+    esac
+    shift
+  done
+  
+
+  if test "$ABSOLUTE" = yes; then
+    addprefix $shlibdir/ $swsh_scripts
+  else
+    set -- $swsh_scripts
+    echo "$*"
+  fi)
+}
+
+# ---------------------------------------------------------------------------
+swsh_load()
+{
+  for script in $(shdoc_scripts)
+  do
+    name=${script##*/}
+
+    if test -f "$script" && grep -q "^${name%.sh}_[^\s]\+()" "$script"
+    then
+      array_push_unique swsh_scripts "${script#$shlibdir/}" #&& msg "Detected script library '$name'."
+    fi
+  done
+}
+
+# swsh_locate
+# ---------------------------------------------------------------------------
+swsh_locate()
+{
+  (cd "$shlibdir" && find * -name "$1.sh" -not -type d) | sed -e 's,\.sh$,,'
+}
+
+# swsh_help
+# ---------------------------------------------------------------------------
+swsh_help()
+{
+  local script name
+
+ # msg "swsh_help call($*)"
+
+  cmd="$1"
+  
+  if test -n "$cmd"
+  then
+    script=$(swsh_locate "${cmd%%_*}")
+
+    if test -z "$script"
+    then
+      errormsg "Did not find the script '${cmd%%_*}.sh' in '$shlibdir'"
+      return 127
+    fi
+  fi
+
+  if test -f "$shlibdir/$script.sh"
+  then
+#    cmd="$1"
+    shift
+    
+    require "$script"
+
+    if is_fn "${cmd%%_*}_help"
+    then
+      "${cmd%%_*}_help" "$@"
+    else
+      require "shdoc"
+
+      while test -n "$1" && ! is_fn "$cmd"
+      do
+        cmd="${cmd}_$1"
+        shift
+      done
+
+      
+      if is_fn "$cmd"
+      then
+        doc=$(shdoc_lookup "$cmd" <$shlibdir/$script.sh)
+        
+        if test -n "$doc"
+        then
+          echo "Usage: $doc"
+        fi
+      else
+        echo "Available commands are:"
+        
+        script_fnlist <$shlibdir/$script.sh | while read fn
+        do
+          (IFS="_$IFS" 
+           set -- $fn
+           IFS=" ${IFS#_}"
+           
+           comment=$(shdoc_lookup "$fn" $shlibdir/$script.sh | sed -e '1d ; 2d' | head -n1)
+
+#           if test "$script" = "$1" ||
+#              test "$script" = "$2"
+#           then
+             printf "\t%-16s\t%s\n" "$*" "$comment"
+#           fi
+           )
+        done
+      fi
+
+    fi
+  else
+
+    test "$swsh_scripts" || swsh_load
+    echo "Usage: ${0##*/} [options...] command [options...] [subcommand [options...]]
+
+    -h, --help   Show this help.
+ 
+   Valid commands:" 1>&2
+   
+   (cd "$shlibdir" && shdoc_titles $swsh_scripts)
+  
+    return 0
+  fi
+}
+
+# swsh_parse <options> <longoptions> [arguments...]
+# ---------------------------------------------------------------------------
+swsh_parse()
+{
+  local opt opts=$(getopt --name="${0##*/}" --longoptions="$sw_longopts" -o "$sw_shortopts" -- "$@")
+  
+  eval "set -- $opts"
+  
+  unset sw_options
+
+  while test "$1"
+  do
+    local arg=$1
+    case $arg in
+      --help) swsh_help ;;
+      --*) array_push 'sw_options' "$1" ;;
+      --) continue ;;
+      *) break ;;
+    esac
+    shift
+  done
+  sw_arguments=$(array "$@")
+#  local IFS="$newline"
+#  array $sw_options -- $sw_arguments
+}
+
+# ---------------------------------------------------------------------------
+swsh_scan()
+{
+  sw_rsync_port="873" sw_nfs_port="111" sw_nbd_ports="5000-5099"
+
+  sw_shortopts="h"
+  sw_longopts="help"
+
+  swsh_parse "$@"
+
+  local tcp_ports="" udp_ports=""
+  set -- $sw_arguments
+  case $1 in
+    rsync) shift; tcp_ports="${tcp_ports:+$tcp_ports,}$sw_rsync_port" ;;
+    nfs) shift; udp_ports="${udp_ports:+$udp_ports,}$sw_nfs_port" ;;
+    nbd) shift; tcp_ports="${tcp_ports:+$tcp_ports,}$sw_nbd_ports" ;;
+    *) tcp_ports="${tcp_ports:+$tcp_ports,}$sw_rsync_port,$sw_nbd_ports" udp_ports="${udp_ports:+$udp_ports,}$sw_nfs_port" ;;
+  esac
+
+  swsh_networks
+  
+  local p ports
+  for p in tcp udp; do
+    ports=$(var_get "${p}_ports")    
+    test "$ports" && {
+      msg "Scanning $p port(s) $ports..."
+      inet_scan_$p "$ports" "${@-$swsh_networks}"
+    }
+  done
+}
+
+_swsh_expand_scan()
+{
+  local host_cache="$sw_host_cache"
+  while read host ports; do
+    if ! array_isin 'sw_host_cache' "$host"; then
+      array_unshift 'sw_host_cache' "$host"
+      msg "Discovered new host '$host'."
+    fi
+    for port in $ports; do
+      echo $host ${port#*/} ${port%/*}
+    done
+  done
+  test "$host_cache" = "$sw_host_cache" || var_save 'sw_host_cache' "$pkgcachedir/hosts"
+}
+      
+# ---------------------------------------------------------------------------
+_swsh_initdirs()
+{
+  : ${sw_src_dir="$pkgsrc"}
+  : ${sw_dist_dir="$pkgsrc/distfiles"}
+  : ${sw_pkg_dir="${pkgdir%/*}"}
+  : ${sw_port_dir="$portsdir"}
+}
+
+# ---------------------------------------------------------------------------
+swsh_detect()
+{
+  sw_log_path=$(cd "$1" >&/dev/null; pwd -L)
+  sw_phy_path=$(cd "$1" >&/dev/null; pwd -P)
+    
+  _swsh_initdirs
+
+#  if [ -z "${sw_log_mode+set}" ]; then
+  
+    case $sw_log_path in
+      $sw_port_dir*) sw_log_mode='ports' sw_log_base="$sw_port_dir" ;;
+      $sw_src_dir/distfiles*) sw_log_mode='distfiles' sw_log_base="$sw_src_dir/distfiles" ;;
+      $sw_src_dir*) sw_log_mode='src' sw_log_base="$sw_src_dir" ;;
+      $sw_pkg_dir*) sw_log_mode='pkg' sw_log_base="$sw_pkg_dir" ;;
+      *) unset sw_log_mode; sw_log_base="$prefix" ;;
+    esac
+    sw_log_dir="${sw_log_path#*${sw_log_base%/}}"
+    sw_log_base="${sw_log_base#*${prefix%/}/}"
+#  fi
+
+#  if [ -z "${sw_phy_mode+set}" ]; then
+
+
+    case $sw_phy_path in
+      *$sw_port_dir*) sw_phy_mode='ports' sw_phy_base="$sw_port_dir" ;;
+      *$sw_src_dir/distfiles*) sw_phy_mode='distfiles' sw_phy_base="$sw_src_dir/distfiles" ;;
+      *$sw_src_dir*) sw_phy_mode='src' sw_phy_base="$sw_src_dir" ;;
+      *$sw_pkg_dir*) sw_phy_mode='pkg' sw_phy_base="$sw_pkg_dir" ;;
+      *) unset sw_phy_mode; sw_phy_base="$prefix" ;;
+    esac
+    sw_phy_dir="${sw_phy_path#*/${sw_phy_base%/}}"
+    sw_phy_base="${sw_phy_base#*${prefix%}/}"
+#  fi
+}
+
+# ---------------------------------------------------------------------------
+swsh_networks()
+{
+  test "${swsh_networks+set}" || 
+  {
+    msgbegin "Detecting networks... "
+
+    swsh_networks=$(inet_networks)
+    
+    msgend $swsh_networks
+  }
+}
+
+# ---------------------------------------------------------------------------
+_swsh_valid_base()
+{
+  case $1 in
+    pkg|package) return 0 ;;
+    src|source) return 0 ;;
+    dist*) return 0 ;;
+    port*) return 0 ;;
+  esac
+  return 1
+}
+    
+# ---------------------------------------------------------------------------
+_swsh_base_path()
+{
+  case $1 in
+    pkg|package) echo "pkg/"; return 0 ;;
+    src|source) echo "src/"; return 0 ;;
+    dist*) echo "dist/"; return 0 ;;
+    port*) echo "ports/"; return 0 ;;
+  esac
+  return 1
+}
+    
+# ---------------------------------------------------------------------------
+_swsh_base_mode()
+{
+  case $1 in
+    pkg|package) echo "pkg"; return 0 ;;
+    src|source) echo "src"; return 0 ;;
+    dist*) echo "dist"; return 0 ;;
+    port*) echo "port"; return 0 ;;
+  esac
+  return 1
+}
+    
+# swsh_reloc <path> [tags...]
+# ---------------------------------------------------------------------------
+swsh_reloc()
+{
+  local IFS="/" tag dir prev= path=$(path_absolute "$1") out="$prefix" level=0
+
+  shift
+
+  for dir in ${path#$prefix}
+  do
+    if test -n "$1" && fs_exists "$out/$1"
+    then
+      dir=$1
+      shift
+    fi  
+
+    out="${out:+${out%/}/}$dir"
+    prev=$dir
+
+    : $((++level))
+  done
+
+  echo "$out"
+}
+
+# ---------------------------------------------------------------------------
+swsh_cd()
+{
+  sw_shortopts="h"
+  sw_longopts="help"
+
+  swsh_detect
+  swsh_parse "$@"
+
+  msg "Physical mode:" $sw_phy_mode
+
+  local IFS=" $newline"
+  
+  set -- $sw_arguments
+
+  local base=$(_swsh_base_path "$1")
+  local path="${sw_log_path:-$sw_phy_mode}"
+  local mode="${sw_log_mode:-$sw_phy_mode}"
+  local dir="${sw_log_dir:-$sw_phy_dir}"
+  local arg="$1"
+  
+#  msg "base: $base"
+#  msg "2: $2"
+  
+  if test -n "$base"; then
+    path=$(swsh_reloc "$1")
+    mode=$(_swsh_base_mode "$1")
+    arg="$2"
+    shift
+  else
+    base=$(_swsh_base_path "$2")
+    if test -n "$base"; then
+      mode=$(_swsh_base_mode "$2")
+      shift
+    fi
+  fi
+
+  msg "Arg: $arg"
+  msg "Path: $path"
+  msg "Mode: $mode"
+  msg "Dir: $dir"
+
+  if test ! -d "$path"; then
+    msg "'$sw_new_cwd' is not a directory."
+    return 1
+  fi
+
+  cd "$path"
+  msg "New working directory: $path"
+    
+}
+
+# ---------------------------------------------------------------------------
+swsh_find()
+{
+  sw_shortopts="h"
+  sw_longopts="help"
+
+  swsh_detect
+  swsh_parse "$@"
+
+  msg "Physical mode:" $sw_phy_mode
+
+  local IFS=" $newline"
+  
+  set -- $sw_arguments
+
+  local base=$(_swsh_base_path "$1")
+  local path="${sw_log_path:-$sw_phy_mode}"
+  local mode="${sw_log_mode:-$sw_phy_mode}"
+  local dir="${sw_log_dir:-$sw_phy_dir}"
+  local arg="$1"
+  
+  msg "base: $base"
+  msg "2: $2"
+  
+  if test -n "$base"; then
+    path=$(swsh_reloc "$1")
+    mode=$(_swsh_base_mode "$1")
+    arg="$2"
+    shift
+  else
+    base=$(_swsh_base_path "$2")
+    if test -n "$base"; then
+      mode=$(_swsh_base_mode "$2")
+      shift
+    fi
+  fi
+
+  msg "Arg: $arg"
+  msg "Path: $path"
+  msg "Mode: $mode"
+  msg "Dir: $dir"
+
+  local default
+
+  if test -z "$arg"; then
+    case $mode in
+      ports) default="Pkgfile" arg="$default" ;;
+    esac
+  fi    
+
+  (cd "$path" && 
+   case $mode in
+     ports)
+       find * -follow -type f -name "${arg:-Pkgfile}" -not -wholename '*/.*/*' | sed "s,/$default$,,"
+       ;;
+     *)
+       find * -follow -type f -not -wholename '*/.*/*' ${arg:+-name "$arg"}
+       ;;
+   esac) 2>/dev/null
+}
+
+# ---------------------------------------------------------------------------
+swsh_toolchain()
+{
+  sw_shortopts="h"
+  sw_longopts="help"
+
+  swsh_detect
+  swsh_parse "$@"
+
+  msg "Build triplet:" $sw_build_triplet
+  msg "Host triplet:" $sw_host_triplet
+  msg "Target triplet:" $sw_target_triplet
+
+  : ${sw_essential_tools="gcc g++ ar ranlib"}
+  : ${sw_tc_list=$(cd $prefix && array *-*-*)}
+
+  case $1 in
+    init)
+      ;;
+
+    select)
+      
+      local tc=$(array_match 'sw_tc_list' $2)
+      
+      if ! array_isin 'sw_tc_list' "$tc"; then
+        errormsg "No such toolchain:" $2
+        return 1
+      fi
+      
+      if [ "$swsh_toolchain" = "$tc" ]; then
+        return 0
+      fi
+      
+      PATH=${PATH#$prefix/$swsh_toolchain/bin:}
+      
+      swsh_toolchain="$tc"
+      PATH=$prefix/$tc/bin:$PATH
+      
+      msg "New PATH=$PATH"
+      
+      ;;
+
+    check)
+      
+      ;;
+
+    list)
+      msg "Available toolchains:"
+      array $sw_tc_list
+      ;;
+  esac
+}
+
+# ---------------------------------------------------------------------------
+swsh_sync()
+{
+  sw_shortopts="h"
+  sw_longopts="help"
+
+  swsh_detect
+  swsh_parse "$@"
+
+  var_load 'sw_host_cache' "$pkgcachedir/hosts"
+  var_load 'swsh_sync_cache' "$pkgcachedir/sync"
+
+#  msg "Logical mode:" $sw_log_mode
+  msg "Physical mode:" $sw_phy_mode
+
+#  msg "cmd:" $1
+
+  local IFS=" $newline"
+
+  if test "$1" != discover; then
+    array_empty 'swsh_sync_cache' && swsh_sync 'discover' &&
+        var_load 'sw_host_cache' "$pkgcachedir/hosts" &&
+        var_load 'swsh_sync_cache' "$pkgcachedir/sync"
+  fi
+
+  sw_share_cache=$(array_print 'swsh_sync_cache' | while read svc host shares; do
+    for share in $shares; do echo "$svc" "$host" "$share"; done
+  done)
+      
+  set -- $sw_arguments
+
+  local base=$(_swsh_base_path "$1")
+  local path="${sw_log_path:-$sw_phy_mode}"
+  local mode="${sw_log_mode:-$sw_phy_mode}"
+  local dir="${sw_log_dir:-$sw_phy_dir}"
+  local cmd="$1"
+  
+  if [ "$base" ]; then
+    path=$(swsh_reloc "$1")
+    mode=$(_swsh_base_mode "$2")
+    cmd="$2"
+    shift
+  else
+    base=$(_swsh_base_path "$2")
+    if [ "$base" ]; then
+      mode=$(_swsh_base_mode "$2")
+      shift
+    fi
+  fi
+
+  msg "Cmd: $cmd"
+  msg "Path: $path"
+  msg "Mode: $mode"
+  msg "Dir: $dir"
+      
+  case $cmd in
+    discover)
+      local IFS="$space$newline"
+
+      swsh_networks
+      swsh_scan 'rsync' $swsh_networks | _swsh_expand_scan | 
+      {
+      while read host proto port; do
+        test "$port" = 873 && unset port
+        case $proto in
+          tcp)
+            local url="rsync://$host${port+:$port}" tmp=$(tempnam)
+
+            array_match 'swsh_sync_cache' '$url*'
+
+            rsync --list-only "$url" 2>/dev/null >"$tmp" &&
+            msg "Browsing '$url'."
+
+            local shares=''
+            while read share desc; do
+              array_push 'shares' "$share"
+            done <"$tmp"
+            rm -f "$tmp"
+            if test -n "${shares//$newline/}" &&
+               test -z "$(array_match 'swsh_sync_cache' "*$host*")"; then
+              array_unshift 'swsh_sync_cache' "rsync $host${port+:$port} ${shares//$newline/ }"
+            fi
+            ;;
+        esac
+      done
+      var_save 'swsh_sync_cache' "$pkgcachedir/sync"; }
+      ;;
+
+    add)
+      ;;
+    del*|remove) 
+      ;;
+    push)
+      ;;
+
+    pull)
+      (set -x
+       rsync --dry-run --update --compress --prune-empty-dirs "$2" |
+         sed -e 's, [^ ]\+$, file')
+
+      ;;
+
+    update)
+    
+      if test -z "$mode"; then
+        error "shit"
+        return 1
+      fi
+
+#      dest="$dir${2:+/$2}"
+      dest="$path${2+/$2}"
+
+      msg "before reloc: $dest"
+      dest=$(swsh_reloc "$mode" "$dest")${2+/$2}
+      msg "after reloc: $dest"
+
+      array_print 'sw_share_cache' | while read svc host share; do
+        case $share in
+          *$mode | $mode*)
+
+          local url="$svc://$host/$share/$dir${2+/$2}"
+          local errfile=$(tempnam)
+
+msg "Updating from '$url'..."
+
+(#set -x
+#--progress 
+          rsync -r --progress --update --compress --prune-empty-dirs "$url" ${dest+"${dest%/*}"} 2>"$errfile" 
+          #| sed -e "\,/, { s| [^ ]\+$| $url|; }" -e "s| \+| |g"
+          )     
+          local errors=$(cat $errfile 2>/dev/null)
+          rm -f $errfile
+          ;;
+       esac
+     done
+     ;;
+
+    *)
+      msg "Synchronization peers"
+      msg "---------------------"
+      
+      array_print 'sw_share_cache' | while read svc host share; do
+        case $share in
+          *$mode|$mode*)
+            
+            local url="$svc://$host/$share/$dir${1+/$1}"
+            local errfile=$(tempnam)
+
+# echo     rsync --list-only "$url" '|' sed -e "s| [^ ]\+$| $url|" -e "s| \+| |g"
+      rsync --list-only "$url" 2>"$errfile" | sed -e "s| [^ ]\+$| $url|" -e "s| \+| |g"
+      
+            local errors=$(<$errfile)
+            rm -f "$errfile"
+              
+            ;;
+        esac
+      done | sort -k 2,3 -r
+      ;;
+  esac
+}
+
+# Calls the specified command with all arguments..
+# ---------------------------------------------------------------------------
+swsh_call()
+{
+  local n fn IFS="$space$newline$tabstop"
+
+  for n
+  do
+    fn="${fn:+${fn}_}$n"
+    shift
+    is_fn "$fn" && break
+  done
+  test "$fn" || { error "No such command '$1'."; return 1; }
+
+#  msg "exec: $fn $@"
+
+  $fn "$@"
+}
+
+# ---------------------------------------------------------------------------
+swsh()
+{
+  local IFS="$newline" s
+
+#  test "${0##*/}" = "-sh" && me="sw: "
+
+  sw_shortopts="h"
+  sw_longopts="help"
+
+  swsh_parse "$@"
+  set -- $sw_arguments
+
+  if is_fn "swsh_$1"; then
+#    echo " + sw_$@" 1>&2
+    "swsh_$@"
+  else
+    IFS="$space$tabstop$newline"
+
+    if script=$(swsh_locate "${1%.sh}") && test -n "$script"; then
+      require "$script"
+      swsh_call "$@"
+      return $?
+    fi
+
+#    for s in $(swsh_scripts)
+#    do
+#      test $s = "$1" && { swsh_call "$@"; return $?; }
+#    done
+
+    error "No such command '$1'."
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# TODO: cleanup
+#sw_epiphyte_conf="$sysconfdir/epiphyte.conf"
+#swsh_sync_cache_dir="$localstatedir/cache/sw-sync"
+#swsh_sync_conf_dir="$sysconfdir/etc/sw-sync"
+#
+#if test "${0##*/}" = "sw"; then
+#  sw "$@"
+#fi

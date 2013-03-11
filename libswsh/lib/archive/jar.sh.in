@@ -1,0 +1,67 @@
+#!/bin/sh
+#
+# archive/jar.sh: JAR archiving functions.
+#
+# $Id: jar.sh.in 575 2008-08-26 12:07:20Z enki $
+# -------------------------------------------------------------------------
+@DEBUG_FALSE@test $lib_archive_jar_sh || {
+
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# -------------------------------------------------------------------------
+. $shlibdir/util.sh
+. $shlibdir/std/var.sh
+
+# jar_cmd [options] <jar-archive> [files/directories...]
+#
+# Outputs a suitable command-line for the jar program.
+#
+#     -l, --level NUM         Compression level: 0 = store -> 9 = best.
+#     -d, --dereference       Dump the files instead of symlink pointing to.
+#     -x, --exclude PATTERN   Exclude files matching PATTERN.
+# -------------------------------------------------------------------------
+jar_cmd()
+{
+  :
+}
+
+# jar_create <jar-archive> [files/directories...]
+#
+# Pack the specified files and directories into a newly created jar-archive.
+# -------------------------------------------------------------------------
+jar_create()
+{
+  jar -c "$@"
+}
+
+# jar_update <jar-archive> [files/directories]
+#
+# Update the jar-archive (adding when necessary) with the specified files
+# and directories.
+# -------------------------------------------------------------------------
+jar_update()
+{ 
+  jar -u "$@"
+}
+
+# jar_list <jar-archive> [files/directories]
+#
+# List either all or only the specified files and directories from the jar-archive.
+# -------------------------------------------------------------------------
+jar_list()
+{ 
+  jar -l "$@"
+}
+
+# -------------------------------------------------------------------------
+jar_unpack()
+{
+  jar -x "$@"
+}
+
+# --- eof ---------------------------------------------------------------------
+@DEBUG_FALSE@lib_archive_jar_sh=:;}

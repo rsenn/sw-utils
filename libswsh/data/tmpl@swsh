@@ -1,0 +1,40 @@
+%# -*-mode: shell-script-*-
+%define c "# "
+#!/bin/sh
+#
+# -*-mode: shell-script-*-
+#
+# <:NAME>
+#
+%license
+#
+#
+# <:DATE> <:AUTHOR> <<:EMAIL>>
+#
+
+%if !defined("NOBODY")
+%include <body.inc@swsh>
+%endif # defined("NOBODY")
+
+#EOF
+%end
+
+Uses:	NOBODY, NOSTDFUNC, INCLUDE, SHFLAGS
+
+NOBODY:
+If NOBODY is not defined, body.inc@swsh is included. This file follows these rules:
+
+Initialization of default directories, sourcing of other shell script libraries and 
+a sample function.
+
+NOUTILLIBRARY:
+If NOUTILLIBRARY is not defined, the file will source the util.sh library script.
+
+SAMPLEFUNC:
+If SAMPLEFUNC is defined, a sample function will be include.
+
+NOMAIN:
+If NOMAIN is defined, no main() function will be generated.
+
+SHFLAGS:
+Generate option parsing stub using shflags (http://code.google.com/p/shflags/)

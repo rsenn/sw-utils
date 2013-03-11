@@ -1,0 +1,183 @@
+# $Id: log.in 425 2006-06-16 13:32:51Z roman $
+#
+# log.sh: service logging functions
+#
+# -------------------------------------------------------------------------
+test $lib_log_sh || {
+
+# log_exists <service>
+# -------------------------------------------------------------------------
+log_exists()
+{
+  [ -d $logdir/$1 ]
+}
+
+# log_mustexist <service>
+# -------------------------------------------------------------------------
+log_mustexist()
+{
+  log_exists $1 ||
+  {
+    errormsg "no log for service $1"
+    return 1
+  }
+}
+
+# log_file <service>
+# -------------------------------------------------------------------------
+log_file()
+{
+  log_mustexist || return 1
+
+  echo $logdir/$1/current
+}
+
+# log_empty <service>
+# -------------------------------------------------------------------------
+log_empty()
+{
+  log_mustexist || return 1
+
+  [ ! -s $logdir/$1/current ]
+}
+
+# log_touch <service>
+# -------------------------------------------------------------------------
+log_touch()
+{
+  log_mustexist || return 1
+
+  touch $logdir/$1/current
+}
+
+# pipe logs through this function to get human readable time with 1 sec
+# accuracy
+# -------------------------------------------------------------------------
+log_time()
+{
+  exec tai64nlocal | exec sed "s,^\([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\) \([0-2][0-9]:[0-5][0-9]:[0-5][0-9]\).[0-9]* ,$1\1 \2 ,"
+}
+
+# pipe logs through this function to strip date/time
+# -------------------------------------------------------------------------
+log_notime()
+{
+  sed "s,@[0-9a-z]* ,$1,"
+}
+
+# log_follow <service>
+# -------------------------------------------------------------------------
+log_follow()
+{
+  local time=0 pid time="log_notime" prefix stop='' logfile lines=10
+
+  while test -n "$1"; do
+    case $1 in
+      --stop*)
+        stop=${1#--stop=}
+        ;;
+      --time*)
+        time="log_time"
+        ;;
+      --pid*)
+        pid=${1#--pid=}
+        ;;
+      --prefix*)
+        prefix="-"
+        ;;
+      --lines*)
+        lines=${1#--lines=}
+        ;;
+      --fill)
+        lines=${DIALOG_HEIGHT}
+        ;;
+      *)
+        break
+        ;;
+    esac
+
+    shift
+  done
+
+  log_mustexist $1 || return 1
+
+  # if the log is empty, touch it
+  log_empty $1 && log_touch $1
+
+  logfile=`log_file "$1"`
+
+  if test -n "$stop"; then
+    tail --lines=${lines} --follow=name --sleep-interval=0.005 ${pid:+--pid=${pid}} \
+         $logfile | \
+    while read line; do
+      line=`echo "$line" | sed "s,^@*[0-9a-z]* *,,"`
+
+      test -n "$line" || continue
+
+      name="${logfile%/current}"
+      name="${name##*/}"
+
+      line="${line#*${name}: }"
+      line="${line#*${name}:}"
+
+      echo "$name: ${line}"
+
+      if (echo "$line" | grep -q "$stop"); then
+#        echo "done"
+         # BUG
+         killall tail
+        exit
+#
+#        exec 0>&- 1>&- 2>&-
+        break
+      fi
+    done
+  else
+    tail --lines=${lines} --follow=name --sleep-interval=0.005 ${pid:+--pid=${pid}} \
+         $logfile | sed "s,@[0-9a-z]* ,$1: ," #tai64nlocal
+#    exec tail --lines=0 --follow=name --sleep-interval=0.005 ${pid:+--pid=${pid}} \
+#         `log_file $1`
+  fi
+
+  exit
+}
+
+# show service selection
+# -------------------------------------------------------------------------
+log_menu()
+{
+  local service title default info
+
+  while :; do
+    # prepare services
+    shift $#
+
+    for service in $SERVICES; do
+      eval title="\$${service}_TITLE"
+
+      default=${default-${service}}
+
+      info=`cat $logdir/$service/current | wc -l`" lines"
+
+      set "$@" "$service" "$info"
+    done
+
+    # show the selection
+    choice=`menu --default "${choice-${default}}" --cancel "Back" "Select the service of which you wish to follow the log" "$@"` || break
+
+    # perform
+    log_service ${choice}
+  done
+}
+
+# enable/disable the service that has been selected
+# -------------------------------------------------------------------------
+log_service()
+{
+  local status service=$1
+
+  log_follow --fill ${service} | progressbox
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_log_sh=:;}

@@ -1,0 +1,626 @@
+#!/bin/sh
+#
+# srcdist.sh: Functions for extracting infos from source distributions
+# (e.g. tarball, directory).
+#
+# $Id: srcdist.sh.in 862 2009-02-19 08:54:21Z enki $
+# -------------------------------------------------------------------------
+test $lib_srcdist_sh || {
+
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# -------------------------------------------------------------------------
+. $shlibdir/util.sh
+. $shlibdir/fs/dir.sh
+. $shlibdir/fs.sh
+. $shlibdir/data/html.sh
+. $shlibdir/xtra.sh
+. $shlibdir/data/text.sh
+. $shlibdir/std/algorithm.sh
+. $shlibdir/buildsys/make.sh
+. $shlibdir/buildsys/cmake.sh
+. $shlibdir/buildsys/autotools.sh
+. $shlibdir/buildsys/plmake.sh
+. $shlibdir/buildsys/pysetup.sh
+. $shlibdir/buildsys/nobuild.sh
+
+# -------------------------------------------------------------------------
+: ${srcdist_path=}
+: ${srcdist_dir=}
+: ${srcdist_tmp=}
+: ${srcdist_base=}
+: ${srcdist_list=}
+: ${srcdist_files=}
+: ${srcdist_subdirs=}
+: ${srcdist_absdir=}
+
+# -------------------------------------------------------------------------
+SRCDIST_buildsystems="cmake autotools pysetup plmake make nobuild"
+SRCDIST_source_exts="{c,C,cpp,cxx,h,H,hpp,hxx}"
+SRCDIST_script_exts="{php,inc,py,js}"
+
+# -------------------------------------------------------------------------
+SRCDIST_meta=
+SRCDIST_vars="files${nl}subdirs${nl}name${nl}version${nl}fullname${nl}description${nl}authors${nl}files_text${nl}files_html${nl}buildsys${nl}autotools${nl}cmake"
+
+# srcdist_open <directory-or-archive>
+#
+# Starts working with a source distribution.
+# If it is an archive (tarball, zip, etc.) it will be unpacked to a temporary
+# directory.
+# -------------------------------------------------------------------------
+srcdist_open()
+{
+  local IFS="$nl"
+
+  if fs_exists "$1"; then
+    if is_dir "$1"; then
+      srcdist_dir=${1%/}
+      srcdist_absdir=`cd "$srcdist_dir" && pwd`
+    else
+      srcdist_tmp="`tempnam`"
+      srcdist_dir="$srcdist_tmp"
+      srcdist_absdir="$srcdist_dir"
+      srcdist_file="$1"
+      srcdist_base="${1##*/}"
+
+      # Try to unpack the archive...
+      if ! srcdist_list=`archive_unpack "$1" "$srcdist_dir" 2>/dev/null`; then
+        # remove temp dir and return when unpacking failed...
+        dir_remove "$srcdist_dir" 'temporary'
+        return 1
+      fi
+
+      # These will be distributed into srcdist_files_{c,make,text} etc.
+      srcdist_remains="$srcdist_list"
+    fi
+
+    # As long as there is just a single directory
+    # in our temp directory we enter it.
+    #
+    # This is because tarballs and other archives use to contain
+    # a $name-$version directory which contain all the rest.
+    # Some tarballs (like djb's daemontools) even contain 2 layers
+    # of directories before we get in touch with the actual source.
+    while
+      local l=`cd "$srcdist_dir" && fs_list` &&
+      test -n "$l" &&
+      test -d "$srcdist_dir/$l"
+    do
+      array_unshift srcdist_base "$l"
+
+      srcdist_dir="$srcdist_dir/$l"
+    done
+  fi
+}
+
+# srcdist_buildsys
+#
+# Tries to detect the build-system (e.g. GNU autotools, CMake, scons) used in
+# the source distribution.
+# -------------------------------------------------------------------------
+srcdist_buildsys()
+{
+  local IFS="$space$newline" bs
+
+  for bs in $SRCDIST_buildsystems; do
+    msg "Checking for '$bs' build system..."
+
+    set -- `${bs}_scan "$srcdist_dir"`
+
+@DEBUG_TRUE@    verbose "@: $@" 
+
+    if [ -n "$1" ]; then
+      msg "Detected '$bs' build system."
+
+      local bsdir=`removeprefix "$srcdist_tmp/" "$@"`
+
+      var_set "srcdist_$bs" "$bsdir"
+
+      array_push 'SRCDIST_meta' "$bs=`str_quote "$bsdir"`"
+      array_push 'SRCDIST_meta' "buildsys=$bs"
+
+      if ! array_isin 'srcdist_buildsys' "$bs"; then
+        array_push_unique 'srcdist_buildsys' "$bs"
+      fi
+
+      break
+    fi
+  done
+}
+
+# srcdist_list
+#
+# Lists the whole directory-tree of the source distribution.
+# -------------------------------------------------------------------------
+srcdist_list()
+{
+  [ -d "$srcdist_dir" ] &&
+  (cd "$srcdist_dir" && find *)
+}
+
+# srcdist_mime <pattern> [anti-pattern]
+#
+# Matches files within the source-distribution by their MIME-type.
+# The first argument is an fnmatch(3)-style pattern specifying the MIME-types
+# wanted.
+# Optionally a second pattern may be given; the files matching this pattern
+# will be excluded from the result then.
+# -------------------------------------------------------------------------
+srcdist_mime()
+{
+  local IFS=$nl line
+
+  if [ -d "$srcdist_dir" ]; then
+    if ! var_isset 'srcdist_mime'; then
+      srcdist_mime=$(
+        cd $srcdist_dir && 
+	find * -print0 | xargs -0 file -i | sed -e 's,:\s\+,:,'
+      )
+    fi
+
+    for line in $srcdist_mime; do
+      case ${line#*:} in
+        $2 | $2';'*) ;;
+        $1 | $1';'*) echo "$srcdist_dir/${line%%:*}" ;;
+      esac
+    done
+  fi
+}
+
+# srcdist_parse
+#
+# -------------------------------------------------------------------------
+srcdist_parse()
+{
+  local IFS=$nl input l k= t v=
+
+  set --
+
+  while read input; do
+    l=${input#[0-9]*:}
+
+    t=
+    case $l in
+      $srcdist_dir/*':')
+        file=${l%:}
+        skip=false
+        break
+        ;;
+
+      *':'*)
+        t=${l%%:*} v=${l#*:}
+        t=${t/' '/_} v=${v#' '}
+        ;;
+
+      *' = '*) t=${l%%' = '*} v=${l#*' = '} ;;
+          *=*) t=${l%%=*}     v=${l#*=} ;;
+    esac
+
+    if test -n "$t" && is_var "$t"; then
+      if test -n "$k"; then
+        array_push 'SRCDIST_meta' $k="`str_quote "$*"`"
+      fi
+      set -- "$v"
+      k=`str_tolower "$t"`
+    elif test -n "$k"; then
+      set -- "$@" "$l"
+    fi
+  done
+
+  if test -n "$k"; then
+    array_push 'SRCDIST_meta' $k="`str_quote "$*"`"
+  fi
+}
+
+
+# srcdist_dumptext
+#
+# -------------------------------------------------------------------------
+srcdist_dumptext()
+{
+  local IFS=$nl
+
+  if test -z $srcdist_name; then
+    errormsg "No name yet!"
+    return 1
+  fi
+
+  srcdist_htmlfiles=`srcdist_mime '*/*html*'`
+  srcdist_textfiles=`srcdist_mime 'text/*' '*/*html*'`
+
+  local expr= v=${srcdist_version//./$bslash.}
+  local tok toks=`explode "$srcdist_name" -`
+
+  # Prepare expressions which should match name and version tokens...
+  for tok in $srcdist_name-$v $srcdist_name $toks $v; do
+    array_push 'expr' {^[0-9]+:,' '}$tok{$,' '}
+  done
+#  array_push 'expr' {^[0-9]+:,' '}$v{$,' '}
+
+  # Expression which should match 'Name: ' keys as in pkg-config files...
+  array_push 'expr' '^[0-9]+:[a-z]+ ?[a-z]+: '
+  array_push 'expr' '^[0-9]+:[a-z]+: '
+
+  # Blah
+  array_push 'expr' "^$srcdist_dir/.*:$"
+#  array_push 'expr' "author"
+
+  expr='('`array_implode 'expr' '|'`')'
+
+#  msg "Text extraction expression: $expr"
+
+  local text ln description lineno skip='false' heading='true'
+
+  local a=`array_match 'srcdist_textfiles' '*AUTHOR*'`
+  array_for_each a 'echo "?:" && grep -n "" "?"'
+
+  { array_for_each srcdist_textfiles 'echo "?:" && case ? in
+      *.pc.in|*.pc|*.lsm) grep -n "" "?" ;;
+      *akefile|*/Makefile.am|*/Makefile.in) script_comments "?" | grep -n "" ;;
+      *) text_unwrap "?" | grep -n "" ;;
+    esac'
+    array_for_each srcdist_htmlfiles 'echo "?:" && html_text "?" | grep -n ""'
+  } | grep -iE "$expr" | tee ".text"
+}
+
+# SRCDIST_meta
+#
+# Data mining through all text-files within the source-distribution for gaining
+# meta-info.
+# -------------------------------------------------------------------------
+srcdist_description()
+{
+  local IFS=$nl lineno ln
+
+  srcdist_dumptext | 
+  {
+    unset $SRCDIST_vars
+
+    while read ln; do
+
+      lineno=${ln%%:*}
+      ln=${ln#*:}
+
+      case $lineno in
+        /*)
+          file=${lineno%:}
+          skip=false
+          heading=true
+          lineno=0
+        ;;
+
+        *)
+        ;;
+      esac
+
+    if test -n "$file"; then
+    
+      test -n "$authors" || case $file in
+        *author*|*AUTHOR*)
+
+          f=$file
+          srcdist_parse
+
+          if test -n "`obj_get SRCDIST_meta authors`"; then
+
+            msg "Found author(s) in file '$f':" `obj_get 'SRCDIST_meta' 'authors'`
+            array_push 'authors' `obj_get SRCDIST_meta authors`
+            array_clean 'authors' "$space$tabstop"
+          fi
+          ;;
+      esac
+
+      test -n "$description" || case $file in
+        *.pc|*.pc.in)
+
+          f=$file
+          srcdist_parse
+
+          if obj_isset 'SRCDIST_meta' 'description'; then
+
+            msg "Found description in file '$f'."
+
+            array_push 'description' `obj_get 'SRCDIST_meta' 'description'`
+            array_clean 'description' "$space$tabstop"
+          fi
+          ;;
+      esac
+
+      if $heading && test $((lineno)) -gt 0; then
+        set -- `explode "$ln" "$space$tabstop"`
+
+        if test "$#" = 0; then
+          heading=false
+        elif test -z "$fullname"; then
+
+          if test "${file%/*}" = "$srcdist_dir"; then
+		  
+            : ${keywords=$(explode "`str_tolower "$srcdist_name"`" -)$nl$srcdist_version}
+
+            h=`str_tolower "$*"`
+            rating=`str_rate "$h" $keywords`
+
+            if test $((rating)) -gt 20; then
+              fullname="$*"
+            fi
+          fi
+        fi
+      fi
+
+      test -n "$description" || case $ln in
+        *$srcdist_name' is '*   | *$srcdist_name' was '*      | \
+        *$srcdist_name' has '*  | *$srcdist_name' requires '* | \
+        *$srcdist_name' will '* | *$srcdist_name' supports '* )
+          description="${ln#*$srcdist_name' '}"
+          ;;
+
+        *$srcdist_name-$srcdist_version', '*)
+
+          description="${ln#*$srcdist_name-$srcdist_version', '}"
+          description=`str_ucfirst "${description%%'. '[A-Z]*}"`
+#          msg "Hell, description!!!! $description"
+
+          ;;
+
+        'Description: '*)
+          description="${ln#Description: }"
+          ;;
+
+        $srcdist_name': '*)
+          description=${ln#*': '}
+          description=${description%' ===='*}
+          ;;
+
+        $srcdist_name*)
+          description="$ln"
+          ;;
+
+        *)
+          continue
+          ;;
+      esac
+    fi
+
+    if test -n "$description"; then
+      if test `text_wordcount "$description"` -gt 3; then
+        verbose "Found description in file '$file'."
+      else
+        unset description
+      fi
+    fi
+
+    if test -n "$authors"; then
+      if test `text_wordcount "$authors"` -gt 3; then
+        verbose "Found authors in file '$file'."
+      else
+        unset authors
+      fi
+    fi
+
+  done
+
+  unset description authors fullname
+  }
+}
+
+# srcdist_subdirs
+#
+# -------------------------------------------------------------------------
+srcdist_subdirs()
+{
+  if test -d "$srcdist_dir"
+  then
+    if test -z "$srcdist_subdirs"
+    then
+      srcdist_subdirs=`cd "$srcdist_dir" && find * -type d`
+    fi
+    echo "$srcdist_subdirs"
+  fi
+}
+
+# srcdist_files
+#
+# -------------------------------------------------------------------------
+srcdist_files()
+{
+  local IFS=$nl
+  if test -d $srcdist_dir
+  then
+    if test -z $srcdist_files
+    then
+      srcdist_files=`cd $srcdist_dir && find * -type f`
+    fi
+    echo $srcdist_files
+  fi
+}
+
+# srcdist_recurse <command> [subdir]
+#
+# -------------------------------------------------------------------------
+srcdist_recurse()
+{
+  test -d "$srcdist_dir" && if test -z "$2"
+  then
+    cd "$srcdist_dir" && eval "$1" && for p in *
+    do
+      test -d "$p" && srcdist_recurse "$1" "$p"
+    done
+  else
+    cd "$2" && eval "$1" && for p in *
+    do
+      test -d "$p" && srcdist_recurse "$1" "$p"
+    done
+  fi
+}
+
+# srcdist_xtra
+#
+# -------------------------------------------------------------------------
+srcdist_xtra()
+{
+  local IFS="$space$nl$obj_s/" base v xtra out=
+
+  for base in $srcdist_base
+  do
+    debug "$base"
+    set -- _ -
+
+    if test "${base%[0-9]}" != "$base"
+    then
+      shift
+    fi
+
+    xtra=`xtra_walk "$base" "$@" | xtra_obj`
+
+    for v in `obj_members "$xtra"`
+    do
+      if obj_isempty "$out" $v
+      then
+        value=`obj_get "$xtra" $v`
+        debug "Setting $v='$value'."
+        obj_set out $v "$value"
+      fi
+    done
+  done
+  echo "$out"
+}
+
+# srcdist_dump
+#
+# -------------------------------------------------------------------------
+srcdist_dump()
+{
+  local IFS=" $nl" out=
+
+  for v in $SRCDIST_vars
+  do
+    if ! var_empty "srcdist_$v"
+    then
+      obj_set out "$v" "`var_get srcdist_$v`"
+    fi
+  done
+  echo "$out"
+}
+
+# srcdist_mine
+#
+# -------------------------------------------------------------------------
+srcdist_mine()
+{
+  local IFS=$nl xtra=`srcdist_xtra` desc
+
+  local "$@"
+
+  msg "Extracting credentials from package naming..."
+
+  for v in `obj_members "$xtra"`
+  do
+#    local "$v"
+
+    if var_isset "$v"
+    then
+      var_set srcdist_$v "`var_get "$v"`"
+    elif ! obj_isempty "$xtra" $v #&& var_empty srcdist_$v
+    then
+      var_set srcdist_$v "`obj_get "$xtra" $v`"
+    fi
+  done
+
+#  srcdist_name=`obj_get "$xtra" name`
+#  srcdist_version=`obj_get "$xtra" version`
+#  srcdist_release=`obj_get "$xtra" release`
+
+  local mine='no'
+
+  [ -z "$srcdist_name" ] && mine=yes || msg "Package name:" $srcdist_name
+  [ -z "$srcdist_version" ] && mine=yes  || msg "Package version:" $srcdist_version
+  [ -z "$srcdist_description" ] && mine=yes || msg "Package description:" $srcdist_description
+
+  if false && [ -z "$srcdist_description" -a "$mine" = yes ]; then
+    msg "Mining for package description within source files..."
+    srcdist_description
+  fi
+}
+
+# srcdist_analyze
+#
+# -------------------------------------------------------------------------
+srcdist_analyze()
+{
+  local dir="$1"
+
+  msg "srcdist_analyze $@"
+
+  shift
+
+  test -d "$srcdist_dir" && srcdist_close
+
+  srcdist_open "$dir" || return $?
+
+  local name version description maintainer
+  local "$@"
+
+  srcdist_name="$name"
+  srcdist_version="$version"
+  srcdist_description="$description"
+  srcdist_maintainer="$maintainer"
+
+  srcdist_mine "$@"
+
+  srcdist_buildsys
+  srcdist_dump
+
+#  test -d "$srcdist_dir" && srcdist_close
+}
+
+# srcdist_port <vars...>
+#
+# -------------------------------------------------------------------------
+srcdist_port()
+{
+  local v meta category=${1:?need category} name version release source IFS="$obj_s$nl"
+
+  emit_comment '$Id: srcdist.sh.in 862 2009-02-19 08:54:21Z enki $'
+
+  for meta in description authors; do
+    if obj_isset "$*" $meta; then
+      emit_comment $(str_ucfirst "$meta: `obj_get "$*" $meta`")
+    fi
+  done
+  emit_comment
+
+  : ${srcdist_release=1}
+
+  echo
+
+  for v in name category version release; do
+    if obj_isset "$*" "$v"; then
+      local $v="$(obj_get "$*" $v)"
+    fi
+    #var_dump "$v"
+  done
+
+  echo
+  local file=${srcdist_file##*/}
+  echo "source=("${file//$version/'$version'}")"
+  echo
+
+  ${srcdist_buildsys}_buildfn "$*"
+}
+
+#
+# -------------------------------------------------------------------------
+srcdist_close()
+{
+  dir_remove "$srcdist_tmp" temporary
+
+  unset -v srcdist_{absdir,base,ext,name,path,dir,tmp,subdirs,files,list,mime,description,authors,buildsys,autotools,cmake,version}
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_srcdist_sh=:;}

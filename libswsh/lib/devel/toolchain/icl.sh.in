@@ -1,0 +1,403 @@
+#!/usr/bin/env bash
+#
+# icl.sh: Wrapper for the Intel C++ compiler, making it behave like GNU C.
+#
+
+# Directories of the build system
+: ${prefix:="@prefix@"} \
+  ${libdir="${prefix}/lib"} \
+  ${shlibdir=""}
+
+. $shlibdir/array.sh
+
+icl_setup()
+{
+  # Directories of the host system
+  local_target="i586-pc-icl10"
+
+  local_prefix="$prefix/$local_target"
+  local_bindir="$local_prefix/bin"
+  local_libdir="$local_prefix/lib"
+  local_includedir="$local_prefix/include"
+
+  sdk_target="i586-pc-win32"
+  sdk_prefix="$prefix/$sdk_target"
+  sdk_bindir="$sdk_prefix/bin"
+  sdk_libdir="$sdk_prefix/lib"
+  sdk_includedir="$sdk_prefix/include"
+
+  rt_target="i586-pc-msvc80"
+  rt_prefix="$prefix/$rt_target"
+  rt_bindir="$rt_prefix/bin"
+  rt_libdir="$rt_prefix/lib"
+  rt_includedir="$rt_prefix/include"
+
+  # Programs for running the MSVC toolchain
+  WINE="$libdir/wine/wine.bin"
+  COMPILER="$local_prefix/bin/icl.exe"
+  PATH="$local_bindir:$sdk_bindir:$rt_bindir:$PATH"
+
+  export WINE COMPILER PATH
+
+  # MSVC toolchain configuration
+  icl_include="$local_includedir;$sdk_includedir;$rt_includedir"
+  icl_lib="$local_libdir;$sdk_libdir;$rt_libdir"
+  dl_path=`IFS=: && set -- $PATH && IFS=";" && echo "$*"`
+
+  # Wrapper info
+  PROGNAME=${0##*/}
+
+  # Wrapper behaviour
+  DEBUG=false
+  OUTEXT=false
+  PDB=false
+}
+
+# ------------------------------------------------------------------------- #
+# DON'T CHANGE BEYOND THIS LINE UNLESS KNOWING EXACTLY WHAT YOU'RE DOING!!! #
+# ------------------------------------------------------------------------- #
+
+
+# icl_infer <arguments...>
+#
+# Determine compilation mode & output file type.
+# ------------------------------------------------------------------------- #
+icl_infer()
+{
+  local a
+
+  icl_mode="link" icl_type="exe" icl_lang="" icl_debug=0
+
+  for a
+  do
+    case $a in
+      [-/]c) icl_mode="compile" icl_type="obj" ;;
+      [-/][EP]*) icl_mode="preproc" icl_type="pp" ;;
+
+      -S) icl_mode="assemble" icl_type="asm" ;;
+      
+      # Handle debugging options.
+      -g) test $((icl_debug)) -lt 3 && : $((++icl_debug)) ;;
+      -g[0-3]) icl_debug="${a#-g}" ;;
+      -ggdb) icl_debug=3 ;;
+
+      # Option for compiling a shared library (DLL)
+      -shared | -mdll | [-/]LD*)
+        if test "$icl_type" = "exe"
+        then 
+          icl_type="dll"
+        fi
+        ;;
+    esac
+  done
+}
+
+# read_var <name> <files...>
+#
+# Reads a variable from a file.
+# ------------------------------------------------------------------------- #
+read_var()
+{
+  local name=$1 && shift
+
+  sed -n "/^$name=/ {
+    /^$name='[^']*'\$/    s/^$name='\([^']*\)'\$/\1/ p
+    /^$name=\"[^\"]*\"\$/ s/^$name=\"\([^\"]*\)\"\$/\1/ p
+    /^$name=[^'\"]*\$/    s/^$name=\([^'\"]*\)\$/\1/ p
+  }" "$@"
+}
+
+# restart_script <args>
+#
+# Restarts this script.
+# ------------------------------------------------------------------------- #
+restart_script()
+{
+  exec "$0" "$@"
+}
+
+# icl_outopt <name> [mode] [type]
+#
+# Outputs a command line option which sets the output name for
+# the corresponding mode.
+# ------------------------------------------------------------------------- #
+icl_outopt()
+{
+  local opt="" mode=${2-"$icl_mode"} type=${3-"$icl_type"}
+
+  case $mode in
+    compile) opt="/Fo$1" ;;
+    assemble) opt="/Fa$1" ;;
+    preproc) ;;
+    *) opt="/Fe$1" ;;
+  esac
+
+
+  if test -n "$opt"
+  then 
+    if $OUTEXT
+    then
+      echo "$opt${type:+.$type}"
+    else
+      echo "$opt"
+    fi
+  fi
+}
+
+# icl_relative <path>
+#
+# Convert absolute path to relative one.
+# This is done on any absolute path argument to disambiguate them from command line
+# switches.
+# ------------------------------------------------------------------------- #
+icl_relative()
+{
+  local IFS="/" dir cwd=`pwd` path=$*
+
+  for dir in ${cwd#/}
+  do
+    path="../${path#/}"
+  done
+  
+  echo "$path"
+}
+
+# icl_main <args>
+# ------------------------------------------------------------------------- #
+icl_main()
+{
+  IFS="$array_s"
+  
+  icl_infer "$@"
+  icl_optimize=1
+
+  unset icl_sources
+  unset icl_link
+  
+  i=0
+  prev=
+  
+  for arg
+  do
+    test $((i++)) = 0 && set --
+    
+    case $prev in
+      # Last argument was -o, so this argument is the output filename.
+      [-/]o) arg=`icl_outopt "$arg"` && unset prev ;;
+      [-/][DI]) arg="/${prev#-}$arg" && unset prev ;;
+      -L) icl_lib="$icl_lib;$arg" && unset arg && unset prev ;;
+      /LINK) icl_link="${icl_link+$icl_link }$arg" && unset arg && unset prev ;;
+      
+      *)
+        case $arg in
+          # Dump machine
+          [-/]dumpmachine)
+            echo "$local_target"
+            exit 0
+            ;;
+        
+          # Void options...
+          [-/]traditional-cpp | [-/][Nn][Oo][Ll][Oo][Gg][Oo])
+            unset arg
+            ;;
+        
+          # Options which take arguments...
+          [-/][DILlo]) 
+            prev="$arg"
+            continue
+            ;;
+  
+          # Options without args...
+          [-/][cE])
+            arg="/${arg#[-/]}"
+            ;;
+
+          # Options which map transparently...
+          [-/][DI]* | [-/]MD*)
+            arg="/${arg#[-/]}"
+            ;;
+  
+          # Options which change env vars...
+          -L*)
+            icl_lib="$icl_lib;${arg#-L}"
+            ;;
+  
+          # Set the output filename.
+          [-/]o* | [-/]F[eo]*)
+            icl_output="${arg#[-/]o}"
+            icl_output="${icl_output#[-/]F[eo]}"
+            arg=`icl_outopt "$icl_output"` || continue
+            ;;
+  
+          # Compiler warnings
+          [-/]Wall | [-/]W[23])
+            arg="/Wall"
+            ;;
+  
+          [-/]WX | -Werror) 
+            arg="/WX"
+            ;;
+      
+          # Optimization flags
+          [-/]O[0-3bdgistxy])
+            icl_optimize=${arg#[-/]O}
+            
+            case $icl_optimize in
+              s) icl_optimize=`array "1" "s"` ;;
+              0) icl_optimize="d" ;;
+              1) icl_optimize=`array "1" "t"` ;;
+              2) icl_optimize=`array "2" "t" "i"` ;;
+              3) icl_optimize=`array "2" "x" "i" "b1"` ;;
+              *) array_push icl_optimize "$icl_optimize" ;;
+            esac
+            
+            unset arg
+            ;;
+      
+          # Debugging flags
+          -g*)
+            case $prev in
+              -g*) ;;
+              *)
+                case $icl_debug in
+                  0) arg= ;;
+                  1) arg=`array "/Zi"` ;;
+                  2) arg=`array "/Zi" "/Yd"` ;;
+                  3) arg=`array "/Zi" "/ZI" "/Yd"` ;;
+                esac
+                ;;
+            esac
+            
+            if ! $PDB
+            then
+              unset arg
+            fi
+            ;;
+      
+          # Linker options
+          [-/]LD | -shared | -mdll)
+            arg="/LD"
+            ;;
+            
+          [-/][Ll][Ii][Nn][Kk])
+            prev="/LINK"
+            continue
+            ;;
+      
+          # Help options
+          [-/][Hh][Ee][Ll][Pp])
+            arg="/HELP"
+            ;;
+      
+          # Any other option
+          -*)
+            echo "Unrecognized option: $arg" 1>&2
+            exit 1
+            ;;
+        
+          # Non-option arguments
+          *)
+            source_path="$arg"
+            source_file=`basename "$arg"`
+            source_dir=`dirname "$arg"`
+            
+            case $source_file in
+              lib*.a)
+                source_file=${source_file#lib}
+                source_file=${source_file%.a}.lib
+                ;;
+            esac
+            
+            case $source_dir in
+              /*) source_dir=`icl_relative "$source_dir"` ;;
+            esac
+            
+            case $source_dir in
+              .) source_path="$source_file" ;;
+              *) source_path="$source_dir/$source_file" ;;
+            esac
+          
+            array_push icl_sources "$source_path"
+            unset arg
+            continue
+            ;;
+        esac
+      ;;
+    esac
+    
+  
+    set -- "$@" ${arg+$arg}
+  
+  done
+  
+  # Second pass, adjusting some switches...
+  i=0
+  
+  for arg
+  do
+    test $((i++)) = 0 && set --
+  
+    case $arg in
+      /LD | /M[DT])
+        # On debugging mode greater than 1 we also instruct the linker..
+        if test $((icl_debug)) -gt 1
+        then
+          arg="${arg}d"
+        fi
+        ;;
+    esac
+  
+    set -- "$@" $arg
+  done
+  
+  # Never display microsoft banner..
+  set -- "/nologo" "$@"
+  
+  # Set optimization, if any...
+  if test -n "$icl_optimize" && test "$icl_optimize" != "d"
+  then
+    for opt in $icl_optimize
+    do
+      set -- "$@" "/O$opt"
+    done
+  fi
+  
+  # Add the list of sources...
+  set -- "$@" $icl_sources
+  
+  # Add option forcing C++ compilation...
+  case $PROGNAME in
+    [cg]++ | *-[cg]++)
+      set -- "/TP" "$@"
+      ;;
+  esac
+  
+  # Finally execute the compiler..
+  set -- env -i PATH="$icl_path" LIB="$icl_lib" INCLUDE="$icl_include" "$WINE" "$COMPILER" "$@"
+
+  if $DEBUG
+  then
+    echo "CMD: $@"
+  else
+    exec "$@"
+  fi
+
+  "$@" || exit $?
+  
+  return
+  icl_ret=$?
+
+  if $DEBUG
+  then
+    echo "RET: $icl_ret"
+  fi
+  
+  return $icl_ret
+}
+
+case "${0##*[/-]}" in
+  gcc|cc)
+    icl_setup
+    icl_main "$@"
+    ;;
+esac

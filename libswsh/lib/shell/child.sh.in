@@ -1,0 +1,107 @@
+#!/bin/sh
+#
+# child.sh: managing child processes.
+#
+# $Id: child.sh.in 575 2008-08-26 12:07:20Z enki $
+test $lib_child_sh || {
+
+: ${prefix:="@prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/util.sh
+. $shlibdir/shell/trap.sh
+. $shlibdir/sys/proc.sh
+
+: ${child_pids=}            # list of child process PIDs
+: ${child_lastpid=}         # pid of last launched process
+
+# is_child <pid> [parent-pid]
+# -------------------------------------------------------------------------
+is_child()
+{
+  local ppid=`proc_parent "$1"`
+
+  test "$ppid" = "${2:-$$}"
+}
+
+# child_signal
+# -------------------------------------------------------------------------
+child_signal()
+{
+  local pid pidlist= IFS="
+"
+  for pid in $child_pids
+  do
+    if ! proc_alive "$pid"
+    then
+      msg "Child process [$pid] has exited."
+      wait "$pid"
+    else
+      pushv pidlist "$pid"
+    fi
+  done
+  child_pids="$pidlist"
+}
+
+# child_wait
+# -------------------------------------------------------------------------
+child_wait()
+{
+  local IFS="
+"
+  if test -z "$1"
+  then
+    set -- $child_pids
+  fi
+
+  msg "Waiting for children [$@] to terminate."
+
+  wait "$@"
+}
+
+# child_spawn <argument list...>
+# -------------------------------------------------------------------------
+child_spawn()
+{
+  local tn IFS="
+"
+  "$@" & child_lastpid=$!
+
+  if test "$?" = 0 && test -n "$child_lastpid"
+  then
+    pushv child_pids "$child_lastpid"
+
+    if ! trap_isset "CHLD"
+    then
+      trap_set 'child_signal' "CHLD"
+    fi
+
+    for tn in "EXIT" "QUIT" "TERM"
+    do
+      if ! trap_isset "$tn"
+      then
+        trap_set 'child_kill' "$tn"
+      fi
+    done
+#    msg "Spawned process [$child_lastpid]: $@"
+  fi
+}
+
+# child_kill [-SIGNAL] [pid-list...]
+# -------------------------------------------------------------------------
+child_kill()
+{
+  local sig="TERM" IFS="
+ "
+  case "$1" in
+    -*) sig="${1#-}" && shift ;;
+  esac
+
+  kill -"$sig" ${*:-$child_pids} 2>/dev/null
+  wait ${*:-$child_pids} 2>/dev/null
+}
+
+
+# --- eof ---------------------------------------------------------------------
+lib_child_sh=:;}

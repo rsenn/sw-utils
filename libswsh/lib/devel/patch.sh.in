@@ -1,0 +1,147 @@
+#!/bin/sh
+#
+# patch.sh: patch manipulation functions.
+#
+# $Id: patch.sh.in 586 2008-08-27 03:24:45Z enki $
+# -------------------------------------------------------------------------
+test $lib_patch_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/path.sh
+. $shlibdir/std/str.sh
+
+# patch_cmd [options] <patch> [dir]
+#
+#    -i<n>   Indents output n number of chars
+#
+# Outputs the command necessary to output the patch
+# -------------------------------------------------------------------------
+patch_cmd()
+{
+#  local indent=""
+#
+#  while test "$1" != "${1#-}"
+#  do
+#    case "$1" in
+#      -i*) indent="${indent}$(str_repeat $(( ${1#-i} )) '-')" ;;
+#    esac
+#    shift
+#  done
+
+  lsdiff "$1" | while read p
+  do
+    dir=${p%/*}
+
+    if n=`path_try "$dir" ${2+"$2"}` && test -n "$n"
+    then
+      if escape_required "$1"
+      then
+        f=`str_quote "$1"`
+      else
+        f="$1"
+      fi
+
+      echo "${indent}patch -p$((n)) -i $f"
+      exit 0
+    else
+      exit 1
+    fi
+  done
+}
+
+# patch_cmds <patches...>
+#
+# Outputs the command necessary to apply the specified patchset to the
+# current directory.
+# -------------------------------------------------------------------------
+patch_cmds()
+{
+  local diff args= indent=
+
+  while test "$1" != "${1#-}"
+  do
+    case "$1" in
+      -i*) indent="${indent}$(str_repeat $(( ${1#-i} )) ' ')" ;;
+      *) args="${args:+$args${IFS:0:1}}$1" ;;
+    esac
+    shift
+  done
+
+  for diff
+  do
+    patch_cmd $args "$diff" || return $?
+  done
+}
+
+# Stub if called as a script
+# -------------------------------------------------------------------------
+if test "${0##*/}" = patch.sh
+then
+  if test "`type -t "patch_$1"`" = function
+  then
+    patch_"$@"
+  fi
+fi
+
+# patch_find [options] <patch> [files...]
+#
+# Finds files within a patch.
+# -------------------------------------------------------------------------
+patch_find()
+{
+  local c p o l f n= IFS="
+"
+  case $1 in
+    -n) n=$2 && shift 2 ;;
+    -n*) n=${1#-n} && shift ;;
+  esac
+
+  p=$1
+  shift
+
+  case $p in
+    -) unset p ;;
+  esac
+
+  for f
+  do
+
+
+    o=`filterdiff ${p+"$p"} -i "${f}"`
+    l=`echo "$o" | lsdiff`
+    c=`count $l`
+
+#    msg "Count ($f): $c"
+
+    test "$c" -gt 1 && warn "Ambiguous name '$f':" $l
+
+    if test -n "$o"
+    then
+      echo "$o" | sed -e "s|^\([-+][-+][-+]\) \([^ ]\+\) \(.*\)$|\1 ${n:-${f#'*/'}} \3|"
+    else
+       if test `path_length "${f#'*/'}"` -gt 1
+       then
+         patch_find -n"${n:-${f#'*/'}}" "${p:--}" "*/`path_shift "${f#'*/'}"`"
+       else
+         case "$f" in
+           '*/'*)
+ #            warn "No such file '$f' in patch '$p'"
+             ;;
+           *)
+             patch_find "${p:--}" "*/${f#'*/'}"
+             ;;
+         esac
+       fi
+
+
+
+    fi
+  done
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_patch_sh=:;}

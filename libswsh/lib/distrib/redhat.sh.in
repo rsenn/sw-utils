@@ -1,0 +1,78 @@
+#!/bin/sh
+#
+# distrib/redhat.sh: RedHat based distribution detection.
+#
+# $Id: redhat.sh.in 650 2008-09-11 23:32:49Z enki $
+# ------------------------------------------------------------------------- 
+test $lib_distrib_redhat_sh || {
+
+# set default directories
+# ------------------------------------------------------------------------- 
+: ${prefix:="@prefix@"}
+: ${sysconfdir:="@sysconfdir@"}
+
+# is_redhat [redhat-release-file]
+#
+# Checks whether the underlying distribution is a RedHat based one.
+# ---------------------------------------------------------------------------
+is_redhat()
+{
+  local rf=`redhat_relfile "$@"`
+
+  test -r "$rf" &&
+  case "${rf##*/}" in
+    *-release) return 0 ;;
+  esac
+
+  return 1
+}
+
+# redhat_relfile [redhat-release-file]
+#
+# Prints the redhat release file name.
+# ---------------------------------------------------------------------------
+redhat_relfile()
+{
+  echo "${@-$ROOT/etc/redhat-release}"
+}
+
+# redhat_release [redhat-release-file]
+#
+# Reads information from a redhat release file (/etc/redhat-release).
+# ---------------------------------------------------------------------------
+redhat_release() 
+{
+  local rf=`redhat_relfile "$@"` IFS="="
+
+  if test -r "$rf"
+  then
+   (IFS="
+ "  release=`<$rf`
+    case $release in
+      *' 'release' '*' ('*')')
+        set -- ${release%")"}
+        echo "id=$1"
+        echo "release=$3"
+        case $4 in
+          *' '*) echo "codename=\"${4#"("}\"" ;;
+              *) echo "codename=${4#"("}" ;;
+        esac
+        echo "description=\"$1 $3\""
+        ;;
+    esac)
+  else
+    errormsg "Cannot read $rf"
+  fi
+}
+
+# redhat_pkgmgr
+#
+# The kind of package manager used by RedHat based distributions.
+# ---------------------------------------------------------------------------
+redhat_pkgmgr()
+{
+  echo 'rpm'
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_distrib_redhat_sh=:;}

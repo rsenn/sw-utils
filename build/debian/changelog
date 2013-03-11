@@ -1,0 +1,6 @@
+sw-utils (0.9.1-1) hardy; urgency=low
+
+  * debian/rules:
+
+ -- Roman Senn <rs@adfinis.com>  Thu, 02 Oct 2008 09:37:37 +0200
+

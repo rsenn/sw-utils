@@ -1,0 +1,111 @@
+#!/bin/sh
+#
+# compiler.sh: compiler functions
+#
+# $Id: compiler.sh.in 770 2008-10-15 00:57:09Z enki $
+# -------------------------------------------------------------------------
+test $lib_compiler_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+: ${bindir:="@bindir@"}
+: ${sysconfdir:="@sysconfdir@"}
+
+. $shlibdir/fs.sh
+
+compiler_patterns=`array "cc" "gcc" "tcc" "c++" "g++" "cl.exe" "icl.exe"`
+
+# compiler_scandir
+#
+# List all available compilers in the given directories..
+# -------------------------------------------------------------------------
+compiler_scandir()
+{
+  local dir
+
+  for dir
+  do
+   (IFS="$ARRAY_s" && cd $dir && for compiler in $compiler_patterns
+    do
+      if test -x "$compiler"
+      then
+        echo "$dir/$compiler"
+      fi
+    done) 2>/dev/null
+  done
+}
+
+# compiler_scan
+#
+# List all available compilers in $PATH
+# -------------------------------------------------------------------------
+compiler_scan()
+{
+  local dir IFS=":"
+
+  for dir in $PATH
+  do
+    compiler_scandir $dir ${dir%/bin}/*-*-*/bin
+  done
+}
+
+# compiler_vendor [compiler-binary]
+#
+# Tries to determine the vendor of the compiler
+# -------------------------------------------------------------------------
+compiler_vendor()
+{
+  local out
+
+  out=$(  ( $1; $1 --version; $1 /help ) 2>&1 )
+
+  case $out in
+    *'Intel(R) C++ Compiler'*)
+      echo "intel"
+      ;;
+
+    *'Microsoft'*'(R)'*'Compiler'*)
+      echo "microsoft"
+      ;;
+
+    *'(GCC)'*)
+      echo "gnu"
+      ;;
+
+    *' Tiny C Compiler '*)
+      echo "bellard"
+      ;;
+
+    'SDCC '*)
+      echo "jarno"
+      ;;
+  esac
+}
+
+# compiler_verson [compiler-binary]
+#
+# Tries to determine the version of the compiler
+# -------------------------------------------------------------------------
+compiler_version()
+{
+  local out
+
+  ( $1 -dumpversion; $1 --version; $1 /help ) 2>&1 | sed -n \
+      -e '/^[0-9][.0-9]*$/ { p; q; }' \
+      -e '/.*[Vv]ersion[ \t]*[0-9]/ {
+          s/.*[Vv]ersion[ \t]*\([0-9][.0-9]*\?\).*/\1/
+          p
+          q
+        }' \
+      -e '/[ \t][0-9]\+\.[.0-9]*[ \t]/ {
+          s/^.*[ \t]\([0-9]\+\.[.0-9]*\?\)[ \t].*/\1/
+            p
+            q
+          }'
+
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_compiler_sh=:;}

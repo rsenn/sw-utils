@@ -1,0 +1,285 @@
+#!/bin/sh
+#
+# buildsys/make.sh: Makefile based build-system implementation
+#
+# $Id: make.sh.in 862 2009-02-19 08:54:21Z enki $
+# ---------------------------------------------------------------------------
+test $lib_buildsys_make_sh || {
+
+# ---------------------------------------------------------------------------
+: ${prefix:="@prefix@"} # default for prefix
+: ${exec_prefix:="@exec_prefix@"}
+: ${sysconfdir:="@sysconfdir@"} # default value for sysconfdir
+: ${libdir:="@libdir@"} # default value for libdir
+: ${bindir:="@bindir@"} # default value for bindir
+: ${shlibdir:="@shlibdir@"} 
+
+# ---------------------------------------------------------------------------
+. $shlibdir/std/array.sh
+. $shlibdir/shell/emit.sh
+
+# ---------------------------------------------------------------------------
+MAKE_files="[Mm]akefile GNUmakefile *.mk [Mm]akefile.[a-z][a-z][a-z]*"
+
+# sed program for comment stripping
+# -------------------------------------------------------------------------
+MAKE_nocomment='/^\s*#/d'
+
+# sed program for line continuation (newline escaping)
+# -------------------------------------------------------------------------
+MAKE_linecont=':lp; /\\$/ { N; b lp; }; s,\s*\\\n\s*, ,g'
+
+# sed expression for matching a make variable
+# -------------------------------------------------------------------------
+MAKE_xvar='^ *\([_0-9A-Za-z]\+\)\s*\([?+:]\?\)=\s*\(.*\)$'
+
+# sed expression for matching a make target
+# -------------------------------------------------------------------------
+MAKE_xtarget='^\([^\t=][^:=]*\)\s*::\?\s*\([^=]\?.*\)$'
+
+# -------------------------------------------------------------------------
+_make_names()
+{
+ (IFS=" $newline$tabstop"
+  a="$2"
+#  set -f
+  eval set -- $1
+  for x; do
+    echo ${a:+"$a"} "$x"
+  done)
+}
+
+# make_scan [directories...]
+#
+# searches one or more directory trees for any of $MAKE_files.
+# -------------------------------------------------------------------------
+make_scan()
+{
+  make_find "$@" | sed -e "s,/[^/]\+$,," | sort -u
+}
+
+# make_find [directories...]
+#
+# searches one or more directory trees for any of $MAKE_files.
+# -------------------------------------------------------------------------
+make_find()
+{
+  local names=`_make_names "$MAKE_files" -name`
+  
+  (set -f
+   IFS=" "
+   find "${@:-.}" -type f `array_implode names ' -or '` | sed -e "s,^\.\/,,")
+}
+
+# make_target_names [makefiles...]
+# -------------------------------------------------------------------------
+make_target_names()
+{
+  local IFS=" $nl" && local p='$(\([_0-9A-Za-z]\+\))'
+
+  sed -e "$MAKE_nocomment;$MAKE_linecont" `make_find "$@"` 2>/dev/null |
+  sed -n -e "/$MAKE_xtarget/ {
+    s,$MAKE_xtarget,\1,
+    s,\s\+,\n,g
+    p
+  }"
+}
+
+# make_targets [makefiles...]
+#
+# Lists all targets contained in the given Makefiles or the Makefile in the
+# current directory.
+# -------------------------------------------------------------------------
+make_targets()
+{
+  local IFS=" $nl" && local p='$(\([_0-9A-Za-z]\+\))'
+
+  sed -e "$MAKE_nocomment;$MAKE_linecont" `make_find "$@"` 2>/dev/null |
+  sed -n -e "/$MAKE_xtarget/ {
+    s,$MAKE_xtarget,\1: \2,p
+
+    :lp
+    n
+    /$MAKE_xtarget/! {
+      /^\s*#/ b lp
+      /^\t/ { 
+        /^\s*$/! p
+        b lp
+      }
+    }
+  }"
+}
+
+# make_variables [makefiles...]
+#
+# lists all variables contained in the given Makefiles or the Makefile in the
+# current directory.
+# -------------------------------------------------------------------------
+make_variables()
+{
+  local IFS=" $nl" && local p='$(\([_0-9A-Za-z]\+\))'
+
+  sed -e "/$p/ s/$p/\n&\n/" `make_find "$@"` 2>/dev/null | \
+  sed -n "/^$p\$/ s,$p,\1,p" | \
+  sort -u
+}
+
+make_isset()
+{
+  local vn=$1
+  shift
+  test -n "`make_variables "$@" | grep "^$vn\$"`"
+}
+
+# make_values [makefiles...]
+#
+# Lists all name=value pairs in a Makefile, separated by newline.
+# -------------------------------------------------------------------------
+make_values()
+{
+  local IFS=" $nl"
+
+  sed -e "$MAKE_linecont" "${@:-`make_find "$@"`}" 2>/dev/null |
+  sed -n -e "/$MAKE_xvar/ s,$MAKE_xvar,\1\2=\3,p"
+}
+
+# make_get <variable-name> [makefiles...]
+#
+# Lists the value of the specified variable.
+# -------------------------------------------------------------------------
+make_get()
+{
+  local IFS="
+"
+  match "$1=*" `shift && make_values "$@"`
+}
+
+# -------------------------------------------------------------------------
+make_subdirs()
+{
+  local dir subdir file IFS="$newline"
+  test "$*" || set -- `make_scan`
+  for dir
+  do
+    local dirs=""
+    make_check "$dir" && 
+    {
+      local IFS="$space$tabstop$newline"
+      for subdir in $(sed -n -e "/SUBDIRS/ {
+        s,^.*SUBDIRS\s*=\?,,
+        p
+      }" $MAKE_files $make_sources 2>/dev/null)
+      do
+        subdir="${dir:+$dir/}$subdir"
+        subdir="${subdir#./}"
+        test -z $subdir || test -d $subdir && array_push_unique dirs $subdir
+      done      
+    }
+  done
+  array_print dirs
+}
+
+# make_clean [directories...]
+#
+# Cleans files generated by generic-make files in the specified directories.
+# -------------------------------------------------------------------------
+make_clean()
+{
+  local dir file IFS="$newline"
+  test "$*" || set -- `make_scan`
+
+  for dir
+  do
+    make_check "$dir" &&
+   (cd $dir
+    subdirs=. IFS="$space$newline$tabstop"
+    array_push subdirs `make_subdirs`
+
+    for subdir in $subdirs
+    do
+     (cd $subdir
+      IFS="$space$newline$tabstop"
+
+      test -f Makefile &&
+      grep -q '^#.*Generated by.*configure' Makefile &&
+      rm -f Makefile
+
+      for file in $make_generated
+      do
+        msg "Checking for $file..."
+        out=$dir/$subdir/$file
+        out=${out//'/./'/'/'}
+        out=${out//'/./'/'/'}
+        out=${out//'/./'/'/'}
+        out=${out#./}
+        test -f $file && echo ${out#./} && rm -f $file
+      done)
+    done)
+  done
+}
+
+# make_scan [directories...]
+#
+# checks one or more directories for the presence of $MAKE_files
+# -------------------------------------------------------------------------
+make_check()
+{
+  local n names='' IFS=" $newline$tabstop"
+
+ (for dir
+  do
+    eval set -- $MAKE_files
+    for src
+    do
+      test -e "$SRC" && echo "$dir" && continue 2
+    done
+    errormsg "Not a valid generic-make source tree: '$dir'." 
+    return 1
+  done)
+}
+
+# make_builddir [source dirs...]
+#
+# for a list of generic-make source trees it outputs a list of their out-of-source
+# build directories...
+# -------------------------------------------------------------------------
+make_builddir()
+{
+  local dir parent base
+
+  for dir
+  do
+    make_check "$dir" || return 1
+    parent=`dirname "$dir"` base=`basename "$dir"`
+    echo $parent/$base-build
+  done
+}
+
+# make_buildfn <vars...>
+# -------------------------------------------------------------------------
+make_buildfn()
+{
+  local IFS="$obj_s$nl" dir args name version srcdir
+
+#  emit_startfn 'build'
+
+  name=`obj_get "$*" name`
+  version=`obj_get "$*" version`
+  srcdir=`obj_get "$*" srcdir`
+
+  emit_cmd "cd ${srcdir//$version/\$version}"
+  emit_cmd
+  
+  local vn=$(
+    (cd $srcdist_dir && make_variables) |
+     grep -iE '(INSTALL_PREFIX|INSTALL_ROOT|PREFIX)' | head -n1
+  )
+  
+  emit_cmd_ml make
+  emit_cmd_ml make ${vn:-PREFIX}'="$ROOT" install'
+
+#  emit_endfn
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_buildsys_make_sh=:;}

@@ -1,0 +1,70 @@
+#!/bin/sh
+#
+# distrib/mingw.sh: MinGW32 distribution detection and handling of distribution-specific things.
+#
+# $Id: mingw.sh.in 655 2008-09-12 00:21:46Z enki $
+# ------------------------------------------------------------------------- 
+test $lib_distrib_mingw_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# is_mingw [mingw-release-file]
+#
+# Checks whether the underlying distribution is a MinGW32. 
+# ---------------------------------------------------------------------------
+is_mingw()
+{
+  case `uname -o` in
+    MINGW*) return 0 ;;
+  esac
+  return 1
+}
+
+# mingw_relfile [mingw-release-file]
+#
+# Print the path to the MinGW32 release file.
+#
+# TODO: Detect via mingw32-make because cross env may not be in /mingw?
+# ---------------------------------------------------------------------------
+mingw_relfile() 
+{
+  echo /mingw/mingwvars.bat
+}
+
+# mingw_version
+#
+# Get MinGW32 version information 
+# ---------------------------------------------------------------------------
+mingw_version() 
+{
+# TODO: this is not the mingw runtime version
+  mingw32-gcc -dumpversion
+}
+
+# mingw_release
+#
+# Get Cygwin release information
+# ---------------------------------------------------------------------------
+mingw_release()
+{
+ (id=MinGW32
+  release=`mingw_version`
+  description="$id $release"
+
+  var_dump id release description)
+}
+
+# mingw_pkgmgr
+#
+# The kind of package manager used by Ubuntu distributions.
+# ---------------------------------------------------------------------------
+mingw_pkgmgr()
+{
+  echo mingw
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_distrib_mingw_sh=:;}

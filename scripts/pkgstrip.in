@@ -1,0 +1,1222 @@
+#!@SHELL@
+#
+# $Id: pkgstrip.in 698 2007-04-19 19:33:44Z  $
+
+#set -e
+
+if test -d ../sh
+then
+  swsh="../sh"
+fi
+
+: ${prefix=@prefix@}
+: ${exec_prefix=@exec_prefix@}
+: ${libdir=@libdir@}
+: ${shlibdir=@shlibdir@}
+
+default_target='@target@'
+current_target='@target@'
+target=$current_target
+
+# load the necessary libraries
+# ---------------------------------------------------------------------------
+source $shlibdir/util.sh
+source $shlibdir/var.sh
+source $shlibdir/std/array.sh
+source $shlibdir/port.sh
+source $shlibdir/fs.sh
+source $shlibdir/std/math.sh
+source $shlibdir/bytesize.sh
+source $shlibdir/pkg.sh
+source $shlibdir/archive.sh
+
+# global variables
+# ---------------------------------------------------------------------------
+temproot=
+size_old=0
+size_new=0
+category=
+package=
+
+#me="${0##*/}: "
+me=
+
+# ---------------------------------------------------------------------------
+strip_type=''
+strip_dir=''
+
+# show pkgrelease usage
+# ---------------------------------------------------------------------------
+usage()
+{
+  echo "Usage: $(basename $0) [OPTION] [CATEGORY] PACKAGE... [DESTINATION]
+
+Strips unneeded symbols from binary files within a package
+and removes unneeded files. The package will be written to
+a new tar archive which is tagged appropriately
+
+  -sb, --strip-programs      Strip executables [b]
+  -sl, --strip-static        Strip static libraries [l]
+  -sd, --strip-shared        Strip shared libraries (DSOs) [d]
+  -sg, --strip-debug         Strip debugging symbols [g]
+       --strip-binaries      Strip all binaries (static & shared libs, programs)
+
+  -rh, --remove-headers      Remove header files [h]
+  -rc, --remove-sources      Remove source files [c]
+  -ra, --remove-static       Remove static libraries files [a]
+  -rs, --remove-build        Remove build scripts [s]
+       --remove-development  Remove development files
+                             (headers, sources, static libraries, build scripts)
+
+  -ro, --remove-docs         Remove documentation [o]
+  -rm, --remove-manuals      Remove manuals [m]
+  -ri, --remove-info         Remove info pages [i]
+       --remove-text         Remove all texts (docs, mans, infos)
+  echo
+  -s,  --strip-all           Remove and strip everything possible
+  -m,  --flags <flags>       Remove and strip by flags
+  -v,  --verbose             Increase verbosity
+  -o,  --output-path         Output full pathname of every package
+  -f,  --force               Strip, even if output package is up-to-date
+  -C,  --noclean             Don't clean up temporary directory (debug)
+
+  -h,  --help                Show this help"
+}
+
+# print prefixed message
+# ---------------------------------------------------------------------------
+#msg()
+#  {
+#  echo -e "$me: $@" 1>&2
+#  }
+
+# print prefixed message on condition
+# ---------------------------------------------------------------------------
+verbose()
+{
+  local verbosity
+  
+  if test "$#" -ge 1
+  then
+    eval verbosity="\$$#"
+    if test -z "${verbosity%[1-2]}"
+    then
+      set -- ${*%$verbosity}
+    else
+      unset verbosity
+    fi
+  fi
+  
+  if test "$pkgstrip_verbose" -ge "${verbosity:-1}"
+  then
+    msg "$@"
+  fi
+}
+        
+# get target architecture from path
+# ---------------------------------------------------------------------------
+get_target()
+{
+  local target=${1#*${prefix#/}/}
+  local target=${target%%/*}
+
+  case $target in
+    *-*-*)
+      echo $target
+      ;;
+    *)
+      echo $default_target
+      ;;
+  esac
+}
+
+# locate packages
+# ---------------------------------------------------------------------------
+get_packages()
+{
+  local pkgname
+  local catmask=${1%%/*}
+  local categories=$(port_categories "$catmask")
+  
+  # check if a package was supplied
+  if test -z "$1"
+  then
+    error "Please specify a category/package!"
+  fi
+ 
+  if test "$categories"
+  then
+    if test "$catmask" != "$1"
+    then
+      local pkg=$1
+      shift
+      set -- "${pkg#*/}" "$@"
+    else
+      shift
+    fi
+  fi
+ 
+  for pkgname
+  do
+    local package=$(port_find "$pkgname")
+    
+    if test "$package"
+    then
+      categories=${categories:+"$categories "}${package%/*}
+    fi
+  done
+
+  # a valid category mask was provided:
+  if test "$categories"
+  then
+    local names=$(port_names ${categories})
+
+    # get full package path
+    for pkgname
+    do
+      # did the category change?
+      if test "$pkgname" != "${pkgname#*/}"
+      then
+        catmask=${pkgname%/*}
+        categories=$(port_categories "$catmask")
+        names=$(port_names ${categories})
+        pkgname=${pkgname#*/}
+      fi
+    
+      if test -z "$(array_match 'names' "$pkgname")"
+      then
+        msg "No such package '$pkgname'" 1>&2
+        break
+      fi
+
+      echo $(port_pkgmask "$catmask/$pkgname")
+    done
+
+    if test $# = 0
+    then
+      msg "Please specify a package!" 1>&2
+      msg "Available packages in category '"$categories"' are:" 1>&2
+      msg 1>&2
+      choices_list 5 $(port_names ${categories}) 1>&2
+      return 1
+    fi
+  else
+    for pkgpath
+    do
+#      pkgpath=$(port_pkgfile "$pkgpath")
+    
+      if test ! -f "$pkgpath"
+      then
+        msg "No such package '$pkgpath'" 1>&2
+        break
+      fi
+
+      echo "$pkgpath"
+    done
+
+    if test $# = 0
+    then
+      msg "Please specify a package!" 1>&2
+      return 1
+    fi
+  fi
+}
+
+# unpack the package archive
+# 
+# pkgstrip_unpack <archive> 
+# ---------------------------------------------------------------------------
+pkgstrip_unpack()
+{
+  local archive=$1 
+  
+  # unpack the archive, and while unpacking look for files which have further
+  # compression (for example static library archives). these will also be 
+  # unpacked.  
+  archive_unpack "$archive" "$temproot" | linedelay | while read path
+  do
+    # check whether the acquired path is valid or not
+    if test ! -e "$path"
+    then
+      continue
+    fi
+    
+    # get info about that file
+    fileinfo=$(file "$path")
+    fileinfo=${fileinfo#*": "}
+  
+    # split file name into parts
+    fname=${path##*/}
+    ext=${fname##*.}
+
+    case $fileinfo in
+    
+      # Extract static archives to a $fname.x subfolder
+#      "current ar archive")
+#
+#        local tmpsub=${path}.x
+#        mkdir -p ${tmpsub}
+#        (cd ${tmpsub}
+#         ar xv ../${fname} | sed "s,x - ,$tmpsub/,"
+#         rm -f ../${fname})
+#        ;;
+
+      *)
+        echo $path
+        ;;
+    esac
+  done
+}
+
+# remove a file and, if empty, its parent directories
+#
+# remove_file <path relative to temproot> <filetype> <filesize>
+# ---------------------------------------------------------------------------
+remove_file()
+{
+  local relpath=$1
+  local filepath=$temproot/${relpath}
+  local dir=${relpath%/*}
+  
+  verbose "${relpath##*/}" 2
+  rm "$filepath"
+  
+  local indir=$(fs_list "$temproot/$dir")
+  
+  if test -z "$indir"
+  then
+    verbose "Directory $dir now empty, removing it..." 2
+    remove_dir "$dir"
+  fi
+}
+
+# remove a directory and, if empty, its parent directories
+#
+# remove_dir <path relative to temproot> <filetype> <filesize>
+# ---------------------------------------------------------------------------
+remove_dir()
+{
+  local relpath=$1
+  local filepath=$temproot/${relpath}
+  local dir=${relpath%/*}
+  local indir=$(fs_list "$filepath")
+  
+  if test "$indir"
+  then
+    warn "Directory $relpath NOT empty!"
+    return 1
+  fi
+  
+  rm -r "$filepath" || return 1
+  
+  local indir=$(fs_list "$temproot/$dir")
+  
+  if ! test "$indir"
+  then
+    if test "$pkgstrip_verbose" -gt 1
+    then
+      verbose "Directory $dir now empty, removing it..." 2
+    fi
+    remove_dir "$dir"
+  fi
+}
+
+# strip a binary file
+#
+# strip_binary <path relative to temproot> <bin|dll|obj> <filesize>
+# ---------------------------------------------------------------------------
+strip_binary()
+{
+  local dir=${1%/*}
+  local type
+  local relpath=$1
+  local filepath=$temproot/${relpath}
+  local filename=${relpath##*/}
+  local filesize=${3-$(fs_size "$filepath")}
+  local args=""
+
+  # handle the 3 different binary file types
+  case $2 in
+    obj)
+      test "$pkgstrip_strip_programs" = 'yes' && args='-S'
+      type='objects'
+
+      test "$pkgstrip_strip_shared" = 'no' && test "$pkgstrip_strip_debug" = 'no' &&
+      return 0
+      
+      strip_l=1
+      ;;
+    dll)
+      test "$pkgstrip_strip_programs" = 'yes' && args='--strip-unneeded'
+      type='shared objects'
+
+      test "$pkgstrip_strip_shared" = 'no' && test "$pkgstrip_strip_debug" = 'no' &&
+      return 0
+      
+      strip_d=1
+      ;;
+    bin)
+      test "$pkgstrip_strip_programs" = 'yes' && args='--strip-all'
+      type='programs'
+
+      test "$pkgstrip_strip_programs" = 'no' && test "$pkgstrip_strip_debug" = 'no' &&
+      return 0
+      
+      strip_b=1
+      ;;
+  esac
+  
+  test "$pkgstrip_strip_debug" = 'yes' && args="$args -S" && strip_g=1 #~strip_l=1 strip_d=1 strip_b=1
+    
+  # output status line if directory or file type changed
+  if test "$strip_dir" != "$dir" || 
+     test "$strip_type" != "$type"
+  then
+    strip_dir=${dir}
+    strip_type=${type}
+
+    if test "$pkgstrip_verbose" -gt 0
+    then
+      verbose 2
+      msg "Stripping $type in $dir (using $args)$pkgstrip_colon" 
+    fi
+  fi
+
+  # begin status message with unstripped size
+  local unit=$(size_to_unit "$filesize")
+  
+  if test "$pkgstrip_verbose" -gt 1
+  then
+    msgbegin "$(printf "%-28s %8.2f%s ->" "$filename" "$(size_float "$filesize" "$unit")" "$unit")" 1>&2
+  fi
+  
+  ${target}-strip ${args} "$filepath"
+  
+  # finish status message with stripped size and ratio
+  newsize=$(fs_size "$filepath")
+
+  if test "$pkgstrip_verbose" -gt 1
+  then
+    msgend " $(printf "%8.2f%s" "$(size_float "$newsize" "$unit")" "$unit") ($((newsize * 100 / filesize))%)" 1>&2
+  fi
+}
+
+# process binary files
+#
+# process_binary <path relative to temproot> <fileinfo> <filesize>
+# ---------------------------------------------------------------------------
+process_binary()
+{
+  local relpath=$1
+
+  local fileinfo=$2
+  local filepath=$temproot/${relpath}
+  local filesize=${3-$(fs_size "$filepath")}
+  local fileext=${path##*.}
+  local filetype
+  
+  local stripped
+  local strip_args
+  
+  # try to guess the target system by filepath
+  local target=$(get_target "$filepath")
+
+  if test "$target" != "$current_target"
+  then
+    verbose "Detected target change from $current_target to $target" 
+    current_target=${target}
+  fi
+
+  local remove='no'
+
+  case ${fileext} in
+    static)
+      if test "$pkgstrip_remove_binaries" = 'yes'
+      then
+        remove='yes'
+      fi
+      ;;
+    *)
+      ;;
+  esac
+
+  case ${fileinfo} in
+    # ELF executables are our native format
+    ELF*executable*)
+      stripped=${fileinfo##*", "}
+      filetype='bin'
+      ;;
+    
+    # ELF shared libraries
+    ELF*shared*object*)
+      stripped=${fileinfo##*", "}
+      filetype='dll'
+      ;;
+    
+    # ELF objects
+    ELF*)
+      stripped=${fileinfo##*", "}
+      filetype='obj'
+      ;;
+    
+    # ar archives
+    *ar*archive*)
+      stripped='not stripped'
+      filetype='obj'
+      ;;
+    
+    # mingw32 object files are COFF
+    *COFF*executable*)
+      stripped=${fileinfo##*"executable "}
+      stripped=${stripped%%" -"*}
+      filetype='obj'
+      ;;
+      
+    # mingw32 executable files are PE  
+    PE*executable*)
+      filetype='bin'
+      ;;
+      
+    *)
+      filetype='-'
+      stripped='unknown'
+#      warn "Unknown binary file -> $filepath: $fileinfo"
+      ;;
+  esac
+
+  # Remove file if it is a static object and remove_libs is set
+  if test "$filetype" = "obj" && test "$pkgstrip_remove_libs" = 'yes'
+  then
+    strip_a=1
+    remove='yes'
+  fi
+
+  # Remove file 
+  if test "$remove" = 'yes'
+  then
+    remove_file "$relpath" "$filetype" "$filesize"
+  # Strip file if it is not yet stripped
+  elif test "$stripped" = "not stripped"
+  then
+    strip_binary "$relpath" "$filetype" "$filesize"
+  fi
+}
+
+# process text files
+#
+# process_text <path relative to temproot> <fileinfo>
+# ---------------------------------------------------------------------------
+process_text()
+{
+  local relpath=$1
+
+  local fileinfo=$2
+  local filepath=$temproot/${relpath}
+  local filesize=${3-$(fs_size "$filepath")}
+  local filename=${path##*/}
+
+  local dir=${1%/*}
+  local type
+  
+  case ${filename} in
+    *.h|*.hpp|*.hxx)
+      type="headers"
+      test "$pkgstrip_remove_headers" = 'no' && return 0
+      strip_h=1
+      ;;
+    *.c|*.cpp|*.cpp)
+      type="sources"
+      test "$pkgstrip_remove_sources" = 'no' && return 0
+      strip_c=1
+      ;;
+    *-config|*Conf.sh)
+      type="config scripts"
+      test "$pkgstrip_remove_build" = 'no' && return 0
+      strip_s=1
+      ;;
+    *.pc)
+      type="config scripts"
+      test "$pkgstrip_remove_build" = 'no' && return 0
+      strip_s=1
+      ;;
+    *.m4)
+      type="m4 macros"
+      test "$pkgstrip_remove_build" = 'no' && return 0
+      strip_s=1
+      ;;
+    *.la)
+      type="libtool libraries"
+      
+      # don't remove them if not in standard lib dir
+#      error "relpath: $relpath $libdir"
+
+      local dirname=${dir##*/}
+      
+#      error "$dirname"
+      
+      test "$dirname" != "lib" && return 0
+      
+      test "$pkgstrip_remove_build" = 'no' && return 0
+      strip_a=1
+      ;;
+    *)
+#      warn "Unknown text file type:" ${filepath##*/}: ${fileinfo}
+      return 1
+      ;;
+  esac
+      
+  # output status line if directory or file type changed
+  if test "$strip_dir" != "$dir" ||
+     test "$strip_type" != "$type"
+  then
+     strip_dir=${dir}
+     strip_type=${type}
+
+     if test "$pkgstrip_verbose" -gt 0
+     then
+       verbose 2
+       msg "Removing $type in $dir$pkgstrip_colon" 1>&2
+     fi
+  fi
+
+  remove_file "$relpath"
+}
+
+# process generic files
+# ---------------------------------------------------------------------------
+process_generic()
+{
+  local relpath=$1
+
+  local fileinfo=$2
+  local filepath=$temproot/${relpath}
+  local filesize=${3-$(fs_size "$filepath")}
+  local filename=${path##*/}
+  
+  local dir=${1%/*}
+  local type=''
+  local IFS="/"
+  local path=${temproot}
+
+  for dirpart in ${dir}
+  do
+    path=${path}/${dirpart}
+    
+    perm=$(ls -dla "$path" | sed 's,^.\([-a-z]\+\).*,\1,')
+    
+#    msg "Considering path: $path ($perm)"
+    
+    if test "$perm" = "r-xr-xr-x"
+    then
+      return 1
+    fi
+  
+    case ${dirpart} in
+      man)
+        type="manual pages"
+        test "$pkgstrip_remove_manuals" = 'no' && return 0
+        strip_m=1
+        break
+        ;;
+      doc|Documentation)
+        type="documentation"
+        test "$pkgstrip_remove_docs" = 'no' && return 0
+        strip_o=1
+        break
+        ;;
+      info)
+        type="info pages"
+        test "$pkgstrip_remove_info" = 'no' && return 0
+        strip_i=1
+        break
+        ;;
+    esac
+  done
+  
+  if test -z "$type"
+  then
+    return 1
+  fi
+  
+  # output status line if directory or file type changed
+  if test "$strip_dir" != "$dir" || test "$strip_type" != "$type"
+  then
+     strip_dir=${dir}
+     strip_type=${type}
+
+     if test "$pkgstrip_verbose" -gt 0
+     then
+       verbose 2
+       msg "Removing $type in $dir$pkgstrip_colon" 1>&2
+     fi
+  fi
+     
+  remove_file "$relpath"
+}
+
+# parse strip flag string
+# ---------------------------------------------------------------------------
+parse_flags()
+{
+  local char
+  
+  : ${pkgstrip_strip_static='no'}
+  : ${pkgstrip_strip_shared='no'}
+  : ${pkgstrip_strip_programs='no'}
+  : ${pkgstrip_strip_debug='no'}
+
+  : ${pkgstrip_remove_headers='no'}
+  : ${pkgstrip_remove_sources='no'}
+  : ${pkgstrip_remove_libs='no'}
+  : ${pkgstrip_remove_build='no'}
+  
+  : ${pkgstrip_remove_docs='no'}
+  : ${pkgstrip_remove_info='no'}
+  : ${pkgstrip_remove_manuals='no'}
+
+  for char in $(echo "$1" | sed 's,\(.\),\1 ,g')
+  do
+    case ${char} in
+      b) pkgstrip_strip_programs='yes' ;;
+      l) pkgstrip_strip_static='yes' ;;
+      d) pkgstrip_strip_shared='yes' ;;
+      g) pkgstrip_strip_debug='yes' ;;
+    
+      h) pkgstrip_remove_headers='yes' ;;
+      c) pkgstrip_remove_sources='yes' ;;
+      a) pkgstrip_remove_libs='yes' ;;
+      s) pkgstrip_remove_build='yes' ;;
+
+      o) pkgstrip_remove_docs='yes' ;;
+      m) pkgstrip_remove_manuals='yes' ;;
+      i) pkgstrip_remove_info='yes' ;;
+      x)
+         pkgstrip_strip_programs='yes'
+         pkgstrip_strip_static='yes'
+         pkgstrip_strip_shared='yes'
+         pkgstrip_remove_headers='yes'
+         pkgstrip_remove_sources='yes'
+         pkgstrip_remove_libs='yes'
+         pkgstrip_remove_build='yes'
+         pkgstrip_remove_docs='yes'
+         pkgstrip_remove_manuals='yes' 
+         pkgstrip_remove_info='yes' 
+         ;;
+    esac
+  done
+}
+
+# assemble flags
+# ---------------------------------------------------------------------------
+assemble_flags()
+{
+  local flags=''
+  
+  test "$strip_a" = 0 || flags="${flags}a"
+  test "$strip_b" = 0 || flags="${flags}b"
+  test "$strip_c" = 0 || flags="${flags}c"
+  test "$strip_d" = 0 || flags="${flags}d"
+  test "$strip_g" = 0 || flags="${flags}g"
+  test "$strip_h" = 0 || flags="${flags}h"
+  test "$strip_i" = 0 || flags="${flags}i"  
+  test "$strip_l" = 0 || flags="${flags}l"
+  test "$strip_m" = 0 || flags="${flags}m"
+  test "$strip_o" = 0 || flags="${flags}o"  
+  test "$strip_s" = 0 || flags="${flags}s"
+  
+  if test "$flags" = "abcdghilmos"
+  then
+    echo "x"
+  else
+    echo "$flags"
+  fi
+}
+
+# parse command line options
+# ---------------------------------------------------------------------------
+parse_options()
+{
+  pkgstrip_verbose=0
+  pkgstrip_mode=''
+  pkgstrip_output=0
+  pkgstrip_force='no'
+  pkgstrip_noclean='no'
+  
+  pkgstrip_strip_static='no' 
+  pkgstrip_strip_shared='no' 
+  pkgstrip_strip_programs='no'
+  pkgstrip_strip_debug='no'
+
+  pkgstrip_remove_binaries='no'
+  pkgstrip_remove_headers='no' 
+  pkgstrip_remove_sources='no' 
+  pkgstrip_remove_libs='no' 
+  pkgstrip_remove_build='no'
+  
+  pkgstrip_remove_docs='no' 
+  pkgstrip_remove_info='no' 
+  pkgstrip_remove_manuals='no'
+
+  pkgstrip_destdir=
+  pkgstrip_shift=0
+  pkgstrip_colon=
+
+  while test "$1"
+  do
+    case $1 in
+      -sb|--strip-programs)
+        pkgstrip_strip_programs='yes' 
+        ;;
+        
+      -sl|--strip-static)
+        pkgstrip_strip_static='yes' 
+        ;;
+        
+      -sd|--strip-shared)
+        pkgstrip_strip_shared='yes'
+        ;;
+        
+      -sg|--strip-debug)
+        pkgstrip_strip_debug='yes'
+        ;;
+        
+      --strip-bin*)
+        pkgstrip_strip_programs='yes' 
+        pkgstrip_strip_static='yes' 
+        pkgstrip_strip_shared='yes' 
+        ;;
+        
+      -rh|--remove-headers)
+        pkgstrip_remove_headers='yes' 
+        ;;
+        
+      -rc|--remove-sources)
+        pkgstrip_remove_sources='yes' 
+        ;;
+        
+      -ra|--remove-libs)
+        pkgstrip_remove_libs='yes' 
+        ;;
+
+      -rs|--remove-build)
+        pkgstrip_remove_build='yes' 
+        ;;
+        
+      -rb|--remove-binaries)
+        pkgstrip_remove_binaries='yes' 
+        ;;
+        
+      --remove-dev*)
+        pkgstrip_remove_headers='yes' 
+        pkgstrip_remove_sources='yes' 
+        pkgstrip_remove_libs='yes' 
+        pkgstrip_remove_build='yes'
+        ;;
+        
+      -ro|--remove-doc*)
+        pkgstrip_remove_docs='yes' 
+        ;;
+        
+      -rm|--remove-man*)
+        pkgstrip_remove_manuals='yes' 
+        ;;
+        
+      -ri|--remove-info*)
+        pkgstrip_remove_info='yes' 
+        ;;
+        
+      --remove-text*)
+        pkgstrip_remove_docs='yes' 
+        pkgstrip_remove_manuals='yes' 
+        pkgstrip_remove_info='yes'
+        ;;
+        
+      -s|--strip-all)
+        pkgstrip_strip_static='yes'
+        pkgstrip_strip_shared='yes'
+        pkgstrip_strip_programs='yes'
+        
+        pkgstrip_remove_headers='yes'
+        pkgstrip_remove_sources='yes' 
+        pkgstrip_remove_libs='yes' 
+        pkgstrip_remove_build='yes'
+  
+        pkgstrip_remove_docs='yes'
+        pkgstrip_remove_info='yes' 
+        pkgstrip_remove_manuals='yes'
+        ;;
+        
+      -m|--flags)
+        shift; : $((pkgstrip_shift++))
+        
+        if test -z "$1"
+        then
+          error "Expecting flags"
+        fi
+        
+        parse_flags "$1"
+        ;;      
+
+      -f|--force)
+        pkgstrip_force='yes'
+        ;;
+
+      -C|--noclean)
+        pkgstrip_noclean='yes'
+        ;;
+
+      -v|--verbose)
+        pkgstrip_verbose=$((pkgstrip_verbose + 1))
+        
+        if test "$pkgstrip_verbose" -ge 2
+        then
+          pkgstrip_colon=':'
+        fi
+        ;;
+
+      -o|--output-path)
+        pkgstrip_output=1
+        ;;
+
+      -h|--help)
+        usage
+        exit 0
+        ;;
+        
+      -d|--destdir)
+        shift; : $((pkgstrip_shift++))
+        
+        if test -z "$1"
+        then
+          error "Expecting destination directory"
+        fi
+        
+        pkgstrip_destdir="$1"
+        ;;
+      *)
+        pkgstrip_flags=''
+  
+        test "$pkgstrip_remove_libs"     = 'no' || { pkgstrip_flags="${pkgstrip_flags}a"; } 
+        test "$pkgstrip_strip_programs"  = 'no' || { pkgstrip_flags="${pkgstrip_flags}b"; }
+        test "$pkgstrip_remove_sources"  = 'no' || { pkgstrip_flags="${pkgstrip_flags}c"; }
+        test "$pkgstrip_strip_shared"    = 'no' || { pkgstrip_flags="${pkgstrip_flags}d"; }
+        test "$pkgstrip_strip_debug"     = 'no' || { pkgstrip_flags="${pkgstrip_flags}g"; }
+        test "$pkgstrip_remove_headers"  = 'no' || { pkgstrip_flags="${pkgstrip_flags}h"; }
+        test "$pkgstrip_remove_info"     = 'no' || { pkgstrip_flags="${pkgstrip_flags}i"; }
+        test "$pkgstrip_strip_static"    = 'no' || { pkgstrip_flags="${pkgstrip_flags}l"; }
+        test "$pkgstrip_remove_manuals"  = 'no' || { pkgstrip_flags="${pkgstrip_flags}m"; }
+        test "$pkgstrip_remove_docs"     = 'no' || { pkgstrip_flags="${pkgstrip_flags}o"; }
+        test "$pkgstrip_remove_binaries" = 'no' || { pkgstrip_flags="${pkgstrip_flags}p"; }
+        test "$pkgstrip_remove_build"    = 'no' || { pkgstrip_flags="${pkgstrip_flags}s"; }
+  
+        test "$pkgstrip_strip_programs"  = 'no' || { pkgstrip_mode="${pkgstrip_mode}, programs"; }
+        test "$pkgstrip_strip_shared"    = 'no' || { pkgstrip_mode="${pkgstrip_mode}, shared libs"; }
+        test "$pkgstrip_strip_static"    = 'no' || { pkgstrip_mode="${pkgstrip_mode}, static libs"; }
+        test "$pkgstrip_strip_debug"     = 'no' || { pkgstrip_mode="${pkgstrip_mode}, debugging symbols"; }
+        test "$pkgstrip_remove_headers"  = 'no' || { pkgstrip_mode="${pkgstrip_mode}, headers"; }
+        test "$pkgstrip_remove_sources"  = 'no' || { pkgstrip_mode="${pkgstrip_mode}, sources"; }
+        test "$pkgstrip_remove_libs"     = 'no' || { pkgstrip_mode="${pkgstrip_mode}, archives"; }
+        test "$pkgstrip_remove_manuals"  = 'no' || { pkgstrip_mode="${pkgstrip_mode}, manuals"; }
+        test "$pkgstrip_remove_info"     = 'no' || { pkgstrip_mode="${pkgstrip_mode}, info pages"; }
+        test "$pkgstrip_remove_docs"     = 'no' || { pkgstrip_mode="${pkgstrip_mode}, docs"; }
+        test "$pkgstrip_remove_build"    = 'no' || { pkgstrip_mode="${pkgstrip_mode}, build scripts"; }
+  
+        if test "$pkgstrip_flags" = "abcdhilmops"
+        then
+          pkgstrip_flags="x"
+        fi
+  
+#        warn "flags: $pkgstrip_flags" 
+  
+        pkgstrip_args="$*"
+#        if test "$#" = 1
+#        then
+#          package=$1
+#        else
+#          category=$1
+#          package=$2
+#        fi
+      
+        return 0
+#        error "invalid option $1"
+#        exit 1 ;;
+    esac
+    shift; : $((pkgstrip_shift++))
+  done
+  
+}
+
+# process a package
+#
+# process_package <path to package> [destination directory]
+# ---------------------------------------------------------------------------
+process_package()
+{
+  local archive=$1 destdir=$2
+  local strip_b=0 strip_l=0 strip_d=0             # binaries
+  local strip_h=0 strip_c=0 strip_a=0 strip_s=0   # build files
+  local strip_o=0 strip_m=0 strip_i=0             # text files
+
+#  set -- $(port_pkg2info "$archive")
+  set -- $(pkg_split "$archive")
+  : ${destdir:=$1}
+  
+  # check if that package is available
+#  if test -z "$archive"
+#  then
+#    errormsg "No such package:" ${archive+"$archive"}# ${2+"$2"}
+#    return 1
+#  fi
+  
+  # check if that package is actually built
+#  if test ! -f "$archive"
+#  then
+#    errormsg "Package not built:" ${archive+"$archive"}# ${2+"$2"}
+#    return 1
+#  fi
+  
+  if test "$pkgstrip_dry" = 'yes'
+  then
+    msg "Scanning the package $archive" 1>&2
+  else
+    msg "Stripping the package $archive" 1>&2
+  fi
+  
+  # consider all files in the extracted package
+{ mkdir -p $temproot &&
+  pkgstrip_unpack $archive $temproot &&
+  echo "*"; } |
+ while read line
+  do
+    if test "$line" = '*'
+    then
+      # close the list file
+      exec 8>&-
+    
+      # assemble the flags and output new package info
+      flags=$(assemble_flags)
+      echo "$destdir" "$2" "$3" "$4" "$5" "$flags"
+
+      # report success
+      if test "$pkgstrip_verbose" -gt 1
+      then
+        msg 1>&2
+        msg "Total size:                  $(printf "%10s" $(size_round "$size_old")) -> $(printf "%10s" $(size_round "$size_new")) ($((size_new * 100 / size_old))%)" 1>&2
+      else
+        msg "Total size: $(size_round "$size_old") -> $(size_round "$size_new") ($((size_new * 100 / size_old))%)" 1>&2
+      fi
+      break
+    fi
+
+    # remember path name outputted by tar and skip this line
+    if test "$line" != "-"
+    then
+      path=${line}
+    fi
+    
+    # check whether the previously acquired path is valid or not
+    if test ! -e "$path"
+    then
+      continue
+    fi
+  
+    # split up the full path to the extracted file
+    #
+    # path relative to temp dir:
+    relpath=${path#$temproot/}
+    
+    # filename without path:
+    fname=${relpath##*/}            
+    
+    # create file listing
+    if test ! -f "$temproot/.filelist"
+    then
+      exec 8>$temproot/.filelist
+    fi
+
+    echo "$relpath" >&8
+
+    # now it really must be a file
+    if test ! -f "$path"
+    then
+      continue
+    fi
+
+    # determine the file type using the file(1) magic tool
+    # and strip the leading path from the returned info
+    fileinfo=$(file "$path")        
+    fileinfo=${fileinfo#*": "}
+    filesize=$(fs_size "$path")
+
+    if ! process_generic "$relpath" "$fileinfo"
+    then
+      # roughly split the files up in text, binary etc.
+      case ${fileinfo} in
+        *script*text*|*program*text*|*text)
+          process_text "$relpath" "$fileinfo"
+          ;;
+        *ELF*|*COFF*|PE*|*executable*|*shared*object*|*ar*archive*)
+          process_binary "$relpath" "$fileinfo"
+          ;;
+        *)
+#          warn "Unknown file type -> $path: $fileinfo"
+          ;;
+      esac
+    fi
+
+    if test -f "$path"
+    then
+      size=$(fs_size "$path")
+    else
+      size=0
+    fi
+
+    size_old=$((size_old + filesize))
+    size_new=$((size_new + size))
+
+#    msg ${fname}: ${target}    
+  done  
+}
+
+# package_check <package> <stripped>
+# ---------------------------------------------------------------------------
+check_package()
+{  
+  local pkgreal=$1
+  local pkgstripped=$2
+  
+  # forced?
+  if test "$pkgstrip_force" = 'yes'
+  then
+    return 3
+  fi
+  
+  # stripped package not present
+  if test ! -f "$pkgreal"
+  then
+    return 1
+  fi
+  
+  # stripped package older than original
+  if test "$pkgstripped" -ot "$pkgreal"
+  then
+    return 2
+  fi
+  
+  return 0
+}
+
+# repack_package <directory> <category> <name> <version> <release>
+# ---------------------------------------------------------------------------
+repack_package()
+{
+  local pkgreal=$(pkg_assemble "$@")
+  local pkgname=$(pkg_assemble "$1" "$2" "$3" "$4" "$5" "$pkgstrip_flags")
+  local pkgdir=${pkgreal%/*}
+  local pkgfile=${pkgreal##*/}
+  local prefix=
+
+  verbose 2
+  
+  msg "Repacking into ${pkgreal}" 1>&2
+  
+  mkdir -p "$pkgdir"
+
+  (tar -C "$temproot" -cjf "$pkgreal" --no-recursion --files-from "$temproot/.filelist" 2>&1) | \
+   grep -vE '(Cannot stat: No such file or directory|Error exit delayed from previous errors)'
+  
+  if test "$pkgname" != "$pkgreal" && test "$pkgstrip_flags"
+  then
+    msg "Creating alias ${pkgname##*/}" 1>&2
+    ln -sf "$pkgfile" "$pkgname"
+  fi
+}
+
+# main
+# ---------------------------------------------------------------------------
+main()
+{
+  local category package
+  
+  if test "$#" = "0"
+  then
+    usage
+    exit 2
+  fi
+  
+  # parse command line options
+  parse_options "$@"
+
+  if test -z "$pkgstrip_flags"
+  then
+    error "Nothing to strip, specify some flags!"
+  fi
+
+  shift ${pkgstrip_shift}
+ 
+  local packages=$(get_packages "$@") || return 1
+  
+  verbose "Strip mode: ${pkgstrip_mode#', '}" 1
+
+  for pkgsrc in $packages
+  do
+    # split the package path and assemble path of the stripped package
+    set -- $(pkg_split "$pkgsrc")
+    
+    local pkgstripped=$(pkg_assemble "$1" "$2" "$3" "$4" "$5" "$pkgstrip_flags")
+    local pkglink
+  
+    # stripped package could be an alias; in this case we read the link
+    if test -L "$pkgstripped"
+    then
+      pkglink=${pkgstripped}
+      pkgstripped=$(readlink -f "$pkgstripped")
+    fi
+              
+    # check if the source package is built
+    if test ! -f "$pkgsrc"
+    then
+      errormsg "${pkgsrc} is not built."
+      continue
+    fi
+  
+    # check if there is already an up-to-date stripped package
+    if check_package "$pkgsrc" "$pkgstripped" ${pkgstrip_destdir:+"$pkgstrip_destdir"}
+    then
+      msg "${pkgstripped##*/} is up to date."
+
+      if test "$pkgstrip_output" = 1
+      then
+        echo "$pkgstripped"
+      fi
+      continue
+    fi
+  
+    # extract the archive to a temporary directory
+    temproot=$(mktempdir)
+
+    verbose "Working in temp dir $temproot"
+
+    eval set -- $(process_package "$pkgsrc" ${pkgstrip_destdir:+"$pkgstrip_destdir"})
+    
+    echo "Package info: $@" 1>&2
+    
+#return 0
+    repack_package "$@"
+    
+    if test "$pkgstrip_noclean" != 'yes'
+    then
+      verbose "Cleaning up..."
+      rm -rf "$temproot"
+    fi
+    
+    if test "$pkgstrip_output" = 1
+    then
+      echo "$pkgstripped"
+    fi
+  done
+
+#  process_package "$archive" ${pkgstrip_destdir:+"$pkgstrip_destdir"}
+}
+
+main "$@"

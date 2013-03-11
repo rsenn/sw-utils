@@ -1,0 +1,247 @@
+#!/bin/sh
+#
+# ssh.sh: SSH utility functions...
+#
+# $Id: ssh.sh.in 964 2009-04-27 11:29:42Z enki $
+test $lib_net_ssh_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/util.sh
+
+#-----------------------------------------------------------------------------
+
+# ssh_options [options]
+#
+# Prints configuration file options for use on the command line.
+#
+#      --(no-)strict       StrictHostKeyChecking (yes/NO)
+#      --(no-)kbdint       KbdInteractiveAuthentication (yes/NO)
+#      --(no-)challenge    ChallengeResponseAuthentication (yes/NO)
+#      --(no-)password     PasswordAuthentication (yes/NO)
+#      --(no-)batch        BatchMode (YES/no)
+#      --quiet             Quiet (no)
+# ---------------------------------------------------------------------------
+ssh_options()
+{
+  local opt
+  local strict= kbdint= challenge= password= batch= quiet=
+
+  for opt
+  do
+    case $opt in
+         --strict) strict="yes" ;;       --no-strict) strict= ;;
+         --kbdint) kbdint="yes" ;;       --no-kbdint) kbdint= ;;
+      --challenge) challenge="yes" ;; --no-challenge) challenge= ;;
+       --password) password="yes" ;;   --no-password) password= ;;
+          --batch) batch="yes" ;;         --no-batch) batch= ;;
+          --quiet) quiet="yes" ;;        --not-quiet) quiet= ;;
+    esac
+  done
+
+  for opt in \
+    "StrictHostKeyChecking ${strict:-no}" \
+    "KbdInteractiveAuthentication ${kbdint:-no}" \
+    "ChallengeResponseAuthentication ${challenge:-no}" \
+    "PasswordAuthentication ${password:-no}" \
+    "BatchMode ${batch:-yes}"
+  do
+    echo "-o"
+    echo "$opt"
+  done
+
+  test "$quiet" = yes && echo "-q"
+}
+
+# ssh_agents
+#
+# List the PIDs of all ssh-agents running under the current user.
+# ---------------------------------------------------------------------------
+ssh_agents()
+{
+  pgrep -U"`id -u`" ssh-agent
+}
+
+# ssh_agent_sock [pid]
+# ---------------------------------------------------------------------------
+ssh_agent_sock()
+{
+  local pid=$1
+
+  test -n "$pid" || pid=`ssh_agents | head -n1`
+
+  set -- /tmp/ssh-*/agent.$((pid - 1))
+  
+  if test -e "$1"; then
+    echo "$1"
+  else
+    type lsof 1>/dev/null 2>/dev/null &&
+    lsof -p"$pid" |
+    sed -n -e '\, unix .* /tmp/ssh-, s,.* ,,p'
+  fi
+}
+
+# ssh_agent_vars [pid]
+
+# ---------------------------------------------------------------------------
+ssh_agent_vars()
+{
+ (pid=$1
+
+  test -n "$pid" || pid=`ssh_agents | head -n1`
+
+  sock=`ssh_agent_sock "$pid"`
+
+  if test -e "$sock"; then
+    echo "export SSH_AGENT_PID="$pid
+    echo "export SSH_AUTH_SOCK=$sock"
+  fi)
+}
+
+# ssh_auth_socks
+# 
+# Lists all accessible SSH authentication sockets.
+# ---------------------------------------------------------------------------
+ssh_auth_socks()
+{
+ (for SOCK in ${@:-/tmp/ssh-*/agent.*}; do
+    if test -S "$SOCK" -a -r "$SOCK" -a -w "$SOCK"; then
+      #test -e /proc/${SOCK##*.}/stat && 
+      echo "$SOCK"
+    fi
+  done)
+}
+
+# ssh_auth_var
+#
+# Outputs a reparseable variable assignment setting SSH_AUTH_SOCK.
+# ---------------------------------------------------------------------------
+ssh_auth_var()
+{
+ (IFS="
+"
+  for sock in `ssh_auth_socks "$@"`; do
+    if test -n "$sock"; then
+      echo "export SSH_AUTH_SOCK=$sock"
+      exit 0
+    fi
+  done
+  exit 1)
+}
+
+# ssh_auth_hijack
+# ---------------------------------------------------------------------------
+ssh_auth_hijack()
+{
+  set -- `ssh_auth_var` && "$@"
+}
+
+# ssh_session <host> [commands...]
+# ---------------------------------------------------------------------------
+ssh_session()
+{
+  local opts host IFS="
+"
+  while test -n "$1" && test "$1" != "${1#-}"
+  do
+    opts="${opts:+$opts${IFS:0:1}}$1" && shift
+  done
+
+  host="$1"
+  shift
+
+@DEBUG_TRUE@  (IFS=" $IFS" && verbose "Executing${host:+ remote} command: $*" 2)
+
+  ssh -n -T `ssh_options $opts` "$host" "$@"
+}
+
+# ssh_cmd <commands> <hosts...>
+# ---------------------------------------------------------------------------
+ssh_cmd()
+{
+  local opts cmd host IFS="
+"
+  while test -n "$1" && test "$1" != "${1#-}"
+  do
+    opts="${opts:+$opts$IFS}$1" && shift
+  done
+
+  cmd="$1"
+  shift
+
+  (IFS=" $IFS" && verbose "Executing remote command '$cmd' on $@")
+
+  opts=`ssh_options $opts`
+
+  for host
+  do
+    ssh -n -T $opts "$host" "$cmd"
+  done
+}
+
+# ssh_scp <from> <to>
+# ---------------------------------------------------------------------------
+ssh_scp()
+{
+  local opts IFS="
+"
+  while test -n "$1" && test "$1" != "${1#-}"
+  do
+    opts="${opts:+$opts${IFS:0:1}}$1" && shift
+  done
+
+  scp `ssh_options $opts` "$@"
+}
+
+# ssh_check <host>
+# ---------------------------------------------------------------------------
+ssh_check()
+{
+  local opts IFS="
+"
+  while test -n "$1" && test "$1" != "${1#-}"
+  do
+    opts="${opts:+$opts${IFS:0:1}}$1" && shift
+  done
+
+  ssh -n -T `ssh_options $opts` "$1" true 1>/dev/null
+}
+
+# ssh_known_hosts [file]
+# ---------------------------------------------------------------------------
+ssh_known_hosts()
+{
+ (unset ALL VERBOSE
+
+  while :; do
+    case "$1" in
+      -a) ALL=: ;;
+      -v) VERBOSE=: ;;
+      *) break ;;
+    esac
+    shift
+  done
+
+  while read HOST KEY; do
+    case "$HOST" in
+      *=) [ "${ALL+set}" = set ] || continue ;;
+    esac
+   (IFS="$IFS," 
+    for HOST in $HOST; do
+#     case "$HOST" in 
+#       *:*)
+          IFS="$IFS[]:"
+          set -- $HOST
+          HOST="${1}${2:-:$2}"
+#       ;;
+#     esac
+      echo "${HOST}${VERBOSE+ $KEY}"
+    done)
+  done <${1-$HOME/.ssh/known_hosts})
+}
+
+#---[ EOF ]-------------------------------------------------------------------
+lib_net_ssh_sh=:;}

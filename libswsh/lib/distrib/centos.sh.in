@@ -1,0 +1,77 @@
+#!/bin/sh
+#
+# distrib/centos.sh: CentOS distribution detection.
+#
+# $Id: centos.sh.in 575 2008-08-26 12:07:20Z enki $
+# ------------------------------------------------------------------------- 
+test $lib_distrib_centos_sh || {
+
+# set default directories
+# ----------------------------------------------------------------------------
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# source script dependencies
+# ----------------------------------------------------------------------------
+. $shlibdir/distrib/redhat.sh
+. $shlibdir/net/http.sh
+. $shlibdir/data/xml.sh
+. $shlibdir/data/list.sh
+
+# is_centos [centos-release-file]
+#
+# Checks whether the underlying distribution is a centos based one.
+# ---------------------------------------------------------------------------
+is_centos()
+{
+ (RELFILE=`centos_relfile "$@"`
+
+  if [ -r "$RELFILE" ]; then
+    case `cat "$RELFILE"`  in
+      CentOS*) return 0 ;;
+    esac
+  fi
+
+  return 1)
+}
+
+# centos_relfile [centos-release-file]
+#
+# Prints the centos release file name.
+# ---------------------------------------------------------------------------
+centos_relfile()
+{ 
+  redhat_relfile "$@"
+}
+
+# centos_release [centos-release-file]
+#
+# Reads information from a centos release file (/etc/redhat-release).
+# ---------------------------------------------------------------------------
+centos_release()
+{
+  redhat_release "$@"
+}
+
+# centos_pkgmgr
+#
+# The kind of package manager used by centos based distributions.
+# ---------------------------------------------------------------------------
+centos_pkgmgr()
+{
+  redhat_pkgmgr "$@"
+}
+
+# centos_mirrors
+#
+# Get a list of mirrors for CentOS
+# ---------------------------------------------------------------------------
+centos_mirrors()
+{
+  http_get "http://mirror-status.centos.org/" | 
+  xml_get A HREF | sed -n '/:\/\/.*\/.*[Cc]ent[Oo][Ss]/p'
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_distrib_centos_sh=:;}

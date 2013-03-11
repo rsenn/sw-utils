@@ -1,0 +1,108 @@
+# $Id: googlecode.sh.in 967 2009-06-22 07:18:20Z enki $
+#
+# web/googlecode.sh: google code retrieval functions
+#
+# -------------------------------------------------------------------------
+test $lib_web_googlecode_sh || {
+
+# provide default value for needed directory paths
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}        # default for prefix
+: ${libdir:="@libdir@"}        # default value for libdir
+: ${shlibdir:="@shlibdir@"}    # default value for shlibdir
+
+# source script dependencies
+# -------------------------------------------------------------------------
+. $shlibdir/data/text.sh
+. $shlibdir/std/str.sh
+. $shlibdir/net/www.sh
+. $shlibdir/net/http.sh
+. $shlibdir/data/xml.sh
+. $shlibdir/data/html.sh
+
+# set up static variables
+# -------------------------------------------------------------------------
+GOOGLECODE_proto="http"
+GOOGLECODE_host="code.google.com"
+GOOGLECODE_project_url="$GOOGLECODE_proto://$GOOGLECODE_host/p"
+
+# -------------------------------------------------------------------------
+googlecode_dump()
+{
+  www_dump "$GOOGLECODE_project_url/$1"
+}
+
+# -------------------------------------------------------------------------
+googlecode_html()
+{
+  http_get "http://code.google.com/p/$1/$2"
+}
+
+# googlecode_svnroot <project-name> [trunk|tags|branches]
+# -------------------------------------------------------------------------
+googlecode_svnroot()
+{
+  echo "http://$1.googlecode.com/svn/${2-trunk}"
+}
+
+# -------------------------------------------------------------------------
+googlecode_description()
+{
+  local project html
+  
+  project=$1
+  html=`googlecode_html "$project"`
+  
+  shift
+
+  [ -z "$1" ] && set short full
+  
+  while [ "$#" -gt 0 ]; do
+    case $1 in
+      short)
+        echo "$html" | xml_getvalue "a href=\"/p/$project/\"[^>]*" | sed "/^$project\$/d"
+      ;;
+      full)
+        echo "$html" | xml_getvalue "div id=wikicontent[^>]*" | html_width=75 html_text
+      ;;
+    esac
+    shift
+  done
+
+#  return 0
+#  
+  local pipe='sed -n -e "$expr"'
+
+  if [ -n "$1" -a "$1" != - ]; then
+    pipe="googlecode_dump \"\$@\" | $pipe"
+  fi
+
+  local expr="/^\s*Project owners:$/ {
+    :lp0
+    n
+    :lp1
+    /^\s*\[[0-9]\+\]/ { 
+      n
+      b lp1
+    }
+    /^\s*$/ n
+    
+    /^\s*Project members:$/ b lp0
+    
+    :lp2
+    N
+    /\n[ \t]*$/! b lp2
+
+    s/^\s*//
+    s/\[[0-9]\+\]//g
+    s/\n[ \t]*/\n/g
+    s/^\[[^]]\+\]\( is \)/$1\1/
+
+    p
+  }"
+  
+  eval "$pipe"
+}
+
+# ---[ EOF ]-------------------------------------------------------------------
+lib_web_googlecode_sh=:;}

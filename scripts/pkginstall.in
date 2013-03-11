@@ -1,0 +1,756 @@
+#!@SHELL@
+#
+# $Id: pkginstall.in 696 2007-04-18 23:02:36Z  $
+
+#set -e
+
+# path variables
+# ---------------------------------------------------------------------------
+prefix="@prefix@"
+localstatedir="\@localstatedir@"
+pkgdb="\$localstatedir/lib/pkg"
+
+# files
+# ---------------------------------------------------------------------------
+md5sums="md5sums"
+: ${swconfig="swconfig"}
+: ${pkgforce="false"}
+
+# options
+# ---------------------------------------------------------------------------
+: ${pkginstall_interactive=1}
+: ${pkginstall_update=0}
+: ${pkginstall_debug=0}
+: ${pkginstall_force=0}
+
+# get absolute path of this script
+# ---------------------------------------------------------------------------
+get_my_path()
+{
+  local reldir="${0%/*}" thisdir="$(pwd)"
+	
+	if [ "${reldir#/}" != "$reldir" ]; then
+	  absdir=$(cd ${reldir} && pwd)
+	else
+	  absdir=$(cd $thisdir/${reldir} && pwd)
+	fi
+	
+	echo ${absdir}
+}
+
+
+# check data integrity using 'md5sum'
+# ---------------------------------------------------------------------------
+check_integrity()
+{
+  # does the md5sum-file exist?
+  if [ ! -f "$md5sums" ]; then
+	  echo "missing ${md5sums}"
+		exit 1
+	fi
+
+  # check md5 sums of all the packages
+  echo -n "checking ${md5sums}... "
+  check=$(md5sum -c "$md5sums" 2>/dev/null | grep -v "OK$" | uniq)
+
+  # abort if one of them didn't match
+  if [ "$check" ]; then
+    echo "$check"
+    exit 1
+  fi
+
+  # everything set
+  echo "ok"
+}
+
+# Ask the user a question using dialog
+# ---------------------------------------------------------------------------
+ask()
+{
+  local arg args text num=0 ret=0
+
+  for a in "$@"
+  do
+    case ${a} in
+      --defaultno) ret=1; args="${args} ${a}" ;;
+      --*) args="${args} ${a}" ;;
+      *) text="${text}
+${a}" 
+         num=$(($num + 1))
+         ;;
+    esac
+  done
+
+  if [ "$pkginstall_interactive" = "0" ]; then
+    return $ret
+  fi
+
+  dialog --no-collapse --backtitle "$ui_backtitle" ${args} --yesno "${text#
+}" $(($num + 4)) 64
+}
+
+# Show an error message and exit
+# ---------------------------------------------------------------------------
+error()
+{
+  local lines=$(echo "$1" | wc -l)
+
+  log "ERROR: $1"
+
+  if [ "$pkginstall_interactive" = 1 ]; then
+    dialog --no-collapse --backtitle "$ui_backtitle" --msgbox "$1" $((lines + 4)) 64
+  else
+    echo "ERROR: $1"
+  fi
+  
+  exit 1
+}
+
+# Show a message box dialog
+# ---------------------------------------------------------------------------
+message()
+{
+  local lines=$(echo "$1" | wc -l)
+
+  if [ "$pkginstall_interactive" = 1 ]; then
+    dialog --no-collapse --backtitle "$ui_backtitle" --msgbox "$1" $((lines + 4)) 64
+  else
+    echo "$1"
+  fi
+}
+
+# Print 'Installation failed' and exit
+# ---------------------------------------------------------------------------
+abort()
+{
+  message "Installation failed!"
+  exit 1
+}
+
+# Calculate free space inside a directory
+# ---------------------------------------------------------------------------
+get_free_space()
+{
+  local path="$1"
+    
+  eval set -- $(df -B1 -P "$path" | tail -n1)
+
+  echo $4
+}
+
+# Convert from bytes to a human readable format
+# ---------------------------------------------------------------------------
+bytes_to_human()
+{ 
+  local bytes="$1"
+    
+  local kilobytes=$(( (bytes + 1023) / 1024 ))
+  local megabytes=$(( (kilobytes + 1023) / 1024 ))
+  local gigabytes=$(( (megabytes + 1023) / 1024 ))
+
+  if [ "$megabytes" -gt "2048" ]; then
+    echo "${gigabytes}GB"
+  elif [ "$kilobytes" -gt "2048" ]; then
+    echo "${megabytes}MB"
+  else
+    echo "${kilobytes}kB"
+  fi
+}
+
+# Read space required by the installation from RELEASE file
+# ---------------------------------------------------------------------------
+get_required_space()
+{
+  (source $pkgroot/RELEASE
+
+   echo ${size})
+}
+
+# Write an entry to the log
+# ---------------------------------------------------------------------------
+log()
+{
+#  echo "$@"
+  echo "$@" >&10
+}
+
+# Check for the user-id
+# ---------------------------------------------------------------------------
+if [ "$UID" != "0" ]; then
+  echo "Must be root (uid=0)!"
+  exit 1
+fi
+
+# ---------------------------------------------------------------------------
+config()
+{
+  sed -i "/^$1=/ s°=.*°=\"$2\"°" \
+    $(test -f "$swload" && echo "$swload") \
+    $(test -f "$swconf" && echo "$swconf") \
+    $(test -f "$pkgroot/swconfig.tmpl" && echo "$pkgroot/swconfig.tmpl")
+}
+
+# Executes scripts
+# ---------------------------------------------------------------------------
+have_scripts()
+{
+  local names=${package_names}
+  
+  if [ "$2" = "install" ]; then
+    names="install"
+  fi
+
+  for pkg in ${names}
+  do
+    if [ -f "$pkgroot/lib/$3/$pkg.$1" ]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+  
+exec_scripts()
+{
+  local pkg
+  local names=${package_names}
+  local msg
+  
+  if [ "$2" = "install" ]; then
+    names="install"
+    msg="Executing $1$2: "
+  else
+    msg="Executing $1$2 for \${name}: "
+  fi
+
+  for pkg in ${names}
+  do
+    local script=$pkgroot/lib/$3/${pkg}.$1
+  
+    if [ ! -f "$script" ]; then
+      continue
+    fi
+    
+    name=$(basename "$script" ".$1")
+
+    eval "echo -n \"$msg\""
+    eval "log \"$msg\""
+
+    local exec
+    
+    if [ "$2" = "install" ]; then
+      exec=source
+    else
+      exec=$pkgroot/bin/bash
+    fi
+
+    log "exec scripts: $* (debug = $pkginstall_debug)"
+
+    if output=$(prefix="$prefix" \
+                shlibdir="$pkgroot/lib/sh" \
+                "$exec" "$script" 2>&1); then
+      echo "OK"
+    else
+      echo "FAIL"
+
+      log "ERROR:"
+      log "$output"
+      
+      # wait a moment if the script failed
+      sleep 3
+    fi      
+  done
+}
+
+# parse options using getopt
+# ---------------------------------------------------------------------------
+parse_options()
+  {
+  pkginstall_shift=0
+    
+  while [ "$1" ]; do
+    case $1 in
+      -h|--help)
+        usage
+        exit 2
+        ;;
+      -u|--update)
+        export pkginstall_update=1
+        ;;
+      -I|--no-interactive)
+        export pkginstall_interactive=0
+        ;;
+      -d|--debug)
+        export pkginstall_debug=1
+        ;;
+      -R|--no-remove)
+        export pkginstall_remove=0
+        ;;
+      -r|--remove)
+        export pkginstall_remove=1
+        ;;
+      -f|--force)
+        export pkginstall_force=1
+        ;;
+      -F|--no-force)
+        export pkginstall_force=0
+        ;;
+      --reuse-config)
+        export pkginstall_reuse=1
+        ;;
+      --no-reuse-config)
+        export pkginstall_reuse=0
+        ;;
+      --)
+        shift; : $((pkginstall_shift++))
+        break
+        ;;
+      *)
+        error "no such option: $1"
+        ;;
+    esac
+    shift; : $((pkginstall_shift++))
+  done
+  }
+  
+# Set pkginstall path and root dir
+# ---------------------------------------------------------------------------
+pkginstall=$(get_my_path)
+pkgroot=${pkginstall%/bin}
+pkgtmp=${pkgtmp:-$pkgroot/epiphyte.conf}
+swlog=$pkgroot/pkginstall.log
+
+PATH=bin:$pkgroot/bin:$PATH
+TERMINFO_DIRS=$pkgroot/lib/terminfo
+: ${TERM:="linux-vt"}
+
+export TERMINFO_DIRS TERM PATH
+
+if [ -h "$pkgtmp" ]; then
+  pkgtmp=$(readlink ${pkgtmp})
+fi
+
+if [ -h "$swlog" ]; then
+  swlog=$(readlink ${swlog})
+fi
+
+# initialize log
+exec 10>${swlog}
+date >&10
+echo >&10
+
+ui_backtitle="pkginstall v@PACKAGE_VERSION@ - epiphyte install tool"
+
+me=${0##*/}
+  
+# parse command line options
+eval "set -- $(getopt -n "$me" -l 'help,update,no-interactive,debug,no-remove,remove,no-force,force,reuse-config,no-reuse-config' 'huIdRrFf' "$@")"
+parse_options "$@"
+shift $pkginstall_shift
+
+# Check for configuration
+# ---------------------------------------------------------------------------
+if [ -z "$swconf" ]; then
+
+  swconf="$pkgtmp"
+  log "Temporary target configuration:" $swconf
+
+  if [ -f "$pkgtmp" ]; then
+    log "Found temporary config ${pkgtmp}"
+  
+    if [ -z "$pkginstall_reuse" ]; then
+      if [ "$pkginstall_update" = 0 ] && { [ "$pkginstall_interactive" = "0" ] || 
+         ! ask --defaultno "Found a temporary configuration file from an incomplete" \
+        "install in: ${pkgtmp}" \
+        "Do you want to use it for this installation?"; }; then
+        pkginstall_reuse=0
+      else
+        pkginstall_reuse=1
+      fi
+    fi
+  
+    if [ "$pkginstall_reuse" = "0" ]; then
+      unset pkgtmp
+      log "User has chosen to ignore temporary config"
+    else
+      log "User has chosen to use temporary config"
+    fi
+  fi
+fi
+
+#if [ "$swconf" = "$pkgtmp" ]
+#&& [ -z "$pkgtmp" ]
+#then
+   
+  if [ -f "$prefix/etc/epiphyte.conf" ]; then
+    log "Found config in existing installation $prefix/etc/epiphyte.conf"
+
+    if [ "$pkginstall_update" = "1" ]; then
+      mv -f "$prefix/etc/epiphyte.conf" "$swconf"
+      swload=$swconf
+
+    elif ask --defaultno "Found configuration file in existing installation:" \
+                         "$prefix/etc/epiphyte.conf" \
+                         "do you want to use it for this installation?"; then
+      mv -f $prefix/etc/epiphyte.conf "$swconf"
+      swload=$swconf
+
+      log "User has chosen to use existing config"
+    else
+      log "User has chosen to ignore existing config"
+    fi
+  fi
+#fi
+
+ (cd ${pkgroot}
+  
+  package_names=$(sed 's,.*/\(.*\)#.*,\1,' md5sums)
+
+  if [ -f "$swconf" ] && [ "$pkginstall_update" != 1 ]; then
+    reconfig="false"
+  else
+    reconfig="true"
+  fi
+
+#  if [ "$pkginstall_update" = 1 ]; then
+#    export swload="$prefix/etc/epiphyte.conf"
+#    swconf=$swload
+#  else
+#    export swload="$swconf"
+#  fi
+  export swload
+  export swconf
+
+  if [ -f "$swload" ]; then
+    source "$swload"
+  fi
+
+  # execute preinstall scripts
+  if have_scripts "pre" "install" "pkginstall"; then
+    log "Pre install:"
+    { exec_scripts "pre" "install" "pkginstall"; sleep 1; } | \
+    {
+      if [ "$pkginstall_interactive" = 1 ]; then 
+        dialog --backtitle "$ui_backtitle" --progressbox 20 60
+      else
+        cat
+      fi
+    }
+  fi
+
+ if [ "$swload" ] && [ -f "$swload" ]; then
+   source "$swload"
+ else
+   unset swload
+ fi
+
+ {
+   log "swconf = $swconf, swload = $swload, reconfig = $reconfig"
+   log "pkginstall_update = $pkginstall_update, pkginstall_debug = $pkginstall_debug, pkginstall_interactive = $pkginstall_interactive"
+
+   swconfig_args=
+   
+   if [ "$pkginstall_interactive" = "0" ]; then
+     swconfig_args="${swconfig_args:+$swconfig_args }--no-interactive"
+   fi
+   
+   if [ "$pkginstall_update" = "1" ]; then
+     swconfig_args="${swconfig_args:+$swconfig_args }--update"
+   fi
+   
+   while :
+   do
+     log "Launching swconfig: swconf=\"$swconf\", swload=\"$swload\""
+
+#     cp "$swload" "$pkgroot/epiphyte.conf.before"
+
+     # launch swconfig in 'install' mode
+     if ${reconfig}; then
+       pkginstall="true" \
+       pkgroot="$pkgroot" \
+       libdir="$pkgroot/lib" \
+       swconf="$swconf" \
+       swload="$swload" \
+         "$pkgroot/bin/bash" "$pkgroot/bin/swconfig" $swconfig_args || exit
+     fi
+
+#     cp "$swload" "$pkgroot/epiphyte.conf.after"
+
+     # now load the config
+     log "Loading $swconf..."
+     [ -f "$swconf" ] && source "$swconf" 2>/dev/null || { error "couldn't load $swconf"; }
+
+     if [ "$swconf" != "$swload" ] && [ -f "$swload" ]; then
+       log "Loading $swload..."
+       source "$swload" 2>/dev/null || { error "couldn't load $swload"; }
+     fi
+
+     # check if destination directory exists
+     if [ ! -d "$global_root" ]; then
+     
+       if ask "The destination directory $global_root doesn't exist." "Create it?"; then
+         mkdir -p "$global_root"
+       else
+         exit 1
+       fi     
+     fi
+
+     # check if installation will fit within available space
+     available=$(get_free_space "$global_root")
+     required=$(get_required_space)
+
+     if [ "$available" -lt "$required" ]; then
+       message "Installation requires $(bytes_to_human ${required}), but there are only $(bytes_to_human ${available}) available on $global_root!"
+        
+       log "Not enough space for install in $global_root ($(bytes_to_human ${required}) required, $(bytes_to_human ${available}))"
+        
+       reconfig="true"
+       continue
+     fi
+     
+     break
+   done
+ }
+  
+  trap 'abort' INT HUP TERM
+
+  # check if the installation directory already exists
+  destdir=$(echo "$global_root/${prefix}" | sed 's,///,/,g;;s,//,/,g')
+  
+  if [ -d "$destdir" ]; then
+    log "Destination directory $destdir already exists"
+    
+    if [ -z "$pkginstall_force" ]; then
+      if [ "$pkginstall_interactive" = "0" ]; then
+        pkginstall_force=$pkginstall_update
+      fi
+    fi
+    
+    if [ "$pkginstall_force" = "1" ] || [ "$pkginstall_update" = "1" ] ||
+      ask --defaultno "${prefix} already exists while pkginstall should be" 'used only for first-time installation.' \
+                       'Do you want to force installation (not recommened)?'; then
+      swopts="${swopts} -f"
+      pkgforce="true"
+
+      if [ "$pkginstall_update" = "1" ]; then
+        log "Updating installation in ${destdir}"
+      else
+        log "User has chosen to force install on ${destdir}"
+      fi
+      
+    else
+      exit 0
+    fi
+  fi
+
+  # check if there are services still running
+  if [ "$pkginstall_update" = "0" ]; then
+    pids=$(${pkgroot}/bin/bash ${pkgroot}/bin/svctool --pids)
+    set -- ${pids}
+  
+    if [ $# -gt 0 ]; then
+      if ask --defaultno "There are still $# processes running from a previous" \
+                         "installation, do you want to terminate them now and continue" \
+                         "the installation?"; then
+        log "Shutting down $# processes (${pids}"
+        ${pkgroot}/bin/bash ${pkgroot}/bin/svctool --kill 2>&1 | \
+          dialog --backtitle "$ui_backtitle" --progressbox 20 60
+      else
+        exit 0
+      fi
+    fi
+  fi
+
+  if [ "$global_root" != "/" ] && [ "$global_root" ]; then
+    installroot=${global_root%/}/${prefix}
+  else
+    installroot=${prefix}
+  fi
+
+  installroot=$(echo "$installroot" | sed 's,/\+,/,g;;s,/$,,')
+  pkgdir=$(dirname "$prefix")
+
+  # check if there are services still running
+  if ${pkgforce} && [ "$pkginstall_update" = "0" ]; then
+    if ask "You chose to force installation and thus to overwrite the" \
+           "existing installation. Do you want to remove existing" \
+           "installation first? (recommened)"; then
+
+      log "Removing destdir ${destdir}..."
+      rm -rvf ${destdir} 2>&1 | dialog --backtitle "$ui_backtitle" --progressbox 20 60
+    fi
+  fi
+  
+  # create directory for package database
+  mkdir -p $installroot/var/lib/pkg
+
+  # copy config file to the target tree
+  mkdir -p $installroot/etc
+  
+  # create symlink if root is not "/"
+  if [ "$installroot" != "$prefix" ]; then
+
+    pkgrootdir=$(dirname "$installroot")
+
+    log "Creating symlink from $pkgdir to $pkgrootdir..."
+      
+    if [ -d "$pkgdir" ] && [ ! -h "$pkgdir" ]; then
+      log "$pkgdir already exists!"
+    else
+      rm -f "$pkgdir"
+      ln -sf "$pkgrootdir" "$pkgdir"
+    fi
+  fi
+    
+  # install the global configuration file
+  if [ -f "$swload" ] && [ "$swload" != "$installroot/etc/epiphyte.conf" ]; then
+    cat "$swload" > "$installroot/etc/epiphyte.conf"
+    rm -f "$swload"
+  elif [ "$swconf" != "$installroot/etc/epiphyte.conf" ]; then
+    cat "$swconf" > "$installroot/etc/epiphyte.conf"
+    rm -f "$swconf"
+  fi
+
+  # install pkgadd configuration
+  cat $pkgroot/pkgadd.conf > $installroot/etc/pkgadd.conf
+
+  # get package list from md5sum list
+  packages=$(sed 's,[0-9a-f]*  ,,' md5sums)
+  
+  lock=$(mktemp)
+  
+  reenable_services()
+    {
+    services=$(echo $services_run | sed 's,[ \t\n]\+, ,g')
+
+    for service in ${services}
+    do
+      echo "Enabling service '$service'. "
+      log "Enabling service '$service'."
+      $pkgroot/bin/bash $pkgroot/bin/svctool --add $service >&10 2>&1
+    done
+    }
+    
+  restart_services()
+    {
+     echo -n "Restarting services ($services)... "
+     log "Restarting services ($services)..."
+     $pkgroot/bin/bash $pkgroot/bin/svctool --install >&10 2>&1 &&
+     $pkgroot/bin/bash $pkgroot/bin/svctool --rehash >&10 2>&1
+     log "# exitcode $?"
+     test $? = 0 && echo OK || echo FAIL
+    }
+
+  {
+    set ${packages}
+    count=0
+  
+    echo "$# packages to merge..."
+  
+    # execute premerge scripts
+    if have_scripts "pre" "merge" "pkgadd"; then
+      log "Pre merge:"
+      exec_scripts "pre" "merge" "pkgadd"
+    fi
+  
+    # unpack the packages
+    for pkg in "$@"
+    do
+      count=$(($count + 1))
+      
+      pkgname=$(basename ${pkg})
+      name=${pkgname%%#*}
+      version=${pkgname##*#} ; version=${version%-*.pkg.tar*}
+      release=${pkgname##${name}#${version}-} ; release=${release%.pkg.tar*} ; release=${release%%"%"*}
+ 
+      # remove pkgadd.conf before adding 
+      if [ "$name" = "sw-utils" ]; then
+        echo "Removing temporary pkgadd.conf"
+        log "Removing temporary pkgadd.conf"
+        rm -f $installroot/etc/pkgadd.conf
+      fi
+ 
+      printf "Merging %-5s %-21s %-14s %-4s\n" "#${count}:" ${name} "v${version}" "r${release}"
+      log "$(printf "Merging %-5s %-21s %-14s %-4s\n" "#${count}:" ${name} "v${version}" "r${release}")"
+    
+      output=$(pkgadd ${swopts} --no-scripts ${global_root:+-r $global_root} "$pkg" 2>&1) || {
+    
+        # try again with -u if we're forcing
+        if ${pkgforce:-false}; then
+          output=$(pkgadd ${swopts} --no-scripts -u ${global_root:+-r $global_root} ${pkg} 2>&1)
+        else          
+          false
+        fi || {
+          # yield error if unpacking failed
+          
+          echo "ERROR:"
+          echo "$output"
+          log "ERROR:"
+          log "$output"
+          sleep 3
+          exec 2>&- 1>&-
+#          exit 1
+        }
+      }
+
+#      log "$output"
+    done
+    
+    # execute postmerge scripts
+    if (set -x ; have_scripts "post" "merge" "pkgadd") 2>&10; then
+      log "Post merge:"
+      exec_scripts "post" "merge" "pkgadd"
+    fi
+    
+    if [ "$services_inittab" = "yes" ] &&
+     { [ "$pkginstall_update" != 0 ] || 
+       [ "$pkginstall_interactive" = 0 ]; }
+    then
+      reenable_services
+      restart_services
+    fi
+
+    log
+    log "Installation complete!"
+    
+    rm -f ${lock}
+    
+  } | { 
+    if [ "$pkginstall_interactive" = 1 ]; then 
+      dialog --backtitle "$ui_backtitle" --progressbox 20 60
+    else
+      cat
+    fi
+  }
+
+  trap '-' INT
+
+  # check if installation was successful
+  if [ -f ${lock} ]; then
+    rm -f ${lock}
+    abort
+  fi
+  
+  # execute postinstall scripts
+  if have_scripts "post" "install" "pkginstall"; then
+    log "Post install:"
+    { exec_scripts "post" "install" "pkginstall"; sleep 1;
+    } | \
+    {
+      if [ "$pkginstall_interactive" = 1 ]; then 
+        dialog --backtitle "$ui_backtitle" --progressbox 20 60
+      else
+        cat
+      fi
+    }
+  fi
+
+#  services=$(grep 'services_run_[a-z]*="yes"' $installroot/etc/epiphyte.conf | sed 's,.*_,,;;s,=.*,,')
+
+  if [ "$services_inittab" = "yes" ] && [ "$pkginstall_update" = 0 ] && [ "$pkginstall_interactive" = 1 ] &&
+    ask "Start the services (${services}) now?" "If not, they're started on the next reboot..."
+  then
+     { reenable_services; restart_services; } | dialog --backtitle "$ui_backtitle" --progressbox 20 60
+  fi)
+
+exec 10>&-

@@ -1,0 +1,252 @@
+# -*-mode: shell-script-*-
+#
+# std/algorithm.sh: standard algorithms for operating on argument lists
+#
+# 2008-08-05 Roman Senn <rs@adfinis.com>
+# ---------------------------------------------------------------------------
+
+# match <pattern> [arguments...]
+# 
+# Returns 0 if any of the remaining arguments match the provided fnmatch(3)-
+# pattern.
+# --------------------------------------------------------------------------- 
+match()
+{
+ (PATTERN="$1" 
+  
+  while shift; [ "$#" -gt 0 ]; do
+    case "$1" in
+      $PATTERN) exit 0 ;;
+    esac
+  done
+  
+  exit 1)
+}
+
+# GNU make functions inspired algorithms
+#
+# See the info(1) pages of GNU make:
+# 
+#   info make functions
+#
+# =========================================================================== 
+
+# findstring <string> [arguments...]
+#
+# Searches the remaining arguments for an occurrence of <string>. If it 
+# occurs, it outputs the value and returns 0; otherwise nothing is outputted
+# and the return value is 1.
+# --------------------------------------------------------------------------- 
+findstring()
+{
+ (STRING="$1"
+  
+  while shift; [ "$#" -gt 0 ]; do
+    if [ "$STRING" = "$1" ]; then
+       echo "$1"
+       exit 0
+    fi
+  done
+  
+  exit 1)
+}
+
+# filter <pattern> [arguments...]
+#
+# Prints a list of all arguments that match the fnmatch(3)-pattern.
+# --------------------------------------------------------------------------- 
+filter()
+{
+ (PATTERN="$1"
+  DELIM="${IFS%${IFS#?}}"
+  
+  unset LIST
+
+  while shift; [ "$#" -gt 0 ]; do
+    case "$1" in
+      $PATTERN) LIST="${LIST+$LIST$DELIM}$1" ;;
+    esac
+  done
+  
+  test "${LIST+set}" = set && echo "$LIST")
+}
+
+# filter_out <pattern> [arguments...]
+# 
+# Prints a list of all arguments that DONT match the fnmatch(3)-pattern.
+# --------------------------------------------------------------------------- 
+filter_out()
+{
+ (PATTERN="$1"
+  DELIM="${IFS%${IFS#?}}"
+  
+  unset LIST
+  
+  while shift; [ "$#" -gt 0 ]; do
+    case "$1" in
+      $PATTERN) ;; *) LIST="${LIST+$LIST$DELIM}$1" ;;
+    esac
+  done
+  
+  test "${LIST+set}" = set && echo "$LIST")
+}
+
+# removesuffix <suffix> [arguments...]
+#
+# Removes the biggest substring matching the provided fnmatch(3)-pattern 
+# <suffix> match from the end of every remaining argument.
+# --------------------------------------------------------------------------- 
+removesuffix()
+{
+ (SUFFIX=$1
+  shift
+  echo "${*%%$SUFFIX}")
+}
+
+# addsuffix <suffix> [arguments...]
+#
+# Appends the string <suffix> to the end of every remaining argument.
+# --------------------------------------------------------------------------- 
+addsuffix()
+{
+ (SUFFIX="$1" 
+  DELIM="${IFS%${IFS#?}}"
+  
+  unset LIST
+
+  while shift; [ "$#" -gt 0 ]; do
+    LIST="${LIST+$LIST$DELIM}$1$SUFFIX"
+  done
+  
+  test "${LIST+set}" = set && echo "$LIST")
+}
+
+# removeprefix <pattern> [arguments...]
+# 
+# Removes the biggest substring matching the fnmatch(3)-pattern from the 
+# beginning of every remaining argument.
+# --------------------------------------------------------------------------- 
+removeprefix()
+{
+ (PREFIX=$1
+  shift
+  echo "${*##$PREFIX}")
+}
+
+# addprefix <suffix> [arguments...]
+# 
+# Prepends the string <suffix> to the beginning of every remaining argument.
+# --------------------------------------------------------------------------- 
+addprefix()
+{
+ (PREFIX="$1" 
+  DELIM="${IFS%${IFS#?}}"
+  
+  unset LIST
+  
+  while shift; [ "$#" -gt 0 ]; do
+    LIST="${LIST+$LIST$DELIM}$PREFIX$1"
+  done
+
+  test "${LIST+set}" = set && echo "$LIST")
+}
+
+# JavaScript Array()-method inspired algorithms. 
+# =========================================================================== 
+
+# for_each <script | function> [arguments...]
+#
+# Evaluates the given script or calls the given function for every remaining 
+# argument.
+# A properly escaped or single-quoted script can use $1 as reference to the
+# currently iterated item.
+# A function is called with the currently iterated and the remaining items
+# as arguments.
+# --------------------------------------------------------------------------- 
+for_each()
+{
+  __=$1
+  # in case its a function we call it using our argument-list
+  test "`type -t "$__"`" = function && __="$__ \"\$@\""
+  # iterate through the arguments and evaluate the commands
+  while shift; [ "$#" -gt 0 ]; do
+    eval "$__"
+  done
+  unset __
+}
+
+# some <script | function> [arguments...]
+#
+# Evaluates the given script or calls the given function for every remaining 
+# argument until the script/function returns true.
+# --------------------------------------------------------------------------- 
+some()
+{
+  __=$1
+  # in case its a function we call it using our argument-list
+  test "`type -t "$__"`" = function && __="$__ \"\$@\""
+  # iterate through the arguments and succeed as soon as the evaluated
+  # commands return true.
+  while shift; [ "$#" -gt 0 ]; do
+    eval "$__" && return 0
+  done
+}
+
+# each <script | function> [arguments...]
+#
+# Evaluates the given script or calls the given function for every remaining 
+# argument as long as the script/function returns true.
+# --------------------------------------------------------------------------- 
+each()
+{
+  __=$1
+  # in case its a function we call it using our argument-list
+  test "`type -t "$__"`" = function && __="$__ \"\$@\""
+  # iterate through the arguments and abort as soon as the evaluated commands
+  # return false.
+  while shift; [ "$#" -gt 0 ]; do
+    eval "$__" || return $?
+  done
+}
+
+# map <script | function> [arguments...]
+#
+# Evaluates the given script or calls the given function for every remaining 
+# argument. 
+# The output of the script/function during each iteration is represented as 
+# an item in the outputted list.
+# --------------------------------------------------------------------------- 
+map()
+{
+ (__=$1
+  DELIM="${IFS%${IFS#?}}"
+
+  # in case its a function we call it using our argument-list
+  case `type "$__" 2>/dev/null` in
+    *function*|*builtin*) __="$__ \$1" ;;
+  esac
+  
+  unset LIST
+  
+  while shift; [ "$#" -gt 0 ]; do
+    LIST=${LIST+$LIST$DELIM}`eval "$__"`
+  done
+  
+  test "${LIST+set}" = set && echo "$LIST")
+}
+
+# reverse [arguments...]
+#
+# Prints the arguments in reverse order
+# ---------------------------------------------------------------------------
+reverse()
+{
+ (INDEX=$#
+
+  while [ "$INDEX" -gt 0 ]; do
+    eval "echo \"\${$INDEX}\""
+    INDEX=`expr $INDEX - 1`
+  done)
+}
+
+# ---[ EOF ]-----------------------------------------------------------------

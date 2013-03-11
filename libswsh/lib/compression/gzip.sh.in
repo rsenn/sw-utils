@@ -1,0 +1,82 @@
+#!/bin/sh
+#
+# compression/gzip.sh: gzip compression functions.
+#
+# $Id: gzip.sh.in 575 2008-08-26 12:07:20Z enki $
+
+test $lib_compression_gzip_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/util.sh
+. $shlibdir/var.sh
+
+# gzip_cmd [options] <gzip-archive> [files/directories...]
+#
+# Outputs a suitable command-line for the gzip program.
+#
+#     -l, --level NUM         Compression level: 0 = store -> 9 = best.
+#     -d, --decompress        Decompress (gunzip).
+#     -c, --stdout            Output to stdout.
+#     -o, --output FILE
+# -------------------------------------------------------------------------
+gzip_cmd()
+{
+  local cmd= uncmd= un= arg= a= s=' ' o stdout= IFS=$nl
+  eval "set -- $(getopt --name=gzip --shell=sh \
+                        --longoptions=level:,decompress,stdout,output: -o l:dco: -- "$@")"
+
+  cmd="gzip"
+  unset o
+
+  while test -n "$1"
+  do
+    case $1 in
+      # compression level
+      -[0-9]|--level)
+
+         # remove any previous setting
+         cmd=${cmd/-[0-9]/$s}
+         cmd=${cmd%$s-[0-9]}
+
+         case $1 in
+           -[0-9])  cmd=${cmd:+$cmd$s}$1 ;;
+           --level) cmd=${cmd:+$cmd$s}-$(($2 % 10)) && shift ;;
+         esac
+         ;;
+
+      # decompress
+      -d|--decompress)
+         cmd=${cmd:+$cmd$s}'-d'
+         ;;
+
+      # write to stdout
+      -c|--stdout)
+         stdout="-c"
+         ;;
+
+      -o|--output)
+         shift
+         o=$1
+         stdout="-c"
+         ;;
+
+      --) shift && break ;;
+    esac
+    shift
+  done
+  a=$1
+  shift
+  while test -n "$1"
+  do
+    arg="${arg:+$arg$s}\"`escape_dquote "$1"`\""
+    shift
+  done
+  echo "$cmd${stdout:+ $stdout} $a $arg${o+ >\"$o\"}"
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_compression_gzip_sh=:;}

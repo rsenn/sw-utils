@@ -1,0 +1,57 @@
+#!/bin/sh
+#
+# buildsys.sh: Abstract build system.
+#
+# $Id: buildsys.sh.in 780 2008-10-23 19:00:16Z enki $
+# -------------------------------------------------------------------------
+test $lib_buildsys_sh || {
+
+: ${prefix:="@prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/util.sh
+. $shlibdir/std/str.sh
+
+BUILDSYS_known="autotools cmake make nobuild plmake pysetup"
+
+# buildsys_list
+#
+# List canonical names of all known buildsys implementations.
+# ---------------------------------------------------------------------------
+buildsys_list()
+{
+ (for name in $BUILDSYS_known; do
+    echo ${name%.sh}
+  done)
+}
+
+# buildsys_detect
+#
+# Guess the appropriate build system implementation.
+# ---------------------------------------------------------------------------
+buildsys_detect()
+{
+ (buildsys=
+  IFS=" ""
+"
+  for name in `buildsys_list`; do
+    . $shlibdir/buildsys/$name.sh
+
+    if ${name%.sh}_check ${1-.} 2>/dev/null >/dev/null; then
+      buildsys=${name%.sh}
+      break
+    fi
+  done
+
+  if [ -z "$buildsys" ]; then
+    warn "Failed to detect build system"
+    exit 1
+  else
+    echo "$buildsys"
+  fi)
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_buildsys_sh=:;}
+

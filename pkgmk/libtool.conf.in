@@ -1,0 +1,19 @@
+#
+# @sysconfdir@/pkgmk.conf.d/libtool.conf: GNU libtool configuration
+#
+
+LIBTOOL="libtool"
+LTINSTALL='$(LIBTOOL) $(LTFLAGS) --mode=install $(INSTALL)'
+
+LTCOMPILE='$(LIBTOOL) --tag=CC --mode=compile $(CC) $(CPPFLAGS) $(CFLAGS) -c'
+LTLDFLAGS='-rpath $(libdir) -no-undefined $(if $(VERSION),-version-info $(subst .,:,$(VERSION)))'
+LTLINK='$(LIBTOOL) --tag=CC --mode=link $(CC) $(LTLDFLAGS)'
+
+LTCXXCOMPILE='$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(CPPFLAGS) $(CXXFLAGS) -c'}
+LTCXXLDFLAGS="$LTLDFLAGS"
+LTCXXLINK='$(LIBTOOL) $(LTFLAGS) --mode=link $(CXX) $(LTLDFLAGS)'
+
+export LIBTOOL LTFLAGS LTTAG LTCOMPILE LTLDFLAGS LTLINK LTCXXFLAGS LTCXXTAG \
+       LTCXXCOMPILE LTCXXLDFLAGS LTCXXLINK
+
+# End of libtool.conf

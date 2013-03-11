@@ -1,0 +1,77 @@
+#!/bin/sh
+#
+# distrib/mandrake.sh: Mandrake based distribution detection.
+#
+# $Id: mandrake.sh.in 655 2008-09-12 00:21:46Z enki $
+# ------------------------------------------------------------------------- 
+test $lib_distrib_mandrake_sh || {
+
+: ${prefix:="@prefix@"}
+: ${sysconfdir:="@sysconfdir@"}
+
+# is_mandrake [mandrake-release-file]
+#
+# Checks whether the underlying distribution is a mandrake based one.
+# ---------------------------------------------------------------------------
+is_mandrake()
+{
+  for rf in `mandrake_relfile "$@"`
+  do
+    test -r "$rf" &&
+    case `<$rf` in
+      [Mm]andriva* | [Mm]andrake*) return 0 ;;
+    esac
+  done
+
+  return 1
+}
+
+# mandrake_relfile [mandrake-release-file]
+#
+# Prints the mandrake release file name.
+# ---------------------------------------------------------------------------
+mandrake_relfile()
+{
+  echo $ROOT/etc/{mandrake,mandriva,redhat}-release
+}
+
+# mandrake_release [mandrake-release-file]
+#
+# Reads information from a mandrake release file (/etc/mandrake-release).
+# ---------------------------------------------------------------------------
+mandrake_release() 
+{
+  local rf=`mandrake_relfile "$@"` IFS="="
+
+  if test -r "$rf"
+  then
+   (IFS="
+ "  release=`<$rf`
+    case $release in
+      *' 'release' '*' ('*')')
+        set -- ${release%")"}
+        echo "id=$1"
+        echo "release=$3"
+        case $4 in
+          *' '*) echo "codename=\"${4#"("}\"" ;;
+              *) echo "codename=${4#"("}" ;;
+        esac
+        echo "description=\"$1 $3\""
+        ;;
+    esac)
+  else
+    errormsg "Cannot read $rf"
+  fi
+}
+
+# mandrake_pkgmgr
+#
+# The kind of package manager used by mandrake based distributions.
+# ---------------------------------------------------------------------------
+mandrake_pkgmgr()
+{
+  echo 'rpm'
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_distrib_mandrake_sh=:;}

@@ -1,0 +1,48 @@
+#!/bin/sh
+#
+# $Id: global 652 2007-02-21 15:39:49Z roman $
+
+# add the main-menu entry "global"
+config_branch 'global'
+
+  config_label    'Global configuration'
+#  config_function 'loop ${choice}'
+
+  # root directory
+  get_required_space()
+  {
+    (source $pkgroot/RELEASE; echo ${size})
+  }
+
+  config_value 'root'   'Installation path' '${root:-/}'
+    config_description  'Install epiphyte software under:' \
+                        '($(size_round $(get_required_space)) required, $(size_round $(diskfree $(config_getvalue global_root))) available in "$(config_getvalue global_root)")'
+    config_function     'directory'
+  config_end
+
+  # IP address configuration
+  config_value 'ipaddr' 'IP address'
+    config_description  'IP address the server will run under'
+    config_default      '$(inet_list | head -n1)'
+  config_end
+
+  # Hostname configuration
+  config_value 'hostname' 'Hostname'
+    config_description    'Server hostname'
+    config_default        '$(inet_hostname)'
+  config_end
+
+  # Domainname configuration
+  config_value 'domain' 'Domain name'
+    config_description  'Server domainname'
+    config_default      '$(inet_domainname)'
+  config_end
+
+  # Full-qualified domain name
+  config_value 'fqdn'   'Full qualified domain name'
+    config_description  'Server full qualified domain name (external address)'
+    config_default      '$(config_getvalue global_hostname).$(config_getvalue global_domain)'
+  config_end
+
+config_leave
+

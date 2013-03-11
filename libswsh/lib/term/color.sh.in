@@ -1,0 +1,67 @@
+#!/bin/sh
+#
+# color.sh: functions for colorizing shell script output
+#
+# $Id: color.in 425 2006-06-16 13:32:51Z roman $
+test $lib_term_color_sh || {
+
+COLOR_escape=""         # escape character for ANSI codes
+COLOR_red="${COLOR_escape}[31m"
+COLOR_green="${COLOR_escape}[32m"
+COLOR_yellow="${COLOR_escape}[33m"
+COLOR_blue="${COLOR_escape}[34m"
+COLOR_magenta="${COLOR_escape}[35m"
+COLOR_cyan="${COLOR_escape}[36m"
+COLOR_white="${COLOR_escape}[37m"
+COLOR_bold="${COLOR_escape}[1m"
+COLOR_none="${COLOR_escape}[0m"
+
+# translates color names to ansi code numbers
+# -------------------------------------------------------------------------
+color_code()
+{
+  local code
+  case "$1" in
+    bla*) code=30 ;;
+    red*) code=31 ;;
+    gre*) code=32 ;;
+    yel*) code=33 ;;
+    blu*) code=34 ;;
+    mag*) code=35 ;;
+    cya*) code=36 ;;
+    whi*) code=37 ;;
+    bol*) code=1 ;;
+       *) code=0 ;;
+  esac
+  echo ${code}
+}
+
+# color_cube <values-per-channel> <ncolors> [format-string] [offset]
+color_cube()
+{
+ (
+   OFFSET=${4-0}
+   STEPS=`expr $1 - 1`
+   RANGE=`expr $2 - $OFFSET`
+   R=0
+   while [ "$R" -lt "$1" ]; do
+     G=0
+     while [ "$G" -lt "$1" ]; do
+       B=0
+       while [ "$B" -lt "$1" ]; do
+         printf "${3-%d %d %d\n}" \
+           "`expr $RANGE \* $R / $STEPS + $OFFSET`" \
+           "`expr $RANGE \* $G / $STEPS + $OFFSET`" \
+           "`expr $RANGE \* $B / $STEPS + $OFFSET`"
+         B=`expr $B + 1`
+       done
+       G=`expr $G + 1`
+     done
+     R=`expr $R + 1`
+   done
+  )
+}
+
+
+# --- eof ---------------------------------------------------------------------
+lib_term_color_sh=:;}

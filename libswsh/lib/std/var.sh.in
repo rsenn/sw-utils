@@ -1,0 +1,185 @@
+# $Id: var.sh.in 970 2009-06-27 09:27:17Z enki $
+#
+# std/var.sh: Shell variable inspection and manipulation.
+#
+# -------------------------------------------------------------------------
+test -n "$lib_std_var_sh" || {
+
+# directory setup
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# load dependencies
+# -------------------------------------------------------------------------
+. $shlibdir/std/str.sh
+
+# is_var <name> 
+#
+# checks whether the argument is a variable POSIX name.
+# -------------------------------------------------------------------------
+is_var()
+{
+  case $1 in
+    [!_A-Za-z]*|*[!_0-9A-Za-z]*) return 1 ;;
+  esac
+  return 0
+}
+
+# var_set <name> [value...]
+#
+# set a variable by name.
+# -------------------------------------------------------------------------
+var_set()
+{
+#  @ASSERT@ is_var "$1"
+  eval "shift;$1=\"\$*\""
+}
+
+# var_unset <name(s)...>
+#
+# unset one or more variables.
+# -------------------------------------------------------------------------
+var_unset()
+{
+  unset -v "$@"
+}
+
+# checks if a particular variable is set
+#
+# var_isset <name>
+# -------------------------------------------------------------------------
+var_isset()
+{
+#  @ASSERT@ is_var "$1"
+  eval "test \"\${$1+set}\" = set"
+}
+
+# var_empty <name>
+#
+# checks whether the variable is empty or no.
+# -------------------------------------------------------------------------
+var_empty()
+{
+#  @ASSERT@ is_var "$1"
+  eval "test -z \"\$$1\""
+}
+
+# var_length <name>
+#
+# gets string length of a variable.
+# -------------------------------------------------------------------------
+var_length()
+{
+  eval "echo \${#$1}"
+}
+
+# var_get <name>
+#
+# Get a variable by name.
+# -------------------------------------------------------------------------
+var_get()
+{
+  eval "echo \"\$$1\""
+}
+
+# var_incr <name> [incr]
+#
+# Increment a numeric variable
+# -------------------------------------------------------------------------
+var_incr()
+{
+  eval "$1=\`expr \$$1 + ${2-1}\`"
+}
+# var_push <name> [args...]
+#
+# Append each argument to the variables value, separating it with the first
+# character in $IFS.
+# -------------------------------------------------------------------------
+var_push()
+{
+  eval "while shift && test \"\$#\" -gt 0;do $1=\"\${$1+\"\${$1}${IFS%${IFS#?}}\"}\$1\"; done"
+}
+
+# var_quote <name>
+#
+# Quote string appropriately.
+# -------------------------------------------------------------------------
+var_quote()
+{
+  eval "str_quote \"$$var\""
+}
+
+# split a variable into args
+#
+# var_split <name> [separator]
+# -------------------------------------------------------------------------
+#var_split()
+#{
+#  local var=${1:?"need variable name"}
+#  local IFS=${2-"$newline"}
+#
+#  eval array '$'$var
+#}
+
+# extract variable name from garbage string
+#
+# var_name <name>
+# -------------------------------------------------------------------------
+var_name()
+{
+  echo "$1" | sed 's,.*${*\([a-z_][0-9a-z_]*\).*,\1,i'
+}
+
+# var_dump <name>
+# -------------------------------------------------------------------------
+var_dump()
+{
+ (for N; do
+    N=${N%%=*}
+    O=${O:+$O${var_s-${IFS%${IFS#?}}}}$N=`eval 'str_quote "${'$N'}"'`
+  done
+  echo "$O")
+}
+
+# var_save <name> <filename>
+# -------------------------------------------------------------------------
+var_save()
+{
+  local n=${1:?"need variable name"} f=${2:?"need filename"}
+  var_get "$n" >$f
+#  msg "Variable $n saved to '$f'."
+}
+
+# var_load <name> [files...]
+# -------------------------------------------------------------------------
+var_load()
+{
+  var_set "$1" "`shift; cat "$@"`"
+}
+
+# var_map <from-prefix> <to-prefix> [keys...]
+# -------------------------------------------------------------------------
+var_map()
+{
+  from=$1 to=$2
+  shift 
+  while shift && [ "$#" -gt 0 ]; do
+    if var_isset "$from$1"; then
+      var_set "$to$1" "`var_get "$from$1"`"
+    fi
+  done
+  unset -v from to
+}
+
+# var_escape [variable-names...]
+# -------------------------------------------------------------------------
+var_escape()
+{
+  :
+}
+
+# ---[ EOF ]---------------------------------------------------------------
+lib_std_var_sh=:;}

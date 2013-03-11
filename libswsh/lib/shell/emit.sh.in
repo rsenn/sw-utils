@@ -1,0 +1,123 @@
+#!/bin/sh
+#
+# shell/emit.sh: Functions for emitting shell script.
+#
+# $Id: emit.sh.in 862 2009-02-19 08:54:21Z enki $
+# -------------------------------------------------------------------------
+test $lib_shell_emit_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/util.sh
+. $shlibdir/std/array.sh
+
+emit_indent=""
+emit_linecont=" \\$newline\$emit_indent    "
+
+# emit_indent
+# -------------------------------------------------------------------------
+emit_indent()
+{
+  emit_indent="$emit_indent  "
+}
+
+# emit_outdent
+# -------------------------------------------------------------------------
+emit_outdent()
+{
+  emit_indent=${emit_indent%"  "}
+}
+
+# emit_print
+# -------------------------------------------------------------------------
+emit_print()
+{
+  echo "$emit_indent$@\\c"
+}
+
+# emit_println
+# -------------------------------------------------------------------------
+emit_println()
+{
+  local IFS="
+"
+  set -- ${*:-""}
+
+  while [ "$#" -gt 0 ]; do
+    echo "$emit_indent$1"
+    shift
+  done
+}
+
+# emit_comment
+# -------------------------------------------------------------------------
+emit_comment()
+{
+  local IFS="$newline" line
+
+  for line in $(echo "$@" | sed -e "s|^\([^#]\)|# \1|"); do
+    emit_println "$line"
+  done
+}
+
+# emit_cmd
+# -------------------------------------------------------------------------
+emit_cmd()
+{
+  emit_println "$@"
+}
+
+# emit_cmd_ml
+# -------------------------------------------------------------------------
+emit_cmd_ml()
+{
+  emit_println "$1${2+ \\}"
+  emit_indent="$emit_indent     "
+  shift
+  while test "$#" -gt 0
+  do
+    emit_println "$1${2+ \\}"
+    shift
+  done
+  emit_indent=${emit_indent%"     "}
+}
+
+# emit_assign
+# -------------------------------------------------------------------------
+emit_assign()
+{
+  emit_print ""
+  var_dump "$@"
+}
+
+# emit_startfn <name>
+# -------------------------------------------------------------------------
+emit_startfn()
+{
+  emit_println "$1()$newline{"
+  emit_indent
+}
+
+# emit_endfn
+# -------------------------------------------------------------------------
+emit_endfn()
+{
+  emit_outdent
+  emit_println "}"
+}
+
+# emit_fn <name> <body...>
+# -------------------------------------------------------------------------
+emit_fn()
+{
+  emit_startfn "$1"
+  shift
+  emit_cmd "$@"
+  emit_endfn
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_shell_emit_sh=:;}

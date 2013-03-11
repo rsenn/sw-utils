@@ -1,0 +1,1802 @@
+#!/bin/sh
+#
+# ports.sh: Software ports management
+#
+# $Id: port.sh.in 977 2009-07-23 15:51:16Z enki $
+# -------------------------------------------------------------------------
+test $lib_port_sh || {
+
+# Set any directory variable needed and not yet set
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+: ${sysconfdir:="@sysconfdir@"}
+: ${localstatedir:="@localstatedir@"}
+: ${portsdir:="@portsdir@"}
+: ${pkgdir:="@pkgdir@"}
+: ${pkgsrc:="$prefix/src"}
+: ${pkgext:="tar.bz2"}
+: ${docdir:="@docdir@"}
+: ${pkgdocdir:="@pkgdocdir@"}
+: ${datadir:="@datadir@"}
+: ${pkgdatadir:="@pkgdatadir@"}
+: ${templatedir:="@templatedir@"}
+: ${mkconf:="$sysconfdir/pkgmk.conf"}
+
+# Load dependency modules
+# -------------------------------------------------------------------------
+. $shlibdir/std/array.sh
+. $shlibdir/shell/script.sh
+. $shlibdir/data/obj.sh
+. $shlibdir/archive.sh
+. $shlibdir/devel/srcdist.sh
+. $shlibdir/shell/fn.sh
+. $shlibdir/net/url.sh
+. $shlibdir/net/www.sh
+. $shlibdir/std/str.sh
+. $shlibdir/std/escape.sh
+. $shlibdir/data/info.sh
+. $shlibdir/web/sourceforge.sh
+
+# Declare and initialize static variables
+# -------------------------------------------------------------------------
+PORT_tree="$prefix/ports"
+PORT_config="$sysconfdir/pkgmk.conf"
+PORT_distfiles="$pkgsrc/distfiles"
+PORT_variables=`array 'name' 'version' 'release' 'source'`
+PORT_functions=`array {'pre',,'post'}{'unpack','patch','configure','build','install'}`
+PORT_template="$pkgdatadir/templates/Pkgtemplate"
+
+# try_port <[category/]package|path> [port tree]
+#
+# Locations to try when searching a port.
+# -------------------------------------------------------------------------
+try_port()
+{
+  local dir pf name out= IFS="
+"
+  dir=${1%/Pkgfile}
+
+  if test "$1" = Pkgfile || test -z "$dir" -a -e Pkgfile; then
+    dir="."
+  fi
+
+  pf="$dir/Pkgfile"
+  name=${dir##*/}
+
+  case $pf in
+    /*|./*) ;;
+    */*/Pkgfile) pf="$portsdir/$pf" ;;
+    */Pkgfile) pf="$portsdir/*/$pf" ;;
+  esac
+
+  set -- $pf
+
+#  if test ! -e "$1"; then
+#    return 1
+#  fi
+
+  echo "$1"
+}
+
+# is_port <[category/]package|path>
+#
+# Valid port?
+# -------------------------------------------------------------------------
+is_port()
+{
+  local pf IFS="$nl"
+
+  for pf in `try_port "$1"`; do
+    if test -n "$pf" -a -f "$pf" -a -s "$pf"; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+# need_port <[category/]package|path>
+#
+# Need a valid port?
+# -------------------------------------------------------------------------
+need_port()
+{
+  if ! is_port "$1"; then
+    errormsg "No such port '${1%/Pkgfile}'."
+    return 1
+  fi
+  return 0
+}
+
+# port_newdir <[category/]package|path>
+#
+# Prints the path of a port directory to be added. Returns false when that port
+# directory already exists.
+# -------------------------------------------------------------------------
+port_newdir()
+{
+  local base
+
+  base=`port_basedir "$1"`
+  cat=`port_category "$1" 2>/dev/null`
+  dir=`port_dir "$1" 2>/dev/null`
+  name=`basename "$dir"`
+
+  if [ -z "$base" ]; then
+    base="$portsdir"
+  fi
+
+  if [ ! -d "$base/$cat/$name" ]; then
+    if [ -d "$base/$cat/.svn" ]; then
+      svn mkdir -m "adding new port $cat/$name" "$base/$cat/$name"
+    else
+      mkdir -p "$base/$cat/$name"
+    fi
+  fi
+
+  echo "$base/$cat/$name"
+
+  [ ! -d "$base/$cat" ]
+}
+
+# port_basedir <[category/]package|path>
+#
+# Determines the base directory in which the given port is located. The base
+# directory is the leading path, without the category/package and /Pkgfile part
+# -------------------------------------------------------------------------
+port_basedir()
+{
+  local p cat dir name
+
+  cat=`port_category "$1" 2>/dev/null`
+  dir=`port_dir "$1" 2>/dev/null`
+  name=`basename "$dir"`
+
+  p=${1%"/Pkgfile"}
+  p=${p%"/$name"}
+  p=${p%"$cat"}
+
+#  if test -n "${p%/}"
+#  then
+    echo "${p%/}"
+#  fi
+}
+
+# -------------------------------------------------------------------------
+port_notbuilt()
+{
+  local IFS="
+"
+  port_find "$@" | while read port; do
+    set -- `port_pkgmask "$port"`
+
+    test -f "$1" || echo "$port"
+  done
+}
+
+# -------------------------------------------------------------------------
+port_built()
+{
+  local IFS="
+"
+  port_find "$@" | while read port; do
+    set -- `port_pkgmask "$port"`
+    test -f "$1" && echo "$port"
+  done
+}
+
+# port_categories [mask]
+#
+# list all available categories
+# -------------------------------------------------------------------------
+port_categories()
+{
+ (cd "$portsdir"
+  find * -follow -maxdepth 0 -type d ${1+-name "$1"} \
+         -not -wholename "*/CVS*" -and \
+         -not -wholename "*/.svn*") 2>/dev/null
+}
+
+# port_packages [category]
+#
+# List all available packages in the specified category or all categories.
+# -------------------------------------------------------------------------
+port_packages()
+{
+  local pf
+
+ (cd $portsdir
+  for pf in ${1:-*}/*/Pkgfile; do
+    [ -f $pf ] && echo ${pf%/Pkgfile}
+  done)
+}
+
+# port_names [categories]
+#
+# List all package names in the specified category or all categories.
+# -------------------------------------------------------------------------
+port_names()
+{
+  (cd $portsdir
+   if [ "$#" = 0 ]; then
+     set -- `port_categories`
+   fi
+   for cat; do
+     (cd $cat
+      find * -follow -maxdepth 0 -type d \
+             -not -wholename CVS -and \
+             -not -wholename .svn) 2>/dev/null
+   done)
+}
+
+# port_match <[category/]package|path>
+#
+# Matches the list of packages against the given pattern.
+# -------------------------------------------------------------------------
+port_match()
+{
+  local mask port
+
+  case $1 in
+    */*) mask=$1 ;;
+    *) mask=*/$1 ;;
+  esac
+
+  port_packages | while read port; do
+    case $port in
+      $mask) echo "$port" ;;
+    esac
+  done
+}
+
+# port_find [path...]
+# -------------------------------------------------------------------------
+port_find()
+{
+  find "${@-$portsdir}" -type f -name Pkgfile | \
+       sed -e 's:/Pkgfile$::' \
+           -e "s:^$portsdir/::"
+}
+
+# port_list [path...]
+# -------------------------------------------------------------------------
+port_list()
+{
+ (cd "${1-$portsdir}" && for pf in */*/Pkgfile; do
+    echo "${pf%/Pkgfile}"
+  done)
+}
+
+# port_path <[category/]package|path>
+#
+# Lists the portage path for the specified port.
+# -------------------------------------------------------------------------
+port_path()
+{
+  local pf IFS="
+"
+  for pf in `try_port "$1"`; do
+    if [ -e "$pf" ]; then
+      echo "${pf%/Pkgfile}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+port_paths()
+{
+  local pf IFS="$nl" ret=1
+
+  for pf in `try_port "$1"`; do
+    [ -e "$pf" ] && echo "${pf%/Pkgfile}" && ret=0
+  done
+  return $ret
+}
+
+# port_pkgfile <[category/]package|path>
+#
+# Lists the Pkgfile path for the specified port.
+# -------------------------------------------------------------------------
+port_pkgfile()
+{
+ (IFS="
+"
+  for pf in `try_port "$1"`; do
+    if [ -f "$pf" ]; then
+      echo "$pf"
+      exit 0
+    fi
+  done
+  errormsg "No such port '${1%/Pkgfile}'."
+  echo "$pf"
+  exit 1)
+}
+
+port_dir()
+{
+  local IFS="
+" cmd="echo"
+
+  case $1 in
+    -c) cmd="cd" && shift ;;
+  esac
+
+  for pf in `try_port "$@"`; do
+    "$cmd" "${pf%/Pkgfile}" && return 0
+  done
+}
+
+port_edit()
+{
+  local IFS=$nl
+  set -- `port_pkgfile "$@"`
+
+  if [ -f "$1" ]; then
+    ${EDITOR-editor} "$1"
+  fi
+}
+
+# port_eval <[category/]package|path> <commands...>
+#
+# Evaluate the specified commands in a subshell which has the build-configuration
+# and the Pkgfile loaded.
+# -------------------------------------------------------------------------
+port_eval()
+{
+  local IFS=$nl
+
+  need_port "$1" &&
+  {
+    local p=$1 pf
+
+    shift
+
+    for pf in `port_pkgfile "$p"`; do
+     (cd "${pf%/Pkgfile}"
+
+      . "$PORT_config"
+      . "Pkgfile"
+
+      description=`port_get "$pf" "Description:"`
+      url=`port_get "$pf" "URL:"`
+      maintainer=`port_get "$pf" "Maintainer:"`
+
+      eval "$@")
+    done
+  }
+}
+
+# port_sources <[category/]package|path> [variables/sources...]
+#
+# Lists the sources for the specified port.
+# -------------------------------------------------------------------------
+port_sources()
+{
+  local IFS="$nl$space" pf=`port_pkgfile "$1"` source=
+
+  if [ -n "$pf" ]; then
+    shift
+    . ${sysconfdir:-@sysconfdir@}/pkgmk.conf.d/mirrors.conf
+    source=`port_get "$pf" source`
+  fi
+
+  if local port=`obj "$@"` && ! obj_isempty "$port" source; then
+    array_push source `obj_get "$port" source`
+  fi
+
+  if [ -n "$source" ]; then
+    set -- $source
+    echo "$*"
+  fi
+}
+
+# port_files <[category/]package|path>
+#
+# Lists the files for the specified port.
+# -------------------------------------------------------------------------
+port_files()
+{
+  local IFS="$nl" FILE PP=`port_path "$1"`
+
+  [ "$PP" ] || return 1
+
+  set -- `port_sources "$PP"`
+
+  for FILE; do
+    case $FILE in
+      git://* | svn*://* | cvs*://*)
+        continue
+      ;;
+
+      */*)
+        echo "$PORT_distfiles/${FILE##*[:/]}"
+      ;;
+
+      *)
+        FILE=${FILE##*:}
+
+        if [ ! -e "$PP/$FILE" -a -e "$PORT_distfiles/$FILE" ]; then
+          echo "$PORT_distfiles/$FILE"
+        else
+          echo "$PP/$FILE"
+        fi
+      ;;
+    esac
+  done
+}
+
+# port_downloads <[category/]package|path>
+#
+# Lists the downloads for the specified package.
+# -------------------------------------------------------------------------
+port_downloads()
+{
+  local IFS="$nl" file
+
+  set -- `port_sources "$1"` || return 1
+
+  for file; do
+    case $file in
+      *://*) echo $file ;;
+    esac
+  done
+}
+
+# port_download <[category/]package|path>
+#
+# Downloads the necessary files to build the port.
+# -------------------------------------------------------------------------
+port_download()
+{
+  local IFS="$nl" url file z=3 src=`port_src "$1"`
+
+  set -- `port_downloads "$1"` || return 1
+
+  warn "Downloads: $@"
+
+  for url; do
+    file=${url##*/}
+    proto=`url_get "$url" proto`
+
+    case $proto in
+      git*)
+# not doing that here, see port_unpack        (mkdir -p $SRC && cd $SRC && git clone $url)
+      ;;
+      svn[-+]http*)
+        if [ "${url%:*:*}" != "$url" ]; then
+          dir=${url##*:*:}
+          url=${url%:$dir}
+        fi
+
+        (mkdir -p $SRC && cd $SRC && set -x && pwd 1>&2 && svn checkout "${url#svn[-+]}" ${dir:+"$dir"})
+      ;;
+      svn*)
+        (mkdir -p $SRC && cd $SRC && svn checkout "$url" ${dir:+"$dir"})
+      ;;
+      cvs*)
+        (host=${url##*://}
+         host=${host%%/*}
+         path=${url#*$host/}
+         module=${path##*/}
+         user=`url_get "$url" user`
+set -x
+         mkdir -p $SRC
+         cd $SRC
+         cvs ${z:+-z$z} -d":pserver:${user:-anonymous}@$host:/${path%/$module}" checkout "$module")
+      ;;
+      *)
+        if [ -f "$PORT_distfiles/$file" ]; then
+          verbose "Source file $PORT_distfiles/$file" 2
+        else
+          verbose "Download from $url to $PORT_distfiles"
+
+          url_download "$url" "$PORT_distfiles/$file"
+       fi
+     ;;
+    esac
+  done
+}
+
+# port_localfiles <[category/]package|path>
+#
+# Lists the local files for the specified package.
+# -------------------------------------------------------------------------
+port_localfiles()
+{
+  local IFS="$nl" file
+
+  set -- `port_sources "$1"` || return 1
+
+  for file; do
+    case $file in
+      *://*) ;;
+      *) echo $file ;;
+    esac
+  done
+}
+
+# port_md5sum <[category/]package|path>
+#
+# Makes checksums for all the source files for the port.
+# -------------------------------------------------------------------------
+port_md5sum()
+{
+  port_files "$1" | xargs -d "$nl" md5sum | \
+    sed -e 's|[ \t]\+.*[/\*]|  |' | \
+    sort -k 2
+}
+
+# -------------------------------------------------------------------------
+port_header()
+{
+  sed -ns '1 {
+    :lp
+    /^#/! q
+    s/^#\s\?//
+    p
+    n
+    b lp
+  }' \
+  "`port_pkgfile "$@"`"
+}
+
+# -------------------------------------------------------------------------
+port_meta()
+{
+  local IFS="$space$newline$tabstop" ln pf=`port_pkgfile "$1"` k= v= o=
+  [ -n "$pf" ] &&
+  while read ln; do
+    case $ln in
+      '# '[!$space]*)
+         set -- ${ln#'# '}
+         case "$1 $2" in
+           [A-Z]*': '* | [A-Z]*':')
+             [ -n "${k:+$v}" ] && o="${o:+$o$obj_s}$k=`str_quote "$v"`"
+
+             k="$1 $2"
+             k=${k%%': '*}
+             k=${k%':'}
+             v=${ln#*$k:}
+             v=${v#' '}
+
+             ;;
+           *)
+             v=${v:+"$v "}$*
+             ;;
+         esac
+         ;;
+      *) break ;;
+    esac
+  done <$pf
+  [ -n "${k:+$v}" ] && o="${o:+$o$obj_s}$k=`str_quote "$v"`"
+  echo "$o"
+}
+
+# port_unpack <[category/]package|path> <srcdir>
+#
+# Unpacks and copies all sources of the current port to the source directory.
+# -------------------------------------------------------------------------
+port_unpack()
+{
+ (IFS="$nl" 
+  cat=`port_category "$1"`
+  dir=${2-${SRC:-$pkgsrc/$cat}} 
+
+ (cd "$dir" && fs_remove `port_rootdir "$1"`) 2>/dev/null
+
+  for file in `port_files "$1"`; do
+    if is_archive "$file"; then
+      msg "Unpacking $file to $dir"
+
+     (dir_enter "$dir" && {
+        ln -f "$file" "$dir" 2>/dev/null ||
+        ln -sf "$file" "$dir" 2>/dev/null
+      } && archive_unpack "$file" "") || return 1
+    else
+      fs_copy "$file" "$dir" || return 1
+    fi
+  done
+
+  local download
+
+  # download SCM repository here
+  for download in `port_downloads "$1"`; do
+   (dir_enter "$dir"
+    subdir=${download##*/}
+    case "$download" in 
+      git://* | svn*://*)
+        #if [ -n "$subdir" -a -d "$subdir" ]; then
+        #  msg "Removing working directory $subdir"
+        #  rm -rf "$subdir"
+        #fi
+
+        #url_download "$download"
+
+        if [ -n "$subdir" ]; then
+          find "${subdir##*:}" | grep -v '/\.'
+        fi
+      ;;
+    esac)
+  done)
+}
+
+# port_build <[category/]package|path>
+#
+# Lists the sources unpacked.
+# -------------------------------------------------------------------------
+port_build()
+{
+  local file IFS="$nl" dir=${2-${SRC:-"."}} cat=`port_category "$1"`
+
+  (cd $pkgsrc/$cat && fs_remove `port_rootdir "$1"`) 2>/dev/null
+}
+
+# port_log <[category/]package|path>
+#
+# Dumps out the log of the last build
+# -------------------------------------------------------------------------
+port_log()
+{
+  local pd=`port_dir "$1"`
+
+  [ -f "$pd/.log" ] && cat "$pd/.log"
+}
+
+# port_listsources <[category/]package|path>
+#
+# Lists the sources unpacked.
+# -------------------------------------------------------------------------
+port_listsources()
+{
+  local IFS="$nl" file tmp=`tempnam` path=`port_path "$1"`
+
+  [ -n "$path" ] || return 1
+
+  { for file in `port_files "$path"`; do
+      if is_archive "$file"; then
+        { archive_list "$file" 2>/dev/null | sed -e "s|^\.\/||"; } || break
+      else
+        echo ${file##*/}
+      fi
+    done | tee "$tmp"
+  } && sort "$tmp" >$path/.sources
+
+  rm -f "$tmp"
+}
+
+# port_property <property>
+#
+# Properly format property.
+# -------------------------------------------------------------------------
+port_property()
+{
+  case $1 in
+    # Property from comment header
+    *: | [Dd]escription | [Uu][Rr][Ll]|[Mm]aintainer | [Dd]epends* | \
+    [Rr]ecommends* | [Pp]ackage | [Ss]plit | [Rr]eplaces* | [Pp]rovides* )
+
+      local prop=`str_ucfirst "$1"`
+
+      case $prop in
+        [Uu][Rr][Ll]) prop="URL" ;;
+        [Dd]epends*) prop="Depends on" ;;
+      esac
+
+      prop="${prop%:}:"
+      ;;
+
+    *)
+      prop="$1"
+      ;;
+  esac
+
+  echo "$prop"
+}
+
+# port_get <[category/]package|path> <property>
+#
+# Read property from port.
+# -------------------------------------------------------------------------
+port_get()
+{
+  local pf pp pv
+  
+  pf=`port_pkgfile "$1"`
+  pp=`port_property "$2"`
+  
+  case $pp in
+    section)
+      section=`port_header "$pf" | info_get Section`
+      test -n "$section" || section=`script_getvar "$pf" section`
+      echo "$section"
+    ;;
+    *ategory*)
+        port_category "$pf"
+    ;;
+    
+    # Property from comment header
+    *:)
+
+      sed -n -e "/^#/! q" -e "/^#\s\?${pp%:}:/ {
+      s,^#\s\?${pp%:}:\s\?,,
+        :lp
+        p
+        n
+        /^#\s\?[A-Z][A-Za-z][^.,]*:/q
+        /^#/!q
+        s,^#\s\s\?,,
+        b lp
+      }" "$pf"
+      ;;
+
+    # Variable property
+    *)
+      true || pv=$(sed -n -e "/^[_a-z][_0-9a-z]*=/ {
+        /^${pp}=[('\"]/ {
+          s/^${pp}=[('\"]//
+          :lp ;; /[)'\"]/! { N; b lp; }
+          s/[)'\"]\$// ;; s/\s\+/ /g
+          p; q
+        }
+      }" "$pf")
+      
+#      eval "set -- `escape_noquote $pv`"
+      
+#      (echo "$*")
+      port_eval "$1" "set -- \${${2%'[@]'}[@]} && echo \"\$*\""
+      
+    ;;
+   esac
+}
+
+# port_set [options] <[category/]package|path> <property> <value>
+#
+# Wrote property to port.
+# -------------------------------------------------------------------------
+port_set()
+{
+  local opts pkgf prop IFS="
+" 
+  while :; do
+    case $1 in
+      -*) pushv opts "$1" ;;
+      *) break ;;
+    esac
+    shift
+  done
+
+  pkgf=`port_pkgfile "$1"`
+  prop=`port_property "$2"`
+  
+  shift 2
+ 
+  xval=`info_value "$@"`
+  pval=`echo "$xval" | sed "1! s,^,#  ,"`
+  
+  case $prop in
+    *:)
+      local mark replace
+      
+      mark="#\s\?${prop%:}:"
+      replace="# $prop `escape_sed "$pval"`"
+    
+      sed $opts \
+        -n -e ":st; {
+          /^$mark/ {
+            :lp; n; /^#\s\?[A-Z]\+ \?[^ \n]\+:/! b lp
+            :ins; i# $prop `escape_sed "$pval"`
+            :end; p; n; b end
+          }
+          /^[^#]/ b ins
+          /^\$/ b ins
+          p
+        }" \
+      "$pkgf"
+    ;;
+    *)
+      script_setvar "$pkgf" "$prop" "$pval"
+    ;;
+  esac
+}
+
+# port_obj <[category/]package|path>
+#
+# -------------------------------------------------------------------------
+port_obj()
+{
+  local IFS=$nl
+
+  port_eval "$1" 'obj name="$name" description="$description" url="$url" source="`array ${source[@]}`"'
+}
+
+# port_category <[category/]package|path>
+## -------------------------------------------------------------------------
+port_category()
+{
+  local IFS="$nl" dir category pf
+
+  for pf in `try_port "$1" 2>/dev/null`; do
+    case $pf in
+      /*) ;;
+      ./* | Pkgfile) pf="`absdir`/${pf#./}" ;;
+      *) pf="$portsdir/$pf" ;;
+    esac
+
+    if [ -f "$pf" ]; then
+      dir=${pf%/*}
+      dir=${dir%/*}
+      category=${dir##*/}
+      break
+    fi
+
+#    msg "$pf" "$portsdir/*/*/Pkgfile"
+
+    case $pf in
+      $portsdir/*/*/Pkgfile)
+        category=${pf#$portsdir/}
+        category=${category%%/*}
+        test -n "$category" && break
+        ;;
+      /Pkgfile)
+        return 1
+        ;;
+      *)
+        category=`dirname "$pf"`
+        category=`dirname "$category"`
+        category=`basename "$category"`
+
+        test -n "$category" && break
+        ;;
+    esac
+  done
+
+  if [ -z "$category" ]; then
+    if local port=`obj "$@"` && ! obj_isempty "$port" category; then
+      category=`obj_get "$port" category`
+    fi
+  fi
+
+  [ -n "$category" ] && echo "$category"
+}
+
+# -------------------------------------------------------------------------
+port_src()
+{
+  local category=`port_category "$@"`
+
+  if [ -n "$category" ]; then
+    echo "$pkgsrc/$category"
+  fi
+}
+
+# port_name <[category/]package|path>
+#
+# -------------------------------------------------------------------------
+port_name()
+{
+  local pf=`port_pkgfile "$1" 2>/dev/null` name
+
+  if [ -n "$pf" ]; then
+    shift
+    case $pf in
+      $portsdir/*/*/Pkgfile)
+        name=${pf#$portsdir/*/}
+        name=${name%%/*}
+        ;;
+      *)
+        name=`port_get "$pf" name`
+        ;;
+    esac
+  fi
+
+  if local port=`obj "$@"` && ! obj_isempty "$port" name; then
+    name=`obj_get "$port" name`
+  fi
+
+  [ -n "$name" ] && echo "$name"
+}
+
+# port_version <[category/]package|path> [variables/sources...]
+#
+# -------------------------------------------------------------------------
+port_version()
+{
+  local pf=`port_pkgfile "$1" 2>/dev/null`
+  local version=`port_get "$pf" version 2>/dev/null`
+
+  [ -n "$pf" ] && shift
+
+  if local port=`port_new "$@" 2>/dev/null` && ! obj_isempty "$port" version
+  then
+    version=`obj_get "$port" version`
+  fi
+
+  if [ -n "$version" ]; then
+    echo "$version"
+  fi
+}
+
+# port_description <[category/]package|path>
+#
+# -------------------------------------------------------------------------
+port_description()
+{
+  port_get "$1" "Description:"
+}
+
+# port_id <[category/]package|path>
+# -------------------------------------------------------------------------
+port_id()
+{
+  local IFS=
+  case $1 in
+    */*/*/*) echo `port_category "$@"`/`port_name "$@"` ;;
+    */*/) echo "${1%/}" ;;
+    */*/*) echo `port_category "$@"`/`port_name "$@"` ;;
+    */*) echo "$1" ;;
+    *) echo `port_category "$@"`/`port_name "$@"` ;;
+  esac
+}
+
+# port_pkgmask <[category/]package|path> [host]
+# -------------------------------------------------------------------------
+port_pkgmask()
+{
+  local IFS="$nl" p=`test -d "$1" && echo "$1" || port_path "$@" | head -n1`
+
+ (source $PORT_config
+  for p in $p; do
+   (IFS="$IFS "
+    cd $p >/dev/null
+    . Pkgfile 2>/dev/null || warn "Failed reading '$p/Pkgfile'."
+
+    port_info2pkg "$pkgdir" "${2-*}" "`port_category "$p"`" "$name" "$version" "$release")
+  done)
+}
+
+# port_getfile <[category/]package|path> <filename>
+#
+# Get the full path of the specified file within the port directory.
+# -------------------------------------------------------------------------
+port_getfile()
+{
+  local p=`port_path "$1"`
+
+  [ -e "$p${2:+/$2}" ] && echo "$p${2:+/$2}"
+}
+
+# port_readfile <[category/]package|path> <filename> <variable>
+#
+# -------------------------------------------------------------------------
+port_readfile()
+{
+ (P=`port_getfile "$1" "$2"`
+
+  if [ -n "$P" ]; then
+#    if is_var "$3"; then
+#      eval $3='"`<"$P"`"'
+#    else
+      cat "$P"
+#    fi
+  fi)
+}
+
+# port_getsources <[category/]package|path>
+#
+# Gets the list of sources.
+# -------------------------------------------------------------------------
+port_getsources()
+{
+  local IFS="$nl" file slf=`port_getfile "$1" .sources`
+
+  for file in `port_files "$1"`; do
+    if [ -z "$slf" -o "$file" -nt "$slf" ]; then
+      port_listsources "$1"
+      return $?
+    fi
+  done
+  port_readfile "$1" .sources
+}
+
+# port_rootdir <[category/]package|path>
+#
+# Lists the sources root.
+# -------------------------------------------------------------------------
+port_rootdir()
+{
+  port_listsources "$1" | sed 's|/.*$|/|' | uniq
+}
+
+# port_srcdir [-c] <[category/]package|path>
+#
+# Gets the primary source tree.
+# -------------------------------------------------------------------------
+port_srcdir()
+{
+  local srcdir entry cmd="echo" IFS="
+"
+  case $1 in
+    -c) cmd="cd" && shift ;;
+  esac
+
+  if ! srcdir=`port_src "$1"` || [ -z "$srcdir" ]; then
+    warn "No such port $1"
+    return 1
+  fi
+
+  for entry in `port_rootdir "$1"`; do
+    case $entry in
+      */) srcdir="$srcdir/${entry%/}" && break ;;
+    esac
+  done
+  "$cmd" "$srcdir"
+}
+
+# port_deps <category> <package>
+#
+# Reads dependencies from a portage file.
+# -------------------------------------------------------------------------
+port_deps()
+{
+  local pf=`port_pkgfile "$1"`
+
+  port_get "$pf" depends | sed 's/,\s*/\n/g'
+}
+
+# port_pkg2info <path>
+#
+# splits up the full path to a package into package information
+#
+# output is in the following format:
+#
+# <directory> <category> <name> <version> <release> <strip flags>
+# -------------------------------------------------------------------------
+port_pkg2info()
+{
+  local dir=${1%/*}
+  local cat=${dir##*/}
+  local file=${1##*/}
+  local pkg=${file%.pkg.tar.*}
+  local name=${PKG%%"#"*}
+  local rel=${PKG##*-}
+  local strip=${rel##*"%"}
+  local ver=${PKG#"$name#"}
+
+  if [ "$strip" = "$rel" ]; then
+    strip=''
+  fi
+
+  dir=${dir%/$cat}
+
+  echo "${dir:-./}" "${cat:-'-'}" "$name" "${ver%-$rel}" "${rel%%"%"*}" "$strip"
+}
+
+# port_info2pkg <directory> <host> <category> <name> <version> <release> <strip flags> [format]
+#
+# Assembles package information into a full package path.
+# -------------------------------------------------------------------------
+port_info2pkg()
+{
+  echo "$1/${2:-`distrib_canonical`}/$3/$4#$5-$6${7:+%$7}.pkg.tar.${8:-bz2}"
+}
+
+# port <vars...>
+# -------------------------------------------------------------------------
+port_template()
+{
+  sed -e "`subst_script "$@" 'build=:' '[_0-9a-z]\+='`" "$PORT_template"
+}
+
+# port_pkgs <[category/]package|path>
+# -------------------------------------------------------------------------
+port_pkgs()
+{
+  local IFS=$nl pkg
+
+  for dir in `port_path "$@"`; do
+    for pkg in `port_pkgmask "$dir"`; do
+#      set -- `port_pkg2info "$pkg"`
+      echo "$pkg"
+    done
+  done
+}
+
+# port_isset <[category/]package|path> [variables...]
+#
+# Checks whether the given variables are all set in the specified port.
+# -------------------------------------------------------------------------
+port_isset()
+{
+  local dir=`port_path "$1"`
+
+  shift
+
+ (cd "$dir" &&
+  local "$@" &&
+  unset "$@" &&
+  . $PORT_config &&
+  . Pkgfile &&
+  for v; do
+    if ! var_isset "$v"; then
+      errormsg "The variable '$v' has not been set."
+      exit 1
+    fi
+  done)
+}
+
+# port_modify <[category/]package|path>
+# -------------------------------------------------------------------------
+port_modify()
+{
+  local pf IFS="
+"
+  pf=`port_pkgfile "$1"` || return $?
+
+  port_unpack "$pf"
+
+  name=`port_name "$pf"`
+  version=`port_version "$pf"`
+
+  SRC=`port_src "$pf"`
+  PKG=`mktemp -d /tmp/$name#$version.XXXXXX`
+  ROOT="$PKG${prefix+/}${prefix#/}"
+
+  require script 
+
+  BUILDFN=`script_getfn "build" <$pf`
+
+  eval "$BUILDFN"
+
+  cd "$SRC"
+
+  fs_duplicate `port_rootdir "$pf"`
+
+  cd `port_srcdir "$pf"`
+}
+
+# port_diff <[category/]package|path> [diff-options]
+# -------------------------------------------------------------------------
+port_diff()
+{
+ (IFS="
+"
+  pf=`port_pkgfile "$1"` || return $?
+
+  shift
+
+  cd `port_src "$pf"` &&
+  for dir in `port_rootdir "$pf"`; do
+    diff "$@" "${dir%/}_orig" "$dir"
+  done)
+}
+
+# port_sanity <[category/]package|path>
+#
+# Checks whether the port is valid.
+# -------------------------------------------------------------------------
+port_sanity()
+{
+  local IFS="$space$nl" name value
+
+  port_isset "$1" $PORT_variables &&
+  for name in $PORT_variables; do
+    value=`port_get "$1" "$name"`
+
+    if [ -z "$value" ]; then
+      warning "Variable \$$name is empty"
+      return 1
+    fi
+  done
+}
+
+# port_hier
+# -------------------------------------------------------------------------
+port_hier()
+{
+  obj_set hier pkgname `port_get "$1" name`
+  obj_set hier version `port_get "$1" version`
+  obj_set hier release `port_get "$1" release`
+  obj_set hier deps `port_get "$1" deps`
+
+  local IFS=$obj_s x
+
+  for x in `port_meta "$1"`; do
+    local n=${x%%=*}
+
+    n=`str_tolower "$n"`
+    n=${n//[!a-z0-9]/_}
+
+    eval obj_set hier '$n' "${x#*=}"
+  done
+}
+
+# port_new <category/package> <vars...>
+# -------------------------------------------------------------------------
+port_new()
+{
+  msg "port_new $@"
+
+  local IFS="$obj_s" pf="`port_pkgfile "$1"`" 2>/dev/null
+  local pv psrc arg
+
+  if [ -n "$pf" ]; then
+#    msg "pf=$pf"
+    shift
+  fi
+
+  for arg; do
+    case "$arg" in
+      *=*)
+        obj_set pv "${arg%%=*}" "${arg#*=}"
+      ;;
+      *)
+        if [ -f "$arg" ]; then
+          array_push psrc "$arg"
+        else
+          errormsg "Variable or source file expected:" "$arg"
+          return $?
+        fi
+      ;;
+    esac
+  done
+
+  local IFS="$space$nl"
+
+  array_push psrc `obj_get "$pv" source`
+
+  obj_set pv source "$psrc"
+
+  if [ -n "$pf" ]; then
+    for var in category name; do
+      if ! obj_isset "$pv" $var; then
+        value=`port_${var} "$pf" 2>/dev/null`
+        if [ -n "$value" ]; then
+          obj_set pv "$var" "$value"
+        fi
+      fi
+    done
+  fi
+
+  echo "$pv"
+}
+
+# port_create <category/package> <vars...>
+# -------------------------------------------------------------------------
+port_create()
+{
+ (IFS=" ""
+"
+#  msg port_create "$@"
+
+  # Determine port identity
+  id=`port_id "$1"` 
+  dir=`port_dir "$1"`
+
+  if is_port "$1"; then
+    errormsg "The port $1 already exists${dir:+ in $dir/Pkgfile}!"
+    return 1
+  fi
+
+#  var_dump id dir source
+
+  # Create the port and its directory
+  vars=`port_new "$@" 2>/dev/null | head -n1` 
+  pf=$dir/Pkgfile
+
+  if ! mkdir -p "$dir"; then
+    errormsg "Failed creating port directory for $id !"
+    return 1
+  fi
+
+  # Try to download and analyze the source package
+  IFS=' ''
+'
+  srcs=`obj_get "$vars" source`
+
+  if ! obj_isset "$vars" version release build; then
+    for src in $srcs; do
+      file=${src##*/}
+
+      if ! is_local "$src"; then
+
+        if is_scm "$src"; then
+          dest=`port_srcdir "$id"`/$file
+        else
+          if [ ! -d "$PORT_distfiles" ]; then
+            verbose "Directory $PORT_distfiles does not exist, creating it..."
+            mkdir -p "$PORT_distfiles"
+          fi
+          dest="$PORT_distfiles/$file"
+        fi
+
+        if [ ! -e "$dest" ]; then
+          if ! url_download "$src" "$dest"; then
+            errormsg "Download of $src failed, aborting."
+            return 1
+          fi
+        fi
+        src="$dest"
+      fi
+
+      msg "Analyzing source archive $src ..."
+
+      IFS="$obj_s"
+
+      srcdist_analyze "$src" $vars >/dev/null
+
+      IFS=" ""
+"
+    done
+  fi
+
+  IFS="$obj_s ""
+"
+  for var in $SRCDIST_vars; do
+    if ! obj_isset "$vars" $var; then
+      value=`var_get srcdist_$var`
+
+      if [ -n "$value" ]; then
+@DEBUG_TRUE@ verbose "Variable $var is $value" 2
+        obj_set vars "$var" "$value"
+      fi
+    fi
+  done
+
+  IFS="$space$nl"
+
+  set -- "$1"
+
+  obj_isempty "$vars" version && obj_set vars version "`port_version "$pf" 2>/dev/null`"
+#  obj_isset "$vars" category || obj_set vars category "`port_category "$pf" 2>/dev/null`"
+  obj_isset "$vars" release || obj_set vars release 1
+  obj_isset "$vars" source || obj_set vars source "$srcs"
+  obj_isset "$vars" maintainer || {
+    if [ -r "$pkgdocdir/AUTHORS" ]; then
+      maintainer=`head -n1 "$pkgdocdir/AUTHORS"`
+      obj_set vars maintainer "$maintainer"
+    fi
+  }
+
+  [ -n "$version" ] || version=`obj_get "$vars" version`
+
+  for var in `obj_members "$vars"`; do
+    value=`obj_get "$vars" $var`
+    case $var in
+      source)
+        value=`array_sed value -e '\,://,! s,.*/,,'`
+        [ -n "$version" ] && value=`array_sed value -e "s|$version|\$version|g"`
+      ;;
+
+      description)
+        value=`obj_get "$vars" $var`
+        IFS="
+";      set -- $value; head=$1; shift
+
+        if [ "$head" != "${head#*'. '}" ]; then
+          set -- "${head#*'. '} $@"
+          head=${head%%'. '*}
+        fi
+
+        value=`
+          str_ucfirst "$head"
+          echo "$*" | html_text - | text_wrap - | 
+          sed -e 's,^\s*$,.,' | sed -e 's,^,#  ,'
+        `
+        value=`html_dequote "$value"`
+      ;;
+    esac
+    msg "arg: $var='$value'"
+    set -- "$@" $var="$value"
+  done
+
+  IFS="$obj_s$nl"
+
+  if is_fn "${srcdist_buildsys}_commands"; then
+    set -- "$@" `${srcdist_buildsys}_commands "$srcdist_dir"`
+  fi
+
+  if is_fn "${srcdist_buildsys}_buildfn"; then
+    set -- "$@" srcdir="${srcdist_dir#$srcdist_tmp/}"
+
+    BUILDFN=`${srcdist_buildsys}_buildfn "$*" | sed -e "1! s,^,  ,"` IFS="
+"
+     set -- "$@" build="$BUILDFN"
+#    set -- "$@" build="`implode '
+#  ' $BUILDFN`"
+  fi
+
+  set -- "$@" source="$(obj_get "$vars" source)"
+  test -n "$version" && set -- "$@" version="$version"
+
+  local IFS="$obj_s"
+
+#  debug "Variables: $*"
+
+  port_template $* >$pf
+
+  if [ ! -f "$pf" ]; then
+    errormsg "Failed creating '$pf'."
+    return 1
+  fi
+
+  msg "Created $pf"
+
+  for method in variables values options targets; do
+    if is_fn "${srcdist_buildsys}_${method}"; then
+      (dir=`cd "$dir" && pwd` &&
+       cd "$srcdist_dir" && "${srcdist_buildsys}_${method}" >$dir/.$method)
+    fi
+  done
+
+  local src IFS=" $tabstop$nl"
+
+  for src in $source; do
+    if is_local "$src"; then
+      if [ -e "$src" ]; then
+        msg "Copying '$src' to port directory '$dir'."
+        {
+          install -m 644 "$src" "$dir" ||
+          cp "$src" "$dir"
+
+        } 2>/dev/null
+      else
+        warn "The source file '$src' doesnt exist."
+      fi
+    fi
+  done
+  return 0)
+}
+
+# port_log <category/package>
+# -------------------------------------------------------------------------
+port_spec()
+{
+  :
+}
+
+# port_spec <category/package>
+# -------------------------------------------------------------------------
+port_spec()
+{
+#  local meta=$(obj_meta
+  :
+}
+
+# port_vmask <category/package>
+# -------------------------------------------------------------------------
+port_vmask()
+{
+  local version=`port_version "$1"`
+
+  echo "$version" | sed -e 's/[0-9]\+/\[0-9\]\\+/g' -e 's/\./\\./g' -e 's/[A-Za-z_]\+/\[A-Za-z_\]\*/'
+}
+
+# port_recheck <category/package>
+# -------------------------------------------------------------------------
+port_recheck()
+{
+ (source /etc/pkgmk.conf.d/mirrors.conf
+
+  for PORT; do
+    IFS="$nl" pf=`port_pkgfile "$PORT"` 
+
+    for src in `port_downloads "$pf"`; do
+      proto=${src%%://*}
+      file=${src##*/}
+      ext=${file#"${file%.*}"}
+      dir=${src%/*}
+
+      case $dir in
+        *.dl.sourceforge.net/*) dir=`sourceforge_url "${dir##*/}" download` && proto=${dir%%://*} ;;
+      esac
+
+      case $proto in
+        http|ftp) break ;;
+      esac
+
+
+    done
+
+    oldver=`port_get "$pf" version`
+    url="${dir#$proto://}/$file"
+
+    msg "URL is $proto://$url"
+
+    #mask=`str_reduce "${url%$ext}" "version=$oldver" "version%.*=${oldver%.*}" "version%%.*=${oldver%%.*}"`$ext
+    mask=`str_reduce "${url%$ext}" "version=$oldver" "version%.*=${oldver%.*}"`$ext
+    path=`explode "$mask" "/"`
+
+    set --
+
+    while :; do
+      array_pop path 'last'
+
+
+      case $last in
+        *'$'*) set -- "$last" "$@" ;;
+        *) array_push 'path' "$last" && break ;;
+      esac
+
+    done
+
+    #msg "Variable path components: $@"
+    local vmask=`port_vmask "$pf"`
+
+
+    while [ "$#" -gt 0 ]; do
+      url=`implode "/" $path`
+      mask=$(str_replace "$1" '$version' "\\($vmask\\)")
+      mask=$(str_replace "$mask" '${version%.*}' "\\(${vmask%\\.*}\\)")
+
+      if ! links=`www_links "$proto://$url" | sort -V`; then
+        errormsg "Failed listing '$proto://$url'."
+        return 1
+      fi
+
+#    echo "Links:" $links
+
+      unset choices
+
+      for link in $links; do
+
+        case $link in
+          *${url%/}/*)
+            part="${link#$proto://${url%/}/}"
+
+
+            v=`echo "${part%/}" | sed -ne "s|^$mask\$|\1|p"`
+
+            if test -n "$v"
+            then
+              array_push 'choices' "${part%/}"
+              newver="$v"
+            fi
+            ;;
+        esac
+      done
+
+      link=`array_last 'choices'`
+#    set -- `array_last 'choices'`
+
+      #msg "Taking branch '$link'."
+
+      array_push 'path' "${link%/}"
+      shift
+    done
+
+    #implode / $proto://$path
+    echo "$newver"
+  done)
+}
+
+# port_debcontrol <category/package> [additional-variables]
+#
+# Create a debian/control file for dpkg-deb.
+# -------------------------------------------------------------------------
+port_debcontrol()
+{
+  local port="$1"
+
+  shift
+
+  port_deb "$port" control "$@"
+}
+
+# port_debuild <category/package> [additional-variables]
+#
+# Build a .deb package from the given port.
+# -------------------------------------------------------------------------
+port_debuild()
+{
+  local port args
+
+  case $1 in
+    -k) pushv args "-k" && shift ;;
+  esac
+
+  port="$1"
+  shift
+
+  [ -z "$DISTRIB" ] && DISTRIB=`distrib_canonical`
+
+  port_deb "$port" buildpkg $args `port_pkgmask $port ${DISTRIB+"$DISTRIB"}` "$@"
+}
+
+# port_deb <category/package> <deb.sh-function> [additional-variables]
+#
+# Create a debian/control file for dpkg-deb.
+# -------------------------------------------------------------------------
+port_deb()
+{
+  $lib_ports_deb_sh . $shlibdir/ports/deb.sh
+
+  local v url port="$1" fn="$2" IFS="
+"
+  shift 2
+
+  for v in name description maintainer recommends provides replaces suggests; do
+    set -- "$@" $v="`port_get $port $v`"
+  done
+
+  local package=`port_get $port package`
+  local section=`port_get $port section`
+  local url=`port_get $port url`
+  local split=`port_get $port split`
+  local depends=`port_deps $port`
+  local source=`port_get $port name`
+  local version=`port_get $port "Version:"`
+  
+  test -z "$package" && package=`port_name $port`
+  test -z "$source" && package=`port_name $source`
+  test -z "$section" && section=`port_category $port`
+  test -z "$depends" && depends=`port_deps $port`
+  test -z "$version" && version=`port_version $port`-`port_get $port release`
+ 
+  case $version in
+    *:) version="$version`port_version "$port"`-`port_get "$port" release`" ;;
+  esac
+
+#  if test -n "$version"; then
+#    version="$version"
+#  fi      
+
+
+  match_some 'package=*' "$@" || set -- "$@" package="$package"
+  match_some 'source=*' "$@" || set -- "$@" source="$source"
+  match_some 'section=*' "$@" || set -- "$@" section="$section"
+  match_some 'depends=*' "$@" || set -- "$@" depends="$depends"
+  match_some 'version=*' "$@" || set -- "$@" version="$version"
+
+  [ -n "$url" ] && set -- "$@" homepage="`port_get $port url`"
+  [ -n "$split" ] && set -- "$@" split="`port_get $port split`"
+
+  # If no size= is given, then determine it via .tar file.
+  if ! match_some 'size=*' "$@"; then
+    DISTRIB=`distrib_canonical`
+    local pkg=`port_pkgmask $port "$DISTRIB"`
+
+    if [ ! -e "$pkg" ]; then
+      error "No such package $pkg, cannot determine installed size."
+      return 1
+    else
+      $lib_archive_tar_sh . $shlibdir/archive/tar.sh
+
+      v=`tar_count "$pkg"`
+
+      set -- "$@" size=$((v / 1024))
+    fi
+  fi
+
+  # If no arch= is given, then determine it via ${host}
+  if ! match_some "arch=*" "$@"; then
+    local arch=${host%%-*}
+
+    if [ -z "$arch" ]; then
+      arch=`uname -m` 2>/dev/null
+      : ${arch:="i386"}
+    fi
+
+    case $arch in
+      i[4-7]86) arch="i386" ;;
+      x86_64) arch="amd64" ;;
+    esac
+
+    if [ -n "$arch" -a "$arch" != "$host" ]; then
+      set -- "$@" arch="$arch"
+    fi
+  fi
+
+  # Determine ${version}-${release}
+#  v=`port_get $port version`-`port_get $port release`
+
+  deb_$fn "$@" #version="$v"
+}
+
+# port_dupes <category/package>
+# -------------------------------------------------------------------------
+port_dupes()
+{
+  port_find "$@" | while read dir; do
+    name=${dir##*/}
+    category=${dir%/$name}
+    ports=${category%/*}
+
+    set -- $ports/*/$name
+
+    if [ "$#" -gt 1 ]; then
+      echo "$*"
+    fi
+  done
+}
+
+# port_move <category/package> <category/package>
+# -------------------------------------------------------------------------
+port_move()
+{
+  local from to path destdir {old,new}name
+
+  from=`port_dir "$1" | tail -n1`
+  to=`port_dir "$2" 2>/dev/null | tail -n1`
+
+  # The destination port must not exist.
+  if [ -f "`port_pkgfile "$to" 2>/dev/null`" ]; then
+    errormsg "The port '$2' already exists."
+    return 1
+  fi
+
+  # ...and also the destination directory
+  if ! destdir=`port_newdir "$2"`; then
+    errormsg "Destination directory '$destdir' already exists."
+#    return 1
+  fi
+
+  id=`IFS="/" && set -- $from && while [ "$#" -gt 2 ]; do shift; done && echo "$*"`
+  new=`IFS="/" && set -- $to && while [ "$#" -gt 2 ]; do shift; done && echo "$*"`
+
+  msg "Source directory: '$from'"
+  msg "Id: '$id'"
+  msg "Destination directory: '$destdir'"
+  msg "Destination: '$to'"
+
+  set -- `port_pkgmask "$from"`
+
+  #echo "- $@"
+#  mkdir -p "${destdir%/*}"
+
+  if [ "${from##*/}" = "${destdir##*/}" ]; then
+    dest=${destdir%/*}
+  else
+    dest=${destdir}
+
+    # renaming
+    oldname=${id##*/}
+    newname=${destdir##*/}
+
+    #var_dump {old,new}name
+  fi
+
+  if [ -d "$from/.svn" ]; then
+#    echo + svn mv --force "$from" "${destdir%/*}"
+    { [ -d "${destdir%/*}" ] || svn mkdir "${destdir%/*}"; } &&
+    (set -x && svn mv --force "$from" "$dest") &&
+    svn remove --force "$from"
+  else
+#    echo + mv -v "$from" "${destdir%/*}"
+    mkdir -p "${destdir%/*}" &&
+    mv -v "$from" "${destdir%/*}"
+  fi &&
+ (. $PORT_config
+  for path; do
+    pkgrel=${path#"$pkgdir/"}
+    pkghost=${pkgrel%%/*}
+
+    for archive in "$pkgdir/$pkghost/$id#"*; do
+#      test -f "$archive" || exit 1
+
+      if [ -e "$archive" ]; then
+        if [ -n "$oldname" -a -n "$newname" ]; then
+          mv -v "$archive" "${archive/$oldname#/$newname#}"
+        else
+          mkdir -p "$pkgdir/$pkghost/${new%%/*}" &&
+          mv -v "$archive" "$pkgdir/$pkghost/${new%%/*}"
+        fi
+      fi
+    done
+  done)
+
+#  echo "$*"
+}
+
+# port_addpatch <category/package> <patch>
+# -------------------------------------------------------------------------
+port_addpatch()
+{
+  :
+
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_port_sh=1;}

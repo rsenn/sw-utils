@@ -1,0 +1,78 @@
+#!/bin/sh
+#
+# pkgmgr.sh: Abstract package-manager.
+#
+# $Id: pkgmgr.sh.in 780 2008-10-23 19:00:16Z enki $
+# -------------------------------------------------------------------------
+test $lib_pkgmgr_sh || {
+
+# set path variable defaults
+# ---------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# include library modules
+# ---------------------------------------------------------------------------
+.  $shlibdir/distrib.sh
+
+# initialize static variables
+# ---------------------------------------------------------------------------
+PKGMGR_known="dpkg rpm"
+
+# pkgmgr_list
+#
+# List canonical names of all known pkgmgr implementations.
+# ---------------------------------------------------------------------------
+pkgmgr_list()
+{
+ (#cd $shlibdir/pkgmgr
+
+  for name in $PKGMGR_known; do
+    echo ${name%.sh}
+  done)
+}
+
+# pkgmgr_detect
+#
+# Guess the appropriate package-manager implementation.
+# ---------------------------------------------------------------------------
+pkgmgr_detect()
+{
+  PKGMGR_distrib=`distrib_detect`
+  
+  if [ -n "$PKGMGR_distrib" ]; then
+    require "distrib/$PKGMGR_distrib"
+  
+    PKGMGR_impl=`${PKGMGR_distrib}_pkgmgr`
+  
+    if [ -n "$PKGMGR_impl" ]; then
+      echo "$PKGMGR_impl"
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
+# pkgmgr_list
+#
+# List all packages
+# ---------------------------------------------------------------------------
+pkgmgr_list()
+{
+  ${PKGMGR_impl=`pkgmgr_detect`}_list "$@"
+}
+
+# pkgmgr_files <package> [package...]
+#
+# List all files contained in the package
+# ---------------------------------------------------------------------------
+pkgmgr_files()
+{
+  ${PKGMGR_impl=`pkgmgr_detect`}_files "$@"
+}
+
+# ---[ EOF ]-------------------------------------------------------------------
+lib_pkgmgr_sh=:;}
+

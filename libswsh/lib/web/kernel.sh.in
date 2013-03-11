@@ -1,0 +1,25 @@
+# $Id: kernel.sh.in 507 2008-08-11 23:55:36Z enki $
+#
+# web/kernel.sh: kernel mining functions
+#
+# -------------------------------------------------------------------------
+@DEBUG_FALSE@test $lib_web_kernel_sh || {
+
+kernel_primary="www.kernel.org"
+kernel_mirrorlist="/mirrors/"
+
+# -------------------------------------------------------------------------
+kernel_mirrors()
+{
+  http_get "$kernel_primary" "$kernel_mirrorlist" | 
+  xml_getattributes 'a' 'href' |
+  while read url; do
+    case $url in
+      */pub/*) echo "${url%/pub/*}" ;;
+    esac |
+    uniq
+  done
+}
+
+# --- eof ---------------------------------------------------------------------
+@DEBUG_FALSE@lib_web_kernel_sh=:;}

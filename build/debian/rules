@@ -1,0 +1,10 @@
+#!/usr/bin/make -f
+
+
+clean:
+
+build:
+	cd .. && sh cfg.sh
+	make -C ..
+
+binary:

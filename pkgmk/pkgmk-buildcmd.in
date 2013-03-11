@@ -1,0 +1,192 @@
+#!/bin/sh
+#
+
+# paths and platform-triplet variables
+# ---------------------------------------------------------------------------
+: ${exec_prefix="@exec_prefix@"}
+: ${prefix="@prefix@"}
+: ${libdir="@libdir@"}
+
+# Get absolute path of the script originally invoked                                                                    
+# ---------------------------------------------------------------------------                                           
+get_script_dir()                                                                                                        
+{                                                                                                                       
+  local absdir reldir thisdir="$(pwd)" me="${1-$0}"                                                                     
+                                                                                                                        
+  # if $0 specified a pathname, then put that into reldir                                                               
+  if test "$me" != "${me%/*}"                                                                                           
+  then                                                                                                                  
+    reldir="${me%/*}"                                                                                                   
+  fi                                                                                                                    
+                                                                                                                        
+  # change into the relative directory in a subshell                                                                    
+  # and get the output of "pwd", which will lead                                                                        
+  # to an absolute directory                                                                                            
+  if test "${reldir#/}" != "$reldir"                                                                                    
+  then                                                                                                                  
+    absdir=$(cd "$reldir" && pwd)                                                                                       
+  else                                                                                                                  
+    absdir=$(cd "$thisdir/$reldir" && pwd)                                                                              
+  fi                                                                                                                    
+                                                                                                                        
+  echo $absdir                                                                                                          
+}                                                         
+
+# Remove the paths which match the given patterns from $PATH
+# ---------------------------------------------------------------------------                                           
+path_remove()
+{
+  local IFS=":" tmp="$PATH" del
+  
+  PATH=
+
+  for tmp in $tmp
+  do
+    for del
+    do
+      eval "case \$tmp in
+        $del) continue 2 ;;
+      esac"
+    done
+    
+    PATH="${PATH:+$PATH$IFS}$tmp"
+  done
+
+  export PATH
+}
+
+# Find a program within the path.
+# ---------------------------------------------------------------------------                                           
+path_find()
+{
+  local IFS=":" dir path
+  
+  for dir in $PATH
+  do
+    path="$dir/${1##*/}"
+
+    if test -x "$path"
+    then
+      echo "$path"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Check whether the given fd number is a valid file descriptor.
+# ---------------------------------------------------------------------------                                           
+fd_valid()
+{
+  local fd=$1 cl cmd 
+  
+  cl=$((fd ^ 1))
+  
+  cmd="(exec $cl>&$fd || exec $cl<&$fd)"
+
+  if test $((fd)) != 2
+  then
+    cmd="$cmd 2>/dev/null"
+  fi
+
+  echo "$cmd" 1>&2
+  eval "$cmd"
+}
+
+case "$0" in
+  */*) 
+    script_dir=${0%/*}
+    script_name=${0##*/}
+    ;;
+  *)
+    script_dir=$(pwd)
+    script_name=$0
+    ;;
+esac
+
+#script_dir="$(get_script_dir)"
+#script_name="${0##*/}"
+script_path="$script_dir/$script_name"
+
+#this_path=$(path_find "$script_name")
+this_path="$script_path"
+
+OLDPATH="$PATH"
+
+PATH="${PATH#$libdir/pkgmk:}"
+PATH="${PATH#$script_dir:}"
+#path_remove "$libdir/pkgmk" "$script_dir"
+
+if test "$OLDPATH" = "$PATH"
+then
+  echo "$script_path: warning: PATH=$PATH did not change!" 1>&2
+fi
+
+next_path=$(path_find "$script_name")
+
+if test "$this_path" = "$next_path"
+then
+  echo "$script_path: warning: $this_path and $next_path are the same file!" 1>&2
+  exit 3
+fi
+
+if test -n "$no_loop" && test "$no_loop" = "$this_path"
+then
+  echo "$script_path: error: LOOP in $this_path -> $next_path" 1>&2
+  exit 2
+fi
+
+#if test "$this_path" = "$next_path" ||
+#   test "$this_path" -ef "$next_path"
+#then
+#  echo "ERROR: $this_path and $next_path are the same file!" 1>&2
+#  exit 1
+#fi
+
+#set | grep '^[_A-Za-z][_0-9A-Za-z]*='
+
+msg="$this_path @ $PWD : $script_name"
+
+NEWLINE="
+"
+TABSTOP="	"
+SPACE=" "
+
+IFS="$SPACE$NEWLINE$TABSTOP"
+
+for arg 
+do
+  case "$arg" in
+#    *$NEWLINE*) arg="\$'"`echo "$arg" | sed -e ':lp; $! { N; b lp; }; s,\n,\\n,g'`"'" ;;
+    *"$NEWLINE"*) 
+      arg="\$'$(IFS=$NEWLINE && newarg= && for a in $arg; do newarg=${newarg:+$newarg'\n'}$a; done && echo "$newarg")'" 
+      ;;
+      
+    *[$TABSTOP$SPACE]*) 
+      arg="'$arg'" 
+      ;;
+  esac
+
+  msg="$msg $arg"
+done
+
+
+
+#(echo "$msg" >&10) 2>/dev/null
+
+(#echo "CWD=\"$CWD\"" 1>&2
+
+ if test -n "$CWD" && test -d "$CWD"
+ then
+   echo "$msg" | sed -e ':lp; $! { N; b lp; }; s,\n,\\n,g' >>$CWD/.cmds
+ else 
+   echo "WARNING: Not writing .cmds file" 1>&2
+ fi)
+ 
+
+case $script_name in
+  "gcc" | *-"gcc" | "gcc"-* | *-"gcc"-* | \
+  "g++" | *-"g++" | "g++"-* | *-"g++"-* ) unset OLDPATH ;;
+esac
+
+no_loop="$this_path" PATH="${OLDPATH:-$PATH}" exec "$next_path" "$@"

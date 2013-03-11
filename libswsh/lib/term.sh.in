@@ -1,0 +1,221 @@
+#!
+#
+# term.sh: Simple terminal layer functions
+#
+# $Id: term.sh.in 586 2008-08-27 03:24:45Z enki $
+# -------------------------------------------------------------------------
+test $lib_term_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/var.sh
+#source $shlibdir/fs/dir.sh
+
+: ${term_bs:=$'010'}
+: ${term_escape:=$'033'}
+: ${term_buffer:=''}
+
+# term_ctlchar <char>
+#
+# Convert "^X" to a control char (A-_ supported).
+#
+# This function is ripped and modified from rtfm.etla.org/xterm/ctlseq.sh
+# by Vivek Dasmohapatra.
+# -------------------------------------------------------------------------
+term_ctlchar()
+{
+  local a
+  case ${1:1:1} in
+    A) a=$'\x01' ;;
+    B) a=$'\x02' ;;
+    C) a=$'\x03' ;;
+    D) a=$'\x04' ;;
+    E) a=$'\x05' ;;
+    F) a=$'\x06' ;;
+    G) a=$'\x07' ;;
+    H) a=$'\x08' ;;
+    I) a=$'\x09' ;;
+    J) a=$'\x0a' ;;
+    K) a=$'\x0b' ;;
+    L) a=$'\x0c' ;;
+    M) a=$'\x0d' ;;
+    N) a=$'\x0e' ;;
+    O) a=$'\x0f' ;;
+    P) a=$'\x10' ;;
+    Q) a=$'\x11' ;;
+    R) a=$'\x12' ;;
+    S) a=$'\x13' ;;
+    T) a=$'\x14' ;;
+    U) a=$'\x15' ;;
+    V) a=$'\x16' ;;
+    W) a=$'\x17' ;;
+    X) a=$'\x18' ;;
+    Y) a=$'\x19' ;;
+    Z) a=$'\x1a' ;;
+    [) a=$'\x1b' ;;
+   \\) a=$'\x1c' ;;
+    ]) a=$'\x1d' ;;
+    ^) a=$'\x1e' ;;
+    _) a=$'\x1f' ;;
+    *) a="$1"    ;;
+  esac
+  echo -n "$a"
+}
+
+# term_putctl <chars...>
+#
+# Convert "^c" to a control character and put it to the output buffer.
+# -------------------------------------------------------------------------
+term_putctl()
+{
+  local ch
+  for ch
+  do
+    term_buffer="${term_buffer}`term_ctlchar "$ch"`"
+  done
+}
+
+# term_putansi [parameter-numbers...] <command-chars>
+# -------------------------------------------------------------------------
+term_putansi()
+{
+  local seq=
+
+  while test "$#" -gt 1
+  do
+    seq="${seq:+$seq;}$1"
+    shift
+  done
+  term_buffer="${term_buffer}${term_escape}[$seq`term_ctlchar "$1"`"
+}
+
+# term_settitle <title string> [mode]
+# -------------------------------------------------------------------------
+term_settitle()
+{
+  local str=$1 mode=${2-0}
+
+  term_putansi $((mode)) "$str" $'\x07'
+}
+
+# term_backspace [n]
+#
+# Moves the cursor backward by n [1] characters and then deletes the
+# character on that position.
+# -------------------------------------------------------------------------
+term_backspace()
+{
+  local n=${1-1}
+
+  while test $((n--)) -gt 0
+  do
+    term_buffer="${term_buffer}${term_bs}"
+  done
+}
+
+# term_goto <x> <y>
+#
+# Moves the cursor to the specified (x,y) position.
+# -------------------------------------------------------------------------
+term_goto()
+{
+  local x=${1-0} y=${2-0}
+
+  term_buffer="${term_buffer}${term_escape}[$((x));$((y))H"
+}
+
+# term_up [n]
+#
+# Moves the cursor up by n[1] lines.
+# -------------------------------------------------------------------------
+term_up()
+{
+  local n=${1-1}
+
+  term_buffer="${term_buffer}${term_escape}[$((n))A"
+}
+
+# term_down [n]
+#
+# Moves the cursor down by n[1] lines.
+# -------------------------------------------------------------------------
+term_down()
+{
+  local n=${1-1}
+
+  term_buffer="${term_buffer}${term_escape}[$((n))B"
+}
+
+# term_backward [n]
+#
+# Moves the cursor backward by n [1] columns.
+# -------------------------------------------------------------------------
+term_backward()
+{
+  local n=${1-1}
+
+  term_buffer="${term_buffer}${term_escape}[$((n))D"
+}
+
+# term_forward [n]
+#
+# Moves the cursor forward by n [1] columns.
+# -------------------------------------------------------------------------
+term_forward()
+{
+  local n=${1-1}
+
+  term_buffer="${term_buffer}${term_escape}[$((n))C"
+}
+
+# term_clear
+#
+# Clears the screen and moves to position [0,0]
+# -------------------------------------------------------------------------
+term_clear()
+{
+  term_buffer="${term_buffer}${term_escape}[2J"
+}
+
+# term_kill
+#
+# Kills all character from the cursor position to the end of the line.
+# -------------------------------------------------------------------------
+term_kill()
+{
+  term_buffer="${term_buffer}${term_escape}[K"
+}
+
+# term_save
+#
+# Save current cursor position
+# -------------------------------------------------------------------------
+term_save()
+{
+  term_buffer="${term_buffer}${term_escape}[s"
+}
+
+# term_restore
+#
+# Restore saved cursor position
+# -------------------------------------------------------------------------
+term_restore()
+{
+  term_buffer="${term_buffer}${term_escape}[u"
+}
+
+# term_flush
+#
+# Flush buffer terminal output
+# -------------------------------------------------------------------------
+term_flush()
+{
+  echo -n "$term_buffer"
+  term_buffer=
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_term_sh=:;}

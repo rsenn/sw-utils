@@ -1,0 +1,76 @@
+#!
+#
+# gnu.sh: gnu.org mining functions
+#
+# $Id: gnu.sh.in 586 2008-08-27 03:24:45Z enki $
+test $lib_gnu_sh || {
+
+# directory setup
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# load dependencies
+# -------------------------------------------------------------------------
+. $shlibdir/data/text.sh
+. $shlibdir/data/obj.sh
+. $shlibdir/net/www.sh
+
+# static variables
+# -------------------------------------------------------------------------
+: ${gnu_proto:="http"}
+: ${gnu_host:="gnu.org.net"}
+: ${gnu_proj_url:="$gnu_proto://$gnu_host/software"}
+: ${gnu_mirrors:="switch heanet belnet puzzle"}
+
+# -------------------------------------------------------------------------
+gnu_dump()
+{
+  local page IFS="$nl" name=$1 title=
+
+  page=`www_dump "$gnu_proj_url/$1/"`
+
+  for line in $page
+  do
+    case $line in
+      *'downloads for '*) title=${line##*'downloads for '} ;;
+
+      '['* | '+'* | '*'*) ;;
+
+      [0-9A-Za-z]*)
+        if test "$title" = "$line"
+        then
+          echo "ok"
+        fi
+        ;;
+    esac
+
+    echo "$line"
+  done
+}
+
+# -------------------------------------------------------------------------
+gnu_url_obj()
+{
+  local url=$1 out= project mirror location
+
+  case $url in
+    *://*.gnu.org/*) 
+      ;;
+    *) 
+#      echo "$url"
+      return 1 
+      ;;
+  esac
+
+  obj_set out url "$url"
+  obj_set out project "$project"
+  obj_set out mirror "$mirror"
+
+  echo "$out"
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_gnu_sh=:;}

@@ -1,0 +1,222 @@
+#!
+#
+# hier.sh: System hiearchy functions.
+#
+# $Id: hier.sh.in 586 2008-08-27 03:24:45Z enki $
+# -------------------------------------------------------------------------
+test $lib_hier_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+: ${sysconfdir:="@sysconfdir@"}
+: ${localstatedir:="@localstatedir@"}/var}
+
+. $shlibdir/data/obj.sh
+
+: ${hier_wd:=`obj`}
+: ${hier_nn:='need hierary name'}
+: ${hier_descriptions=$(obj \
+  /='Root directory' \
+  usr='Host system' \
+  local='Local user system' \
+  bin='Binary executables'         sbin='Sysadmin binary executables' \
+  etc='Configuration files'        include='C/C++ header files' \
+  share='Machine-independent data' var='Machine-dependent data' \
+  src='Source files'               srv='Services tree' \
+  lib='Library files'              doc='Documentation' \
+  info='Info pages'                man='Manual pages' \
+  log='Log files'                  ports='Software ports' \
+  pkg='Package files')}
+
+: ${hier_masks=$(obj \
+  /="$prefix/\$tree" \
+  src='$category/$srcdir' \
+  ports='$category/$name/' \
+  include="`array {'$pkgname','$pkginclude'}{,-'$version'}`" \
+)}
+
+: ${hier_hooks=$(obj \
+  ports='port_hier' pkg='pkg_hier')}
+
+# hier [path|tokens]
+#
+# Hierarchy object.
+# -------------------------------------------------------------------------
+hier()
+{
+  local IFS=$nl
+  local path=`path_explode "$1"`
+  local dirs=$path
+  local mask=$(obj_get "$hier_masks" `array_index path 0`)
+  local hier=$(obj path="`path_implode "$1"`" dirs="`path_implode "$dirs"`" root="")
+  local pmask=$mask
+
+#  msg "Mask:" $mask
+  if ! var_empty mask
+  then
+    hier_parse hier "$mask"
+
+    local prfx=`obj_eval "$hier" "echo $mask"`
+    local dirs=`path_removepfx "$dirs" $prfx`
+
+    obj_set hier dirs "`path_implode "$dirs"`"
+    obj_set hier root "$(path_implode "`path_removesfx "$path" $dirs`")"
+
+    local tree=`obj_get "$hier" tree`
+    mask=`obj_get "$hier_masks" "$tree"`
+    pmask=${pmask:+$pmask${mask:+$nl$mask}}
+
+    if ! var_empty mask
+    then
+      hier_parse hier "$mask"
+    fi
+
+#      msg "tree=$tree"
+
+    if obj_isset "$hier_hooks" $tree
+    then
+      local h=`obj_get "$hier_hooks" $tree`
+      obj_eval "$hier" "$h $mask"
+    fi
+  fi
+
+  obj_set hier pmask "$pmask"
+  echo "$hier"
+}
+
+# hier_parse <hier-name> <template>
+# -------------------------------------------------------------------------
+hier_parse()
+{
+  local IFS=$nl n=${1:?$hier_nn} p m=
+  shift
+  set -- `path_explode "$*"`
+  for p in $(obj_get "`var_get $n`" "dirs")
+  do
+    case $1 in
+      '$'*)
+        local vn=${1#'$'}
+        obj_set "$n" $vn "$p"
+        ;;
+      *)
+        test "$1" != "$p" && break
+        ;;
+    esac
+    array_push m "${1:-/}"
+    shift
+  done
+  obj_set "$n" "mask" "${m#$nl}"
+}
+
+# hier_pretty <hier-obj>
+# -------------------------------------------------------------------------
+hier_pretty()
+{
+  local IFS="/ $nl" hier=$1 dir ind='' path=
+  set -- `obj_get "$hier" pmask`
+  for dir
+  do
+    local fmt="%s+ %-$((20-${#ind}))s %s\n"
+    local ldir
+    case $dir in
+      '$'*)
+        local toks=`obj_members "$hier_descriptions"`
+        local list=`cd "$path" && fs_dir $toks`
+
+        ;;
+      *)
+        list=$dir
+        ;;
+    esac
+    for ldir in $list
+    do
+      printf "$fmt" "$ind" "${ldir:-/}" "`obj_get "$hier_descriptions" "${dir:-/}"`"
+      test -n "$ind" && ind="${ind%?} "
+    done
+
+#      var_dump dir
+
+    ind="$ind  \`"
+    path="$path/$dir"
+  done
+}
+
+# hier_expr <hier-obj>
+# -------------------------------------------------------------------------
+hier_expr()
+{
+  local IFS="/ $nl" hier="$1"
+#  local mask=`obj_get "$hier" mask`
+  local part dir
+  set --
+  for part in `obj_get "$hier" pmask`
+  do
+    case "$part" in
+      '$'*)
+           local name=${part#'$'}
+           local list=$(cd "$dir" &&
+                        fs_dir $(filter_out / `obj_members "$hier_descriptions"`)
+                        )
+
+           obj_set hier_tree "$name" "$list"
+
+           msg "`array_length list` choices for $name."
+           ;;
+         *)
+           set -- "$@" "$part" && dir="$*"
+#           cd "$part" || break
+           ;;
+    esac
+  done
+}
+
+# hier_cd [components...]
+# -------------------------------------------------------------------------
+hier_cd()
+{
+  local IFS=$nl p=`pwd` wd=`obj_get "$hier_wd" path`
+  local ch="$*"
+
+  if test "$p" != "$wd"
+  then
+    hier_wd=`hier "$p"`
+  fi
+
+  local IFS="/ $nl"
+  local wd=`obj_get "$hier_wd" dirs`
+  local rt=`obj_get "$hier_wd" root`
+
+  msg "rt=$rt"
+  cd "$rt"
+  set --
+
+  for p in $wd
+  do
+    p=${p:-/}
+    for wd in $ch
+    do
+      test -d "$wd" && msg "Changed $p to $wd." && p=$wd && break
+    done
+    cd "$p"
+    msg "Entered $p."
+    array_remove ch "$p"
+  done
+  hier_wd=$(hier "`pwd`")
+}
+
+# hier_print <hier-name>
+# -------------------------------------------------------------------------
+hier_print()
+{
+  local IFS="/ $nl" p
+
+  for p in `obj_get "$1" "path"`
+  do
+    printf '%-12s  %s\n' "$p" "`obj_get "$hier_descriptions" "$p"`"
+  done
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_hier_sh=:;}

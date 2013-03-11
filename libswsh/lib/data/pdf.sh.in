@@ -1,0 +1,76 @@
+#!/bin/sh
+#
+# pdf.sh: portable document format (PDF) utilities.
+#
+# $Id: pdf.sh.in 586 2008-08-27 03:24:45Z enki $
+test $lib_pdf_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/data/obj.sh
+
+# pdf_info <file>
+#
+# gather PDF metadata
+# -------------------------------------------------------------------------
+pdf_info()
+{
+  local k v
+  pdfinfo "$1" 2>/dev/null | sed \
+       -e 's,\([a-z]\)\([A-Z]\),\1-\2,' \
+       -e 's,^\([^:]*\)\s\([^:]*\):,\1-\2:,' \
+       -e 's,:\s*, ,' | {
+    set --
+    while read k v; do
+      k=`echo "$k" | tr "${upper}-" "${lower}_"`
+
+      case $k in
+        *_date) v=`date --date="$v" "+%s"` ;;
+        file_size) v=${v%" bytes"} ;;
+      esac
+
+      case $k in
+        creation_date) k=ctime ;;
+        mod_date) k=mtime ;;
+      esac
+
+      set -- "$@" "$k=$v"
+    done
+    test "$#" -gt 0 && obj "$@"
+  }
+}
+
+# pdf_text <file>
+#
+# gather PDF content as raw text
+# -------------------------------------------------------------------------
+pdf_text()
+{
+  pdftotext "$1" "-" 2>/dev/null
+}
+
+# pdf_page <file> <start-page> [end-page]
+#
+# gather PDF page as raw text
+# -------------------------------------------------------------------------
+pdf_page()
+{
+  local IFS="$vtabstop"
+  local n=${2:-1}
+  local e=${3:-$((n))}
+  set -- `pdf_text "$1"`
+#  if test -z "$e"; then
+#    eval 'echo "${'$((n ? n : 1))'}"'
+#  else
+    IFS="$newline"
+    for n in $(seq $((n ? n : 1)) $((e ? e : 1))); do
+      eval 'echo "${'$((n ? n : 1))'}"'
+    done
+#  fi
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_pdf_sh=:;}

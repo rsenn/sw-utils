@@ -1,0 +1,200 @@
+#!/bin/sh
+#
+# data/info.sh: Functions for serializing and parsing dpkg-style info texts
+#
+# $Id: info.sh.in 761 2008-10-09 06:23:35Z enki $
+# -------------------------------------------------------------------------
+@DEBUG_FALSE@test $lib_data_info_sh || {
+
+# info_expr_key <commands> <keys...>
+# -------------------------------------------------------------------------
+info_expr_key()
+{
+  local cmds="$1"
+  shift
+  while test "$#" -gt 0
+  do
+    cmds="/^${1%%:*}:/! {$cmds;}"
+    shift
+  done
+  echo "$cmds"
+}
+
+# info_expr_subst <expr1[: subst1]> <expr2[: subst2]> <expr3[: subst3]>
+# -------------------------------------------------------------------------
+info_expr_subst()
+{
+  (while [ "$#" -gt 0 ]; do
+    case $1 in
+      *:*) 
+        key=${1%%:*} 
+        value=$(echo "$1" | sed_escape "s/\n/\n /g"  "s/ \n/ .\n/g"
+       )
+      ;;
+
+      *) 
+        key=$1 value=
+      ;;
+    esac
+    echo "s/^$key:.*\n\([^\n]*\)\$/$value\1/"
+    shift
+  done)
+}
+
+# -------------------------------------------------------------------------
+info_expr_ml()
+{
+  echo ":lp; N; /\n[^\n]\+:[^\n]*\$/! { /\n\$/! b lp; }"
+}
+
+# -------------------------------------------------------------------------
+info_expr_match()
+{
+  echo "s/^.*\n\([^\n]*\)\$/\1/"
+}
+
+# info_pair <key> <value>
+# 
+# Outputs a correctly formated key/value pair
+# -------------------------------------------------------------------------
+info_pair()
+{
+  local key=`echo "${1%%:*}" | sed "s,[^-0-9A-Za-z],-,g"`
+  shift
+  echo "$key: $*" | sed -e "s/^\s*\$/./" -e "1! s/^/ /"
+}
+
+# info_list <files...>
+# 
+# Lists all variables in the specified info file
+# -------------------------------------------------------------------------
+info_list()
+{
+  sed -n "/^[^\s\t ]\+:/ s/:.*//p" "$@"
+}
+
+# info_value [value...]
+# 
+# Creates a new info file
+# -------------------------------------------------------------------------
+info_value()
+{
+  local line IFS="
+"
+  set -- $*
+  line=$1
+  
+  while shift && test "$#" -gt 0
+  do
+    line="$line
+`text_wrap "$1"`"
+  done
+  echo "$line"
+}
+
+# info_create <file> [initial-key-value-pairs...]
+# 
+# Creates a new info file
+# -------------------------------------------------------------------------
+info_create()
+{
+  local file=$1
+
+  while test "$#" -gt 1
+  do
+    shift
+    info_value "$1"
+  done >$file
+}
+
+# info_isset <file> [keys...]
+# 
+# Returns true when all the given keys exist
+# -------------------------------------------------------------------------
+info_isset()
+{
+local file=$1
+
+  while test "$#" -gt 1
+  do
+    shift
+    if ! grep -q "^$v:" "$1"
+    then
+      return 1
+    fi
+  done
+}
+
+# info_get <key>
+# 
+# Returns the values of the given key
+# -------------------------------------------------------------------------
+info_get()
+{
+  sed -n ":st; /^${1%:}:/ {
+    s/^${1%:}:\s*//
+    :lp
+    N
+    /\n[^ \n][^\n]*\$/ {
+      s/\n /\n/g
+      s/^ //
+      P
+      D
+      b st
+    }
+    /\n [^\n]*\$/ {
+      s/\n /\n/g
+      s/^ //
+      p
+      n
+      b lp
+    }
+  }" 
+}
+
+# info_set <path> <key> <value>
+# 
+# Sets a new value for the key.
+# -------------------------------------------------------------------------
+info_set()
+{
+  :
+}
+
+# info_unset <file> <key>
+# 
+# Clears the specified keys
+# -------------------------------------------------------------------------
+info_unset()
+{
+  local file=$1
+  shift
+  test "$file" = - && unset file
+  sed -e ":st
+`info_expr_key "n;b st" "$@"`
+`info_expr_ml`
+`info_expr_subst "$@"`
+b st" ${file:+"$file"}
+}
+
+# info_obj [path-to-env]
+# 
+# Outputs an object which contains the info variables as properties.
+# -------------------------------------------------------------------------
+
+info_obj()
+{
+  :
+}
+
+# info_dump [path-to-env]
+# 
+# Dumps all variables in the specified info.
+# -------------------------------------------------------------------------
+info_dump()
+{
+  :
+}
+
+# --- eof ---------------------------------------------------------------------
+@DEBUG_FALSE@lib_data_info_sh=:;}

@@ -1,0 +1,79 @@
+#!/bin/sh
+#
+# distrib/cygwin.sh: Cygwin distribution detection and handling of distribution-specific things.
+#
+# $Id: cygwin.sh.in 655 2008-09-12 00:21:46Z enki $
+# ------------------------------------------------------------------------- 
+test $lib_distrib_cygwin_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# is_cygwin [cygwin-release-file]
+#
+# Checks whether the underlying distribution is a Cygwin. 
+# ---------------------------------------------------------------------------
+is_cygwin()
+{
+  case `uname -o` in
+    Cygwin) return 0 ;;
+  esac
+  return 1
+}
+
+# cygwin_relfile [cygwin-release-file]
+#
+# Print the path to the Cygwin release file.
+# ---------------------------------------------------------------------------
+cygwin_relfile() 
+{
+  echo /etc/postinstall/base-files-profile.sh.done
+}
+
+# cygwin_version
+#
+# Get Cygwin version information 
+# ---------------------------------------------------------------------------
+cygwin_version() 
+{
+ (if is_cygwin; then
+    RELEASE=`uname -r`
+    echo ${RELEASE%"("*}
+  fi)
+}
+
+# cygwin_release
+#
+# Get Cygwin release information
+# ---------------------------------------------------------------------------
+cygwin_release()
+{
+ (id=Cygwin 
+  release=`cygwin_version`
+  description="Cygwin $release"
+
+  var_dump id release description)
+}
+
+# cygwin_pkgmgr
+#
+# The kind of package manager used by Ubuntu distributions.
+# ---------------------------------------------------------------------------
+cygwin_pkgmgr()
+{
+  echo cygsetup
+}
+
+# cygwin_mirrors
+# ---------------------------------------------------------------------------
+cygwin_mirrors()
+{
+  http_get "http://www.cygwin.com/mirrors.html" | 
+  xml_get li | 
+  xml_get a href
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_distrib_cygwin_sh=:;}

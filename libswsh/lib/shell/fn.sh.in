@@ -1,0 +1,95 @@
+# $Id: fn.sh.in 609 2008-09-01 08:16:44Z enki $
+#
+# fn.sh: Library for shell function manipulation.
+# -------------------------------------------------------------------------
+test $lib_fn_sh ||
+{
+
+: ${prefix:="@prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/util.sh
+. $shlibdir/shell/script.sh
+
+# fn_valid <name>
+#
+# Checks whether it is a valid function name.
+# -------------------------------------------------------------------------
+fn_valid()
+{
+  local fn=${1:?'need function name'}
+  case $fn in
+    [A-Za-z_]*)
+      local fn=${fn#?}
+      eval 'set -- ${fn//['$alnum']/}'
+      return "$#"
+      ;;
+  esac
+  return 1
+}
+
+# is_fn <name>
+#
+# Checks whether the function exists or not.
+# -------------------------------------------------------------------------
+is_fn()
+{
+  case `type -t "$1"` in
+    "function") return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# fn_list [input-files...]
+#
+# Lists function names.
+# -------------------------------------------------------------------------
+fn_list()
+{
+  { if test -n "$1"
+    then
+      cat "$@"
+    else
+      declare -f || set
+    fi
+  } 2>/dev/null | script_fnlist
+}
+
+# fn_set <name> <body>
+#
+# Creates or replaces a function by name and body. The body consists of the
+# contained commands and must not be empty (whitespace)!
+# -------------------------------------------------------------------------
+fn_set()
+{
+  fn_valid "$1" && eval "$1()$newline{$newline$2$newline}"
+}
+
+# fn_get <name> [input-files...]
+# -------------------------------------------------------------------------
+fn_get()
+{
+  local fn=$1 && shift
+
+  if test "$#" -gt 0
+  then
+    cat "$@"
+  else
+    declare -f || set
+  fi 2>/dev/null | script_getfn "$fn"
+}
+
+# fn_unset <name>
+#
+# -------------------------------------------------------------------------
+fn_unset()
+{
+  if fn_valid "$1"
+  then
+    unset -f "$1"
+  fi
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_fn_sh=:;}

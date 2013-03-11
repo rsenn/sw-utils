@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# utils/rcat.sh: a wrapper around grep(), recursively iterating over directories
+#
+# $Id: util.sh.in 575 2008-08-26 12:07:20Z enki $
+
+# Provide defaults for the required directory variables
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# Load the rcat() function from the library
+# -------------------------------------------------------------------------
+. $shlibdir/utils/rcat.sh
+
+# rcat [options] [files...]
+#
+# A recursive 'cat'.
+# ---------------------------------------------------------------------------
+rcat "$@"
+
+# ---[ EOF ]-----------------------------------------------------------------

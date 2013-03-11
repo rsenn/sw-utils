@@ -1,0 +1,937 @@
+#!@SHELL@
+#
+# checks library dependencies and rpaths on binaries
+#
+# $Id: pkgcheckdep.in 698 2007-04-19 19:33:44Z  $
+# ---------------------------------------------------------------------------
+
+# generic directories
+# ---------------------------------------------------------------------------
+: ${prefix="@prefix@"}
+: ${exec_prefix="@exec_prefix@"}
+: ${libdir="$prefix/lib"}
+: ${shlibdir="$libdir/sh"}
+: ${sysconfdir="@sysconfdir@"}
+: ${localstatedir="@localstatedir@"}
+
+# script specific directories/files/vars
+# ---------------------------------------------------------------------------
+cwd="$(pwd)"
+portsdir="$prefix/ports"
+
+target="@target@"
+linker="$libdir/ld-linux.so.2"
+ld_so_conf="$sysconfdir/ld.so.conf"
+pkgdb="$localstatedir/lib/pkg/db"
+pkgcheckdeps="$localstatedir/lib/dep"
+
+PATH=$prefix/bin
+
+pkgdir=${prefix%/*}
+pkgdir=${pkgdir#/}
+me=${0##*/}
+
+# flags
+# ---------------------------------------------------------------------------
+pkgcheckdep_verbose=0
+pkgcheckdep_short=0
+pkgcheckdep_pkgonly=1
+pkgcheckdep_abbrev=1
+pkgcheckdep_update=0
+pkgcheckdep_cache=1
+pkgcheckdep_recursive=1
+pkgcheckdep_defaultlib=0
+
+# load the required libraries
+# ---------------------------------------------------------------------------
+source $shlibdir/util.sh
+source $shlibdir/port.sh
+source $shlibdir/pkg.sh
+source $shlibdir/shell/script.sh
+source $shlibdir/port.sh
+
+# print usage
+# ---------------------------------------------------------------------------
+usage()
+{
+  echo "Usage: $me [OPTION]... [CATEGORY] PACKAGE...
+
+Checks software packages for their dependencies
+The [CATEGORY/]PACKAGE arguments can be masks
+
+  -v, --verbose       Be verbose
+  -s, --short         Short listing, do not show referencees
+  -u, --update        Write depedency information directly
+                      to the Pkgfile of the appropriate port
+  -f, --full          Print all dependency information (not only packages)
+  -l, --default-lib   Ignore libraries in no-default location
+  -A, --no-abbrev     Do not abbreviate paths in human readable listing
+  -C, --no-cache      Do not use the cache in ${pkgcheckdeps}
+  -R, --no-recursive  Do not recursively resolve
+"
+}
+
+# print prefixed message
+# ---------------------------------------------------------------------------
+msg()
+{
+  for line
+  do
+    echo -e "$me: $line" 1>&2
+  done
+}
+
+# print prefixed message on condition
+# ---------------------------------------------------------------------------
+verbose()
+{
+  if test $((pkgcheckdep_verbose)) -gt 0
+  then
+    msg "$@"
+  fi
+}
+
+# print prefixed message to stderr
+# ---------------------------------------------------------------------------
+warn()
+{
+  msg "$@" 
+}
+
+# print prefixed message to stderr and exit
+# ---------------------------------------------------------------------------
+error()
+{
+  warn "$@"
+  exit 1
+}
+
+# locate packages
+# ---------------------------------------------------------------------------
+get_packages()
+{
+  local pkgname
+  local catmask=${1%%/*}
+  local categories=$(port_categories "$catmask")
+
+  # check if a package was supplied
+  if test -z "$1"
+  then
+    error "Please specify a category/package!"
+  fi
+
+  if test "$categories"
+  then
+    if test "$catmask" != "$1"
+    then
+      local pkg=$1
+      shift
+      set -- "${pkg#*/}" "$@"
+    else
+      shift
+    fi
+  fi
+
+  for pkgname
+  do
+    local package=$(port_find "$pkgname")
+
+    if test -n "$package"
+    then
+#      echo $package
+      categories=${categories:+"$categories "}${package%/*}
+#      set -- "$@" ${package#*/}
+    fi
+  done
+
+#  echo $categories 1
+
+  # a valid category mask was provided:
+  if test -n "$categories"
+  then
+    local names=$(port_names ${categories})
+
+    # get full package path
+    for pkgname
+    do
+      # did the category change?
+      if test "$pkgname" != "${pkgname#*/}"
+      then
+        catmask=${pkgname%/*}
+        categories=$(port_categories "$catmask")
+        names=$(port_names ${categories})
+        pkgname=${pkgname#*/}
+      fi
+
+      if test -z "$(array_match 'names' "$pkgname")"
+      then
+        msg "No such package '$pkgname'" 1>&2
+        break
+      fi
+
+      echo $(port_pkgmask "$catmask/$pkgname")
+    done
+
+    if test "$#" = "0"
+    then
+      msg "Please specify a package!" 1>&2
+      msg "Available packages in category '"$categories"' are:" 1>&2
+      msg 1>&2
+      choices_list 5 $(port_names ${categories}) 1>&2
+      return 1
+    fi
+  else
+    for pkgpath
+    do
+      if test ! -f "$pkgpath"
+      then
+        msg "No such package '$pkgpath'" 1>&2
+        break
+      fi
+
+    echo "$pkgpath"
+    done
+
+    if test "$#" = "0"
+    then
+      msg "Please specify a package!" 1>&2
+      return 1
+    fi
+  fi
+}
+
+# write dependencies
+#
+# write_deps <pkg> [deps]...
+# ---------------------------------------------------------------------------
+write_deps()
+{
+  local dep pkgcat="$1" cat="${1%/*}"
+
+  shift
+
+  verbose "Writing deps to $pkgcheckdeps/${pkg}..."
+
+  # create dep directory if it doesn't exist
+  if test ! -d "$pkgcheckdeps/$cat"
+  then
+    mkdir -p $pkgcheckdeps/$cat
+  fi
+
+  # remove existing dep file
+  rm -f $pkgcheckdeps/${pkgcat}
+
+  # create new dep list
+  for dep in $*
+  do
+    echo $dep >>$pkgcheckdeps/$pkgcat
+  done
+}
+
+# search for categories containing the specified package
+#
+# find_category <package>
+# ---------------------------------------------------------------------------
+find_category_by_pkg()
+{
+  local pkgcat pkg cat
+
+  find ${portsdir} -follow -maxdepth 2 -mindepth 2 -name "$1" -type d \
+  2>/dev/null | while read pkgcat
+  do
+    pkg=$(basename ${pkgcat%/})
+    cat=$(basename ${pkgcat%/$pkg})
+        
+    echo $cat
+  done
+}
+
+# search for the specified package, either in the specified category
+# or in all categories
+#
+# find_package [category/]package
+# ---------------------------------------------------------------------------
+find_packages()
+{
+  local cat categories pkgcat
+
+  # in case its prefixed with /epiphyte/server/ports/ then remove
+  # that one
+  arg=${1#$portsdir/}
+
+  # extract package name
+  pkg=${arg#*/}
+
+  # if a category was specified get that one also
+  if test "$pkg" != "$arg"
+  then
+    cat="${arg%/*}"
+  else
+    cat="*"
+  fi
+  
+#  echo "cat: $cat" "pkg: $pkg" 1>&2
+
+  for pkgcat in $portsdir/$cat/${pkg}
+  do
+    pkgcat="${pkgcat#$portsdir/}"
+  
+    if test -f $portsdir/$pkgcat/.footprint
+    then
+      echo ${pkgcat}
+    fi
+  done
+
+#  if test "$pkg" != "$1"
+#  then
+#    categories=$(find_categories "${1#${pkg}}")
+#  else
+#    categories=$(find_category_by_pkg "$1")
+#  fi
+
+#  for cat in ${categories}
+#  do
+#    for pkg in $1
+#    do
+#      if test -f $portsdir/$cat/$pkg/.footprint
+#      then
+#        echo $cat/${pkg}
+#      fi
+#    done
+#  done
+}
+
+# get library directories
+# ---------------------------------------------------------------------------
+get_libdirs()
+{
+  local dir
+
+  for dir in ${libdir} $(cat ${ld_so_conf})
+  do
+    echo ${dir#/}
+  done | sort -u
+}
+
+# find a library
+# ---------------------------------------------------------------------------
+find_lib()
+{
+  local dir
+
+  for dir in ${libdirs}
+  do
+    if test -f "/$dir/$1"
+    then
+      echo "$dir/$1"
+      return 0
+    fi
+  done
+  
+#  find ${libdirs} -type f -name "$1" | while read lib
+#  do
+#    if file ${lib} | grep -q 'ELF.*shared object'
+#    then
+#      echo ${lib}
+#      return 0
+#    fi
+#  done
+  
+  return 1
+}
+
+# output all files (full path without leading /) 
+# from a packages footprint
+#
+# pkg_files <category> <package>
+# ---------------------------------------------------------------------------
+list_files()
+{
+  # try to read from installed pkg db
+  pkginfo -l "$2" 2>/dev/null && return 0
+  
+  # next, try to read from the portage
+  local package=$(echo $(port_pkgmask "$1/$2"))
+  local pkgfile=$(port_pkgfile "$1" "$2")
+  local footprint=${pkgfile%Pkgfile}.footprint
+
+  if test -f "$package" && test "$package" -nt "$footprint"
+  then
+    pkg_files "$1" "$2" && return 0
+  fi
+  
+  # read from footprint
+  local perm owner file
+
+  while read perm owner file
+  do
+    if test "$file" = "${file%/}"
+    then
+      echo "${file}"
+    fi
+  done < $portsdir/$1/$2/.footprint
+}
+
+# files_in_dir <dirs...>
+# ---------------------------------------------------------------------------
+files_in_dir()
+{
+  local dir relpath thisdir path file
+ 
+  for path in ${files}
+  do
+    file=${path##*/}
+    relpath=${path#$prefix/}    
+    thisdir=${relpath%$file}
+
+    for dir
+    do
+      if test "${thisdir#$dir}" != "$thisdir"
+      then
+        echo "$path"
+      fi
+    done
+  done
+}
+
+# except <words> <exclude words>
+# ---------------------------------------------------------------------------
+except()
+{
+  local word exclude
+
+  for word in $1
+  do
+    for exclude in $2
+    do
+      if test "$word" = "$exclude"
+      then
+        continue 2
+      fi
+    done
+    
+    echo $word
+  done
+}
+
+# elf_refs <files>
+# ---------------------------------------------------------------------------
+elf_refs()
+{ 
+  local ref
+
+  if local refs=$(readelf -d "/$1" | grep -h '(NEEDED)' |
+                  sed 's,^.*\[\(.*\)\]$,\1,' | sort -u)
+  then
+    for ref in ${refs}
+    do
+      find_lib "$ref" || { echo "$ref"; return 1; }
+    done
+  else
+    error "readelf failed"
+  fi
+}
+
+# bin_refs <files>
+# ---------------------------------------------------------------------------
+bin_refs()
+{
+  if local refs=$(strings "/$1" | grep -h "$pkgdir/[-_+\.a-z0-9/]\+" | \
+                  sed "s,^.*\($pkgdir/[-_+\.a-z0-9/]\+\).*$,\1,;;s,/$,," | \
+                  sort -u)
+  then
+    clean_refpaths "$refs"
+  fi
+}
+
+# script_refs <files>
+# ---------------------------------------------------------------------------
+script_refs()
+{
+  if local refs=$(grep -hE "(${pkgdir}|\${prefix})/[-_+\.a-z0-9/]\+" "/$1" | \
+                  sed "s,^.*\($pkgdir/[-_+\.a-z0-9/]\+\).*$,\1,;;s,/$,," | \
+                  sort -u)
+  then
+    clean_refpaths "$refs"
+  fi
+}
+
+# clean_refpaths <paths>
+# ---------------------------------------------------------------------------
+clean_refpaths()
+{
+  for ref in $(echo "$1" | sort -u)
+  do 
+    if test -d "$ref"
+    then
+      continue
+    elif test -f "$ref"
+    then
+      echo "$ref"
+#    else
+#      verbose "$ref not found"
+    fi
+  done
+}
+
+# search package database for a file
+#
+# find_file_db <file>
+# ---------------------------------------------------------------------------
+find_file_db()
+{
+  result=$(pkginfo -o "$1" 2>/dev/null | sed '/^Package/d; s,^\(.*\)[ \t]\+\(.*\),\2 \1,')
+   
+  case $result in
+    *no*owner*)
+    return 1
+    ;;
+  *)
+    set -- $result
+    pkgcat=$(cd $portsdir && echo */$2/Pkgfile)
+    
+    echo "$1 ${pkgcat%%/Pkgfile*}"
+    ;;
+  esac
+}
+
+# search ports (their .footprint) for a file
+# ---------------------------------------------------------------------------
+find_file_ports()
+{
+  grep -PH "\t$1" $portsdir/*/*/.footprint | \
+    sed 's, -> .*,,;;s,.*/\(.*\)/\(.*\)/\.footprint:[-a-z]\+\t[0-9a-zA-Z_/]\+\t\(.*\)$,\3 \1/\2,'
+}
+
+# search files in ports/db
+# ---------------------------------------------------------------------------
+find_files()
+{
+  for file in $*
+  do
+    find_file_db "$file" || find_file_ports "$file"
+  done 
+}
+
+# check_files
+# ---------------------------------------------------------------------------
+get_file_refs()
+{
+  local file bins libs scripts
+  local link refs ref
+  
+  for file in $*
+  do
+    local dir=${file%/*}
+#    echo $pkgdir: ${file#$pkgdir} $file 1>&2
+
+    if test "${file#$pkgdir}" = "$file"
+    then
+      continue
+    fi
+  
+    format=$(file "/$file")
+#    echo "file: '${format}'" 1>&2
+    
+    
+    refs=""
+
+    case ${format} in
+      *ELF*executable*)
+        refs=$(elf_refs "$file")
+        refs="$refs $(bin_refs $file)"
+        ;;
+      *ELF*shared*object*)
+      
+        if test "$pkgcheckdep_defaultlib" = "1"
+        then
+          for libdir in $libdirs
+          do
+            if test "$libdir" != "$dir"
+            then
+              continue 2
+            fi
+          done
+        fi
+#        msg "dir $dir $libdirs"
+      
+        refs=$(elf_refs "$file")
+        refs="$refs $(bin_refs $file)"
+        ;;
+      *script*)
+        refs="$(script_refs $file)"
+#      verbose "script refs:" $refs
+        ;;
+    esac
+    
+    for ref in ${refs}
+    do
+      echo ${ref} ${file}
+    done
+  done | sort 
+}
+
+# extract first column of ref_list
+# ---------------------------------------------------------------------------
+get_references()
+{
+  local ref dummy
+
+  echo "$@" | while read ref dummy
+  do
+    echo ${ref}
+  done | sort -u
+}
+
+# get all files that reference the supplied file
+# ---------------------------------------------------------------------------
+get_referencees()
+{
+  local file dummy
+
+  echo "$ref_list" | grep "$1" | while read dummy file
+  do
+    echo ${file#$prefix/}
+  done
+}
+
+# get package deps from cache
+# 
+# get_cache <package>
+# ---------------------------------------------------------------------------
+get_cache()
+{
+  if test -f "$pkgcheckdeps/$1"
+  then
+    cat "$pkgcheckdeps/$1"
+    return 0
+  fi
+  
+  return 1
+}
+
+# ---------------------------------------------------------------------------
+get_pkg_refs()
+{
+  local file dummy
+
+  echo "$ref_resolved" | grep "$1" | while read dummy pkg
+  do
+    echo ${pkg}
+  done | sort -u
+}
+
+# print full dependency information, in 3-column format: 
+# <package> <ref> <referencee>
+# ---------------------------------------------------------------------------
+get_full_info()
+{
+  local ref pkg from
+  
+  while read ref pkg
+  do
+#    ref=${ref#$prefix/}
+
+    for from in $(get_referencees ${ref})
+    do
+      echo ${pkg} ${ref} ${from}
+    done
+
+  #  printf "%-25s %-12s %s\n" "$ref" "$pkg" "$blah"
+  done << EOF | sort -u
+${ref_resolved}
+EOF
+}
+
+# format depedency information human readable
+# ---------------------------------------------------------------------------
+print_full_info()
+{
+  if test "$pkgcheckdep_pkgonly" = 0
+  then
+    if test "$pkgcheckdep_short" -gt 0
+    then
+      echo "Package      File              "
+      echo "-------------------------------"
+    else
+      echo "Package            File                                  Referenced by"
+      echo "----------------------------------------------------------------------------------------"
+    fi
+  fi
+
+  local pkg file refs
+  local last_pkg="" last_file=""
+  local print_pkg="" print_file=""
+
+  echo "$1" | while read pkg file refs
+  do
+    if test "$pkg" != "$last_pkg"
+    then
+      print_pkg=$pkg
+    else
+      print_pkg=""
+    fi
+    
+    if test "$file" != "$last_file"
+    then
+    
+      if test "$pkgcheckdep_abbrev" = "0"
+      then
+        print_file=${file}
+      else
+        print_file=${file#$prefix/}
+      fi
+    else
+      print_file=""
+    fi
+    
+    if test "$pkgcheckdep_pkgonly" -gt 0
+    then
+      if test "$print_pkg"
+      then
+        echo ${pkg}
+      fi
+    elif test "$pkgcheckdep_short" -gt 0
+    then
+      if test "$print_file"
+      then
+        printf "%-18s %-37s %s\n" "$print_pkg" "$print_file"
+      fi
+    else
+      printf "%-18s %-37s %s\n" "$print_pkg" "$print_file" "$refs"
+    fi
+    
+    last_pkg=${pkg}
+    last_file=${file}
+  done
+}
+
+# write dependencies to a pkgfile
+# ---------------------------------------------------------------------------
+port_write_deps()
+{
+  local pkg="$1" pkgf="$portsdir/$pkg/Pkgfile" d
+  shift  
+  local olddeps=$(script_getvar "$pkgf" "deps")
+  local deps=$(array $*)
+
+  for d in $olddeps
+  do
+    array_push_unique 'deps' "$d"
+  done
+
+  local IFS="$newline$tabstop$space"
+  deps=$(echo $deps)
+  script_setvar "$pkgf" "deps" "($deps)" "^release="
+}
+
+# process a package
+#
+# process_package <path to package> 
+# ---------------------------------------------------------------------------
+process_package()
+{
+  local pkgpath=$1
+  
+#  echo $pkgpath 1>&2
+  
+  set -- $(pkg_split "$pkgpath")
+  local pkg=$2/$3
+  local package=$3
+  local category=$2
+  
+  if test "$pkgcheckdep_pkgonly" = "1" && 
+     test "$pkgcheckdep_cache" = "1" && 
+     ref_pkgs=$(get_cache "$pkg")
+  then
+    verbose "Found in cache:"
+    echo "$ref_pkgs"
+  else
+    # get library directories
+    libdirs=$(get_libdirs)
+
+    # get files in the specified package
+    verbose "Getting file list for package $pkg"
+
+    files=$(list_files "$category" "$package")
+    set -- ${files}
+
+    # now check each file
+    verbose "Got $# files, checking dependencies..."
+
+    # extract a list of references files
+#    echo "ref_list=\$(get_file_refs "$files")"
+    
+    ref_list=$(get_file_refs "$files")
+    ref_files=$(get_references "$ref_list")
+
+#    verbose "References:" $ref_files
+
+    # now remove files of the queried package from the list
+    # of referenced file, so we get only external references
+    ref_external=$(except "$ref_files" "$files")
+
+    verbose "External references:" $ref_external
+    verbose "Resolving to package dependencies..."
+
+    ref_resolved=$(find_files "$ref_external")
+
+#    verbose "Resolved:\n$ref_resolved"
+
+    ref_pkgs=$(get_pkg_refs "$ref_resolved")
+
+    # descend into our dependencies
+    rdeps=""
+    if test "$pkgcheckdep_recursive" != "0"
+    then
+      for ref_pkg in ${ref_pkgs}
+      do
+        verbose "Recursively excluding deps of $ref_pkg..."
+        rdeps="$rdeps $($0 $ref_pkg)"
+      done
+    fi
+
+    write_deps "$pkg" $(except "$ref_pkgs" "$rdeps") ${rdeps}
+  
+    if test "$pkgcheckdep_pkgonly" = "0"
+    then
+      full_info=$(get_full_info)
+      print_full_info "$full_info"
+    fi
+    
+  fi
+
+  if test "$pkgcheckdep_update" -gt "0"
+  then
+    msg "updating dependencies in $pkg..."
+    port_write_deps "$pkg" ${ref_pkgs}
+  fi
+}
+
+# parse options using getopt
+# ---------------------------------------------------------------------------
+parse_options()
+  {
+  pkgcheckdep_shift=0
+
+  while test "$1"
+  do
+    case $1 in
+      -v|--verbose)
+        pkgcheckdep_verbose=$((pkgcheckdep_verbose + 1))
+        ;;
+      -h|--help)
+        usage
+        exit 2
+        ;;
+      -s|--short)
+        pkgcheckdep_short=$((pkgcheckdep_short + 1))
+        ;;
+      -f|--full)
+        pkgcheckdep_pkgonly=0
+        ;;
+      -l|--default-lib)
+        pkgcheckdep_defaultlib=1
+        ;;
+      -A|--no-abbrev)
+        pkgcheckdep_abbrev=0
+        ;;
+      -u|--update-port)
+        pkgcheckdep_update=1
+        ;;
+      -C|--no-cache)
+        pkgcheckdep_cache=0
+        ;;
+      -R|--no-recursive)
+        pkgcheckdep_recursive=0
+        ;;
+      --)
+        shift; : $((pkgcheckdep_shift++))
+        break
+        ;;
+      *)
+        error "no such option: $1"
+        ;;
+    esac
+    shift; : $((pkgcheckdep_shift++))
+  done
+  }
+
+# main
+# ---------------------------------------------------------------------------
+main()
+  {
+  local category package
+    
+  if test "$#" = "0"
+  then
+    usage
+    exit 2
+  fi
+                          
+  # parse command line options
+  eval "set -- $(getopt -n "$me" -l 'verbose,help,short,full,update-port,default-lib,
+                                     no-abbrev,no-cache,no-recursive' \
+                                     'flvhsfuACR' "$@")"
+  parse_options "$@"
+                                        
+  shift $((pkgcheckdep_shift))
+  
+  local packages=
+  
+  for pkgmask; do
+  
+    pkg=$(port_match "$pkgmask")
+    
+    test -n "$pkg" || pkg="$pkgmask"
+    
+    test -n "$pkg" && array_push packages "$pkg"
+  done
+  
+  
+  for pkg in $packages
+  do
+    process_package "$pkg"
+  done
+  }
+  
+main "$@"
+
+exit
+
+
+
+# find the supplied package
+# ---------------------------------------------------------------------------
+if test "$#" = 0
+then
+  usage
+  exit 2
+fi
+
+pkgs="$@"
+set --
+
+# get ports
+ports=$(get_ports)
+
+for pkg in $pkgs
+do
+  if ! found=$(find_packages "$pkgs")
+  then
+    error "no such package: $pkgs"
+  fi
+  set -- "$@" $found
+done
+
+#if test "$#" -gt 1
+#then
+#  msg "found multiple packages: ${pkg}"
+#  exit 1
+#fi
+
+for pkg
+do
+done
+
+

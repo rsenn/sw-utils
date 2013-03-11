@@ -1,0 +1,44 @@
+#!/bin/sh
+prefix="@prefix@"
+libdir="@libdir@"
+sysconfdir="@sysconfdir@"
+
+shlibdir="${libdir}/sh"
+
+source $sysconfdir/pkgmk.conf
+source $shlibdir/util.sh
+
+if test -z "$1" || test ! -d "$1"
+then
+  echo "$0 <directory>"
+  exit 1
+fi
+
+get_filename()
+{
+  local FILE="`echo $1 | sed 's|^.*://.*/||g'`"
+
+  if [ "$FILE" != "$1" ]; then
+    FILE="$PKGMK_SOURCE_DIR/$FILE"
+  fi
+
+  echo $FILE
+}
+
+#echo $PKGMK_PORTS_DIR
+
+destdir=$(absdir "$1")
+
+for pkgfile in $PKGMK_PORTS_DIR/*/*/Pkgfile
+do
+  pkgcat=${pkgfile%/Pkgfile}
+  pkg=${pkgcat##*/}
+  cat=${pkgcat%/$PKG}
+  cat=${cat##*/}
+
+  (cd $PKGMK_PORTS_DIR/$cat/$pkg
+   . Pkgfile
+
+   mkdir -p "$destdir/$category"
+   cp -v "$PKGMK_PACKAGE_DIR/$category/$name#$version-$release.pkg.tar.bz2" "$destdir/$category")
+done

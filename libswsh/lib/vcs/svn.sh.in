@@ -1,0 +1,27 @@
+#!/bin/sh
+#
+# svn.sh: Subversion wrapper
+#
+# $Id: svn.sh.in 557 2008-08-21 21:47:13Z enki $
+# -------------------------------------------------------------------------
+test $lib_svn_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# svn_status <flags> [options] [path]
+# -------------------------------------------------------------------------
+svn_status()
+{
+  local flags="${1:-?0-9A-Za-z}"
+
+  shift
+
+  svn status "$@" | sed -n \
+    -e "s/^[$flags]......//p"
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_svn_sh=:;}

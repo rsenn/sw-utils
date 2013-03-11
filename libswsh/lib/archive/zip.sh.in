@@ -1,0 +1,143 @@
+#!/bin/sh
+#
+# archive/zip.sh: ZIP archiving functions.
+#
+# $Id: zip.sh.in 575 2008-08-26 12:07:20Z enki $
+# -------------------------------------------------------------------------
+@DEBUG_FALSE@test $lib_archive_zip_sh || {
+
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# -------------------------------------------------------------------------
+. $shlibdir/util.sh
+. $shlibdir/std/var.sh
+
+# zip_cmd [options] <zip-archive> [files/directories...]
+#
+# Outputs a suitable command-line for the zip program.
+#
+#     -l, --level NUM         Compression level: 0 = store -> 9 = best.
+#     -d, --dereference       Dump the files instead of symlink pointing to.
+#     -x, --exclude PATTERN   Exclude files matching PATTERN.
+# -------------------------------------------------------------------------
+zip_cmd()
+{
+  local cmd= uncmd= un= arg= xcl= a= s=' ' c=false IFS=$nl
+  eval "set -- $(getopt --name=zip --shell=sh \
+                        --longoptions=level:,dereference,exclude:,no-recursion,create,delete,list,unpack,lowercase -o 0123456789hx:RcdluL -- "$@")"
+
+  cmd="zip$s-y$s-r"
+  uncmd="unzip$s-o"
+
+  local filter="|sed -e 's|^\s*[^:\s]\+:\s\+||' -e 's|\s\+([^()]\+)$||'"
+  
+  #     size  date     time    path     
+  # -----------------------------------------
+  #      771  09-13-07 03:27   swsh/sourceforge.in
+  local unfilter="|sed -e '/^Archive:/d' -e '/\s\+Length\s\+/d' -e '/^-\+/ { N;d; }' -e 's|\s\+$||' -e 's|.*\s\+||' | sed -e '1 { /^----\$/d; }' -e '/^-\+\$/ { N; /^-\+\nfiles\$/d; }'"
+
+  while test -n "$1"
+  do
+    case $1 in
+      # compression level
+      -[0-9]|--level)
+
+         # remove any previous setting
+         cmd=${cmd/-[0-9]/$s}
+         cmd=${cmd%$s-[0-9]}
+
+         case $1 in
+           -[0-9])  cmd=${cmd:+$cmd$s}$1 ;;
+           --level) cmd=${cmd:+$cmd$s}-$(($2 % 10)) && shift ;;
+         esac
+         ;;
+
+      # transform (some) names to lowercase
+      -L|--lowercase)
+         cmd=${cmd:+$cmd$s}'-L'
+         ;;
+
+      # exclude files/dirs...
+      -x|--exclude)
+
+         xcl=${xcl:+$xcl$s}'-x'$s"\"`escape_dquote "$2"`\""
+         xcl=${xcl:+$xcl$s}'-x'$s"\"*/`escape_dquote "$2"`/*\""
+         xcl=${xcl:+$xcl$s}'-x'$s"\"*/`escape_dquote "$2"`\""
+         shift
+         ;;
+
+      -c|--create)       c='true' un='' ;;
+      -d|--delete)       cmd=${cmd:+$cmd$s}'-d' un='' ;;
+      -u|--update)       cmd=${cmd:+$cmd$s}'-u' un='' ;;
+      -l|--list)         uncmd=${uncmd:+$uncmd$s}'-l' un='un' ;;
+      -X|--unpack)       un='un' ;;
+
+      -h|--dereference)  cmd=${cmd/-y$s/} && cmd=${cmd%$s-y} ;;
+      -R|--no-recursion) cmd="${cmd/-r$s/}" && cmd="${cmd%$s-r}" ;;
+
+      --) shift && break ;;
+    esac
+    shift
+  done
+  a=$1
+  shift
+  while test -n "$1"
+  do
+    arg="${arg:+$arg$s}\"`escape_dquote "$1"`\""
+    shift
+  done
+  if $c
+  then
+    cmd="rm -f `escape_dquote "$a"`;$cmd"
+  fi
+  echo `var_get ${un}cmd` $a $arg $xcl `var_get ${un}filter`
+}
+
+# zip_create <zip-archive> [files/directories...]
+#
+# Pack the specified files and directories into a newly created zip-archive.
+# -------------------------------------------------------------------------
+zip_create()
+{
+  local IFS= a=${1:?archive name required}
+  msg "Creating ZIP-archive '$1'..."
+  eval `zip_cmd --create "$@"`
+}
+
+# zip_update <zip-archive> [files/directories]
+#
+# Update the zip-archive (adding when necessary) with the specified files
+# and directories.
+# -------------------------------------------------------------------------
+zip_update()
+{ 
+  local IFS= a=${1:?archive name required}
+  msg "Creating ZIP-archive '$1'..."
+  eval `zip_cmd --update "$@"`  
+}
+
+# zip_list <zip-archive> [files/directories]
+#
+# List either all or only the specified files and directories from the zip-archive.
+# -------------------------------------------------------------------------
+zip_list()
+{ 
+  local IFS= a=${1:?archive name required}
+  msg "Listing contents of ZIP-archive '$1'..."
+  eval `zip_cmd --list "$@"`  
+}
+
+# -------------------------------------------------------------------------
+zip_unpack()
+{
+  unzip -a -o ${2:+-d"$2"} "$1" 2>&1 | sed "1d
+    s,^\s*[^:]\+: ,,
+    s,\s*\[.*\]\s*\$,,"
+}
+
+# --- eof ---------------------------------------------------------------------
+@DEBUG_FALSE@lib_archive_zip_sh=:;}

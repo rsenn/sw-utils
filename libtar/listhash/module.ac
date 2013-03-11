@@ -1,0 +1,21 @@
+dnl AC_DEFUN(subdir[_INIT], [
+dnl  AC_REQUIRE([COMPAT_FUNC_STRLCPY])
+dnl  AC_REQUIRE([COMPAT_FUNC_STRSEP])
+
+  if test -n "$PACKAGE_NAME"; then
+    LISTHASH_PREFIX="${PACKAGE_NAME}";
+  else
+    LISTHASH_PREFIX="libtar";
+  fi
+  AC_SUBST([LISTHASH_PREFIX])
+
+  LISTHASH_DIR="listhash";
+  AC_SUBST([LISTHASH_DIR])
+
+  AC_CONFIG_FILES([listhash/libtar_listhash.h:listhash/listhash.h.in
+                   listhash/libtar_list.c:listhash/list.c.in
+                   listhash/libtar_hash.c:listhash/hash.c.in
+                   listhash/libtar_list_new.3:listhash/list_new.3.in
+                   listhash/libtar_hash_new.3:listhash/hash_new.3.in])
+dnl ])
+

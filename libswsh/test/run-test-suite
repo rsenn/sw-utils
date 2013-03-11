@@ -1,0 +1,102 @@
+#!/bin/sh
+
+MY_NAME=`basename "$0"`
+MY_DIR=`dirname "$0"`
+
+EXIT_ERROR=no
+RUN_MULTIPLE=no
+
+if test "$#" = 0; then
+  set -- `cd "$MY_DIR" && echo *.sh` 
+else
+  case $1 in
+    -e)
+      EXIT_ERROR=yes
+      shift
+    ;;
+  esac
+fi
+
+RET=0
+
+count() { echo $#; }
+msg() { echo ${ECHO_N-"-n"} "$@ " 1>&2; }
+
+test "$#" -gt 1 && RUN_MULTIPLE=yes 
+
+#if test "$EXIT_ERROR" = yes; then
+#  echo "Exiting on error" 1>&2
+#fi
+
+echo 1>&2
+echo "Running $1..." 1>&2
+
+for SHELL in $SHELLS; do
+  
+  test "$RUN_MULTIPLE" = yes && echo "Using $SHELL" 1>&2 || msg "  Using $SHELL"
+  
+  for TEST; do
+    test "$RUN_MULTIPLE" = yes && msg "  Running $TEST..."
+
+    OUTPUT=`$SHELL $TEST 2>&1`; RVAL=$?
+    
+    if test "$RVAL" = 0; then
+      STATUS="OK" 
+    else  
+      RET=`expr "$RET" + 1`
+      STATUS="FAIL"
+    fi
+
+    echo "$STATUS" 1>&2
+
+    if test "$RVAL" != 0; then
+      IFS="
+"
+      set -- $OUTPUT
+      OUTPUT=
+      while test "$#" -gt 0; do
+        case $1 in
+          '#'* | test* | '') ;;
+          *) OUTPUT="$OUTPUT$IFS$1" ;;
+        esac
+        shift
+      done
+
+      echo "
+Output from runnning $SHELL $TEST:
+$OUTPUT" 1>&2
+
+      if test "$EXIT_ERROR" = yes; then
+        RET=$RVAL
+        break 2
+      fi
+    fi
+  done
+
+  test "$RUN_MULTIPLE" = yes && echo
+done
+
+test "$RUN_MULTIPLE" = yes || echo
+
+if test "$EXIT_ERROR" = yes -a "$RVAL" != 0; then
+
+# echo "Killing the parent process.." 1>&2
+  MY_PPID=$PPID
+  IFS=" "
+
+  while test -f /proc/${MY_PPID:-self}/stat; do
+    set -- `cat /proc/$MY_PPID/stat`
+
+#   echo "$MY_PPID: $2" 1>&2
+
+    case $2:$4 in
+      *make*:*) (set -x; kill "$MY_PPID"); break ;;
+    esac
+
+    test "$4" = "$MY_PPID" -o -z "$MY_PPID" && break
+
+    MY_PPID="$4"
+  done
+fi
+
+exit "$RET"

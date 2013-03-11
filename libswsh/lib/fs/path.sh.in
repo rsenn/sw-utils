@@ -1,0 +1,292 @@
+#!/bin/sh
+#
+# path.sh: Path manipulation functions.
+#
+# $Id: path.in 424 2006-06-16 13:08:22Z roman $
+# -------------------------------------------------------------------------
+#test $lib_path_sh || {
+
+path_separator="/"
+
+# is_relative <path>
+# -------------------------------------------------------------------------
+is_relative()
+{
+  test "${1#/}" = "$1"
+}
+
+# is_absolute <path>
+# -------------------------------------------------------------------------
+is_absolute()
+{
+  test "${1#/}" != "$1"
+}
+
+# path_explode <path>
+#
+# Splits the path into parts.
+# -------------------------------------------------------------------------
+path_explode()
+{
+  local IFS=$nl
+
+  if is_absolute "$1"
+  then
+    array / `explode "${1#/}" "/"`
+  else
+    array `explode "$1" "/"`
+  fi
+}
+
+# path_implode <path>
+#
+# Concatenates the parts into a path.
+# -------------------------------------------------------------------------
+path_implode()
+{
+  local p=`IFS=$nl && implode / "$*"`
+
+  case $p in
+    //*) echo "${p#/}" ;;
+      *) echo "$p" ;;
+  esac
+}
+
+# path_removepfx <path> [prefixes...]
+#
+# -------------------------------------------------------------------------
+path_removepfx()
+{
+  local IFS="$nl/" p=`path_explode "$1"`
+  shift
+  set -- $*
+  if is_absolute "$p"
+  then
+    while test "${1+set}"
+    do
+      case $p in
+        ${1:-/}$nl*) p=${p#${1:-/}$nl} ;;
+        *) break ;;
+      esac
+      shift
+    done
+  fi
+  echo "$p"
+}
+
+# path_removesfx <path> [suffixes...]
+#
+# -------------------------------------------------------------------------
+path_removesfx()
+{
+  local IFS="$nl/" p=`path_explode "$1"`
+  shift
+  local a=`path_explode "$*"` s
+
+  while ! array_empty a
+  do
+    array_pop a s
+    case $p in
+      *$nl$s) p=${p%$nl$s} ;;
+      *) break ;;
+    esac
+  done
+  echo "$p"
+}
+
+# path_absolute <path>
+#
+# -------------------------------------------------------------------------
+path_absolute()
+{
+  local IFS=$nl p=$1
+
+  if is_relative "$1"
+  then
+    p="`pwd`/$p"
+  fi
+  echo "$p"
+}
+
+# path_collapse <path>
+#
+# -------------------------------------------------------------------------
+path_collapse()
+{
+  local IFS=$nl p=$1
+
+  echo "`echo "$p" | sed -e 's:/\+:/:g' -e 's:[^/]\+/\.\./:/:g'`"
+}
+
+# path_mask <path>
+#
+# -------------------------------------------------------------------------
+path_mask()
+{
+# todo
+  local IFS="/" dir ARRAY_s="/"
+  local path=`path_absolute "$*"`
+  local rem=${path%"$*"}
+
+  set -- $path
+
+  local key=$1
+
+  case $key in
+    src) ;;
+    ports) ;;
+    pkg) ;;
+  esac
+
+  for dir in ${path#$prefix}
+  do
+    set -- "$@" "$dir"
+  done
+
+  echo "$*"
+}
+
+# path_length <path>
+#
+# Displays the number of path components for the given path.
+# -------------------------------------------------------------------------
+path_length()
+{
+  local p IFS="$path_separator"
+
+  for p
+  do
+    set -- $p
+  done
+
+  echo $#
+}
+
+# path_shift <path> [n]
+#
+# Removes leftmost directory component n times.
+# -------------------------------------------------------------------------
+path_shift()
+{
+  local n=$2 IFS="$path_separator"
+
+  set -- $1
+
+  shift $n
+
+  echo "$*"
+}
+
+# path_index <path> <n>
+#
+# Prints the nth path component.
+# -------------------------------------------------------------------------
+path_index()
+{
+  local n=$2 IFS="$path_separator"
+
+  set -- $1
+
+  if [ "$n" -lt 0 ]; then
+    n=`expr $# + $n`
+  fi
+  
+  if [ "$n" -le 0 ]; then
+    test "$n" = 0 && echo
+  else
+    eval "echo \${$((n+1))}"
+  fi
+}
+
+# path_common <paths...>
+#
+# Returns the common path components.
+# -------------------------------------------------------------------------
+path_common()
+{
+  local c=`path_explode "$1"`
+  local n=`array_length c`
+  local gone
+  shift
+  for p
+  do
+    local a=`path_explode "$p"`
+
+    array_truncate a $((n))
+
+    while test "$a" != "$c"
+    do
+      array_pop a
+      array_pop c gone
+
+      : $((--n))
+    done
+  done
+  path_implode "$c"
+}
+
+# path_try <path> [dir]
+#
+# Finds a file within path.
+# -------------------------------------------------------------------------
+path_try()
+{
+ (IFS="/"
+
+  ${2+cd/"$2"}
+
+  set -- $1
+
+  n=0
+
+  while test -n "$1"
+  do
+    if test -e "$*"
+    then
+      echo "$n"
+      exit 0
+    fi
+    shift
+    n=$((n+1))
+  done
+ )
+}
+
+# path_find <mask> [PATH]
+#
+# Finds a file within path.
+# -------------------------------------------------------------------------
+path_find()
+{
+  local mask="$1" file dir IFS=":"
+
+  set --
+
+  for dir in $PATH
+  do
+    IFS="
+"
+    set -- $dir/$mask
+
+    for file
+    do
+      if test -e "$file"
+      then
+        echo "$file"
+      fi
+    done
+  done
+}
+
+# Stub if called as a script
+# -------------------------------------------------------------------------
+if test "${0##*/}" = path.sh
+then
+  if test "`type -t "path_$1"`" = function
+  then
+    path_"$@"
+  fi
+fi
+
+# --- eof ---------------------------------------------------------------------
+lib_path_sh=1 #}

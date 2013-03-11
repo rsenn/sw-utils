@@ -1,0 +1,51 @@
+# $Id: term.sh.in 586 2008-08-27 03:24:45Z enki $
+#
+# term/screen.sh: screen(1) utility functions
+#
+# -------------------------------------------------------------------------
+@DEBUG_TRUE@test $lib_term_screen_sh || {
+
+# screen_list 
+# -------------------------------------------------------------------------
+screen_list()
+{
+  screen -ls | {
+    IFS="
+ 	()"
+    while read -r ID STATUS; do
+      case "$ID $STATUS" in
+        *.*' '*) 
+          set -- $ID $STATUS
+          test -n "${3-$1$2}" && echo "$1"
+        ;;
+      esac
+    done
+  }
+}
+
+# screen_sockdir 
+# -------------------------------------------------------------------------
+screen_sockdir()
+{
+  screen -ls | {
+    IFS="
+ 	()"
+    while read -r LINE; do
+      case "$LINE" in
+        *' Socket in '*) 
+          set -- $LINE
+          test -d "${4%.}" && echo "${4%.}"
+        ;;
+      esac
+    done
+  }
+}
+
+# screen_cmd <session> <command...>
+# -------------------------------------------------------------------------
+screen_cmd()
+{
+  screen -X "$@"
+}
+# --- eof ---------------------------------------------------------------------
+@DEBUG_TRUE@lib_term_screen_sh=:;}

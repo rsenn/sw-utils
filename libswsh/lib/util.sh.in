@@ -1,0 +1,1186 @@
+#!/bin/sh
+#
+# util.sh: Common utility functions
+#
+# $Id: util.sh.in 974 2009-07-23 00:17:50Z enki $
+# -------------------------------------------------------------------------
+@DEBUG_FALSE@[ $lib_util_sh ] || {
+
+# Set any directory variable needed and not yet set
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# -------------------------------------------------------------------------
+: ${space:=" "} ${newline="
+"} ${tabstop="`printf '\t'`"} ${vtabstop=""}
+
+: ${nl="
+"} \
+  ${lf="
+"} \
+  ${cr="`printf '\r'`"} \
+  ${ht="$tabstop"} \
+  ${vt="$vtabstop"} \
+  ${sq="'"} \
+  ${bs="\\"} \
+  ${lp="("} \
+  ${rp=")"} \
+  ${ifs="$space$tabstop$newline"} \
+  ${digit="0123456789"} \
+  ${xdigit="0123456789abcdef"} \
+  ${upper="ABCDEFGHIJKLMNOPQRSTUVWXYZ"} \
+  ${lower="abcdefghijklmnopqrstuvwxyz"} \
+  ${alpha="$upper$lower"} \
+  ${alnum="$alpha$digit"} \
+  ${squote="'"} \
+  ${dquote='"'} \
+  ${slash="/"} \
+  ${bslash="\\"} \
+  ${hyphen='-'} \
+  ${random_seed=""}
+
+readonly space newline tabstop nl ifs digit xdigit upper lower alpha alnum
+
+: ${verbosity=0}
+
+# pushv <var> [values...]
+#
+# Appends the given values to $var.
+# -------------------------------------------------------------------------
+pushv()
+{
+  eval "shift;$1=\"\${$1+\"\$$1\${IFS%\"\${IFS#?}\"}\"}\$*\""
+}
+
+# pushv_unique <var> [values...]
+#
+# Appends the given values to $var if they don't already exist.
+# -------------------------------------------------------------------------
+pushv_unique()
+{
+  local v=$1 s IFS=${IFS%${IFS#?}}
+  shift
+  for s; do
+    if eval "! isin \$s \${$v}"; then
+      pushv "$v" "$s"
+    else
+      return 1
+    fi
+  done
+}
+
+# write a prefixed message to stderr
+# -------------------------------------------------------------------------
+msg()
+{
+  echo "${me:+$me: }$@" 1>&2
+}
+
+# "multipart" messages
+# -------------------------------------------------------------------------
+msgbegin()
+{
+  echo -n "${me:+$me: }$@" 1>&2
+}
+
+msgcontinue()
+{
+  echo -n "$@" 1>&2
+}
+
+msgend()
+{
+  echo "$@" 1>&2
+}
+
+# write a prefixed message to stderr
+# -------------------------------------------------------------------------
+warn()
+{
+  msg "WARNING: $@"
+}
+
+notice()
+{
+  msg "NOTICE: $@"
+}
+
+verbose()
+{
+  local msg="$*" a=`eval "echo \"\${$#}\""` IFS="
+"
+
+  if [ "$#" = 1 ]; then
+    a=1
+  fi
+  
+  if ! [ "$a" -ge 0 ]; then
+    a=0
+  fi 2>/dev/null 1>/dev/null
+
+  if [ "$verbosity" -ge "$a" ]; then
+    msg "${msg%?$a}"
+  fi
+}
+
+debug()
+{
+  :
+}
+debug()
+{
+  msg "DEBUG: $@"
+}
+
+# Print info message (verbosity).
+# ----------------------------------------------------------------------------
+#info()
+#{
+#  msg "$@" 2>&10
+#}
+
+# write a prefixed error message to stderr and exit
+# -------------------------------------------------------------------------
+error()
+{
+  local retcode="${2:-1}"
+
+  msg "ERROR: $@"
+
+  if [ "$0" = "-sh" -o "${0##*/}" = "sh" -o "${0##*/}" = "bash" ]; then
+    return "$retcode"
+  else
+    exit "$retcode"
+  fi
+}
+
+# write a prefixed error message to stderr
+# -------------------------------------------------------------------------
+errormsg()
+{
+  local retcode="${2:-$?}"
+
+  msg "ERROR: $@" #1>&2
+
+  return "$retcode"
+}
+
+# is_binary <path>
+# ---------------------------------------------------------------------------
+is_binary()
+{
+  case `file - <$1` in
+    *text*) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
+# is_object <path>
+# ---------------------------------------------------------------------------
+is_object()
+{
+  case `file - <$1` in
+    *ELF*|*executable*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# hex_to_dec <hex>
+# ---------------------------------------------------------------------------
+hex_to_dec()
+{
+  eval 'echo $((0x'${1%% *}'))'
+}
+
+# dec_to_hex <hex>
+# ---------------------------------------------------------------------------
+dec_to_hex()
+{
+  printf "%08x\n" "$1"
+}
+
+# hex_to_bin <hex>
+# ---------------------------------------------------------------------------
+hex_to_bin()
+{
+  local chars=`str_to_list "$1"`
+  local bin IFS="$newline" ch
+  for ch in $chars; do
+    case $ch in
+      0) bin="${bin}0000" ;;
+      1) bin="${bin}0001" ;;
+      2) bin="${bin}0010" ;;
+      3) bin="${bin}0011" ;;
+      4) bin="${bin}0100" ;;
+      5) bin="${bin}0101" ;;
+      6) bin="${bin}0110" ;;
+      7) bin="${bin}0111" ;;
+      8) bin="${bin}1000" ;;
+      9) bin="${bin}1001" ;;
+      a|A) bin="${bin}1010" ;;
+      b|B) bin="${bin}1011" ;;
+      c|C) bin="${bin}1100" ;;
+      d|D) bin="${bin}1101" ;;
+      e|E) bin="${bin}1110" ;;
+      f|F) bin="${bin}1111" ;;
+    esac
+  done
+  echo "$bin"
+}
+
+# submatch <var> <outvar=match-expression>
+#
+# Subtractive parsing engine, based on shell pattern substitutions.
+# ---------------------------------------------------------------------------
+submatch()
+{
+  local arg exp src dst result=$1 && shift
+
+  for arg
+  do
+    exp="${arg#*=}"
+    dst="${arg%$exp}"
+    dst="${dst%=}"
+    src="${exp%%[!A-Za-z_]*}"
+    exp="${exp#$src}"
+
+    eval ${dst:=$result}='${'${src:=$result}$exp'}'
+
+#    var_s=' ' var_dump exp src dst $dst
+  done
+}
+
+# extract_version <any string>
+# ---------------------------------------------------------------------------
+extract_version()
+{
+  echo "$*" | sed 's,^.*\([0-9]\+[-_.][0-9]\+[-_.0-9]\+\).*,\1,'
+}
+
+# subst_script <variables...>
+# ---------------------------------------------------------------------------
+subst_script()
+{
+  local var script value IFS="$obj_s"
+
+  for var; do
+    if [ "$var" != "${var%%=*}" ]; then
+      value=${var#*=}
+
+      value=`echo "$value" | sed 's,\\\\,\\\\\\\\,g'`
+      #value=${value//"\\"/"\\\\"} # bashism
+
+      array_push script "s°@${var%%=*}@°`array_implode value '\n'`°g"
+    else
+      value=`var_get "$var"`
+      value=`echo "$value" | sed 's,\\\\,\\\\\\\\,g'`
+
+      array_push script "s°@$var@°`array_implode value '\n'`°g"
+    fi
+  done
+
+#  debug "sed script: '`array_implode script ';'`'"
+
+  array_implode script ';'
+}
+
+# list choices, n per line
+#
+# choices_list <n> [choices]
+# -------------------------------------------------------------------------
+choices_list()
+{
+  local n=$1 count=0 choices=''
+  shift
+  for choice; do
+    choices="$choices $choice"
+
+    count=$((count + 1))
+
+    if $((count)) -eq $((n))
+    then
+      count=0
+#      msg $choices
+      choices=''
+    fi
+  done
+
+  if [ -n "${choices# }" ]; then
+    msg $choices
+  fi
+}
+
+# get absolute path of the script originally invoked
+# -------------------------------------------------------------------------
+scriptdir()
+{
+  local absdir reldir thisdir="`pwd`"
+
+  # if $0 specified a pathname, then put that into reldir
+  if [ "$0" != "${0%/*}" ]; then
+    reldir="${0%/*}"
+  fi
+
+  # change into the relative directory in a subshell
+  # and get the output of "pwd", which will lead
+  # to an absolute directory
+  if [ "${reldir#/}" != "$reldir" ]; then
+    absdir=`cd $reldir && pwd`
+  else
+    absdir=`cd $thisdir/$reldir && pwd`
+  fi
+
+  echo $absdir
+}
+
+# realpath <dir>
+#
+# converts to absolute dir through chdir/getcwd.
+# -------------------------------------------------------------------------
+type realpath 1>/dev/null 2>/dev/null || realpath()
+{
+ (DIR=`dirname "$1"`
+  LNK=`basename "$1"`
+  cd "$DIR"
+  echo "`pwd -P`/$LNK")
+}
+
+# absdir <dir>
+#
+# converts to absolute dir with string magic.
+# -------------------------------------------------------------------------
+absdir()
+{
+  case $1 in
+    /*)
+      echo "$1"
+      ;;
+
+     *)
+     (cwd=`pwd` &&
+      cd "$cwd${1:+/$1}" &&
+      echo "$cwd${1:+/$1}" || {
+        cd "$1" && pwd
+      })
+      ;;
+  esac 2>/dev/null
+}
+
+abspath()
+{
+  if [ -e "$1" ]; then
+    local dir=`dirname "$1"` && dir=`absdir "$dir"`
+    echo "${dir%/.}/${1##*/}"
+  fi
+}
+
+# sleep some milliseconds
+# -------------------------------------------------------------------------
+msleep()
+{
+  local sec=$((${1:-0} / 1000)) msec=$((${1:-0} % 1000))
+
+  # add leading zeroes
+  while [ "${#msec}" -lt 3 ]; do
+    msec="0$msec"
+  done
+
+  # issue sleep command
+  sleep $((sec)).$msec
+}
+
+# sleep some microseconds
+# -------------------------------------------------------------------------
+usleep()
+{
+  local sec=$((${1:-0} / 1000000)) usec=$((${1:-0} % 1000000))
+
+  # add leading zeroes
+  while [ "${#usec}" -lt 6 ]; do
+    usec="0$usec"
+  done
+
+  # issue sleep command
+  sleep $((sec)).$usec
+}
+
+# split <string> [separators]
+# -------------------------------------------------------------------------
+split()
+{
+  local IFS="${2:-${IFS}}"
+
+  echo $1
+}
+
+# clamp <int> <min> <max>
+# -------------------------------------------------------------------------
+clamp()
+{
+  local int="$1" min="$2" max="$3"
+
+  if [ "$int" -lt "$min" ]; then
+    echo "$min"
+  elif [ "$int" -gt "$max" ]; then
+    echo "$min"
+  else
+    echo "$int"
+  fi
+}
+
+# inc <value> [n]
+# -------------------------------------------------------------------------
+inc()
+{
+  expr "$1" + "${2-1}"
+}
+
+# inc <vairable> [n]
+# -------------------------------------------------------------------------
+incv()
+{
+  eval "$1=\`expr \"\${$1}\" + \"${2-1}\"\`"
+}
+
+# -------------------------------------------------------------------------
+diskfree()
+{
+  set -- `df -B1 -P "$@" | tail -n1`
+
+  echo $4
+}
+
+# return a name for a temporary file/directory
+#
+# tempnam <directory> <prefix>
+# ---------------------------------------------------------------------------
+tempnam()
+{
+  local IFS=" $newline"
+  local pfx=${0##*/}
+  local prefix=${2-${tmppfx-${pfx%:*}}}
+  local path=${1-${tmpdir-"/tmp"}}
+  local name=`command mktemp -u ${path:-"-t" }"${path:+/}${prefix#-}.XXXXXX"`
+
+  rm -rf "$name"
+  echo "$name"
+}
+
+# create a temporary file
+#
+# mktemp <directory> <prefix>
+# ---------------------------------------------------------------------------
+mktempfile()
+{
+  local prefix=${2-${tmppfx-${myname-${0##*/}}}}
+  local path=${1-${tmpdir-"/tmp"}}
+
+  command mktemp ${path:-"-t" }"${path:+/}${prefix#-}.XXXXXX"
+}
+
+# create a temporary directory
+#
+# mktempdir <directory> <prefix>
+# ---------------------------------------------------------------------------
+mktempdir()
+{
+  local prefix=${2:-${tmppfx:-${myname:-${0##*/}}}}
+  local path=${1:-${tmpdir:-"/tmp"}}
+#  local IFS=" "
+
+  command mktemp -d ${path:-"-t" }"${path:+/}${prefix#-}.XXXXXX"
+}
+
+# create a temporary file and put the given data in it.
+#
+# mktempdata [directory] [prefix] <data>
+# ---------------------------------------------------------------------------
+mktempdata()
+{
+  local path prefix="${tmppfx-${myname-${0##*/}}}" file
+
+  if [ "$#" -gt 1 ]; then
+    path=$1
+    shift
+  else
+    unset path
+  fi
+
+  if [ "$#" -gt 1 ]; then
+    local prefix=$1
+    shift
+  fi
+
+  file=`command ${path:-"-t"} "${path:+$path/}${prefix#-}${path:-.XXXXXX}"`
+
+  if [ -n "$*" ]; then
+    echo "$*" >$file
+  fi
+
+  echo "$file"
+}
+
+# quiet <cmd> [args]
+# ---------------------------------------------------------------------------
+quiet()
+{
+  "$@" 2>/dev/null
+}
+
+# isin <needle> [haystack...]
+# ---------------------------------------------------------------------------
+isin()
+{
+ (needle="$1"
+
+  while [ "$#" -gt 1 ]; do
+    shift
+    test "$needle" = "$1" && exit 0
+  done
+
+  exit 1)
+}
+
+# index_of <needle> [haystack...]
+# ---------------------------------------------------------------------------
+index_of()
+{
+ (needle="$1"
+  index=0
+  while [ "$#" -gt 1 ]; do
+    shift
+    if [ "$needle" = "$1" ]; then
+      echo "$index"
+      exit 0
+    fi
+    index=`expr "$index" + 1`
+  done
+  exit 1)
+}
+
+# ---------------------------------------------------------------------------
+is_true()
+{ 
+  case "$*" in
+    true | ":" | "${FLAGS_TRUE-0}" | yes | enabled | on) return 0 ;;
+  esac
+
+  return 1
+}
+
+# ---------------------------------------------------------------------------
+is_pattern()
+{
+  case "$*" in
+    *'['*']'* | *'*'* | *'?'*) return 0 ;;
+  esac
+ 
+  return 1
+}
+
+# match_some <pattern> [fields...]
+# ---------------------------------------------------------------------------
+match_some()
+{
+  eval "while shift
+  do
+    case \"\$1\" in
+      $1 ) return 0 ;;
+    esac
+  done
+  return 1"
+}
+
+# imatch_some <pattern> [fields...]
+# ---------------------------------------------------------------------------
+imatch_some()
+{
+  eval "while shift
+  do
+    case \"\`str_tolower \"\$1\"\`\" in
+      $(str_tolower "$1") ) return 0 ;;
+    esac
+  done
+  return 1"
+}
+
+# bheader [blocks] [blocksize]
+# ---------------------------------------------------------------------------
+bheader()
+{
+  quiet dd count="${1:-1}" bs="${2:-512}"
+}
+
+# explode <string> [separators]
+#
+# Explodes a string into an array.
+# ---------------------------------------------------------------------------
+explode()
+{
+ (IFS="$2$IFS"
+
+  for VALUE in $1; do
+    echo "$VALUE"
+  done)
+}
+
+# implode <separator> [items]
+#
+# Explodes a string into an array.
+# ---------------------------------------------------------------------------
+implode()
+{
+  if [ "${#1}" = 1 ]; then
+    local IFS=$1
+
+    shift
+
+    echo "$*"
+  else
+    local sep=$1 out
+
+    if shift && [ "$#" -gt 0 ]; then
+      out=$1
+
+      while shift && [ "$#" -gt 0 ]; do
+        out="$out$sep$1"
+        shift
+      done
+
+      echo "$out"
+    fi
+  fi
+}
+
+# inputf <commands>
+#
+# Reads input from stdin and 
+# ---------------------------------------------------------------------------
+inputf()
+{
+  local __line__ __cmds__
+  
+  __line__=$IFS
+  __cmds__="( set -- \$__line__; $*; )"
+
+  IFS="$__line__"
+
+  while read __line__; do
+    eval "$__cmds__"
+  done
+}
+
+# count [items...]
+#
+# ---------------------------------------------------------------------------
+count()
+{
+  echo $#
+}
+
+# index <n> [items...]
+#
+# ---------------------------------------------------------------------------
+index()
+{
+  local n=$1
+
+  shift
+
+  eval 'echo ${'$((n + 1))'}'
+}
+
+# decompress <file>
+# ---------------------------------------------------------------------------
+decompress()
+{
+  local mime="$(file -bi "$1")"
+
+  case $mime in 
+    application/x-bzip2) bzip2 -dc "$1" ;;
+    application/x-gzip) gzip -dc "$1" ;;
+    *) cat "$1" ;;
+  esac
+}
+
+# undotslash [input-file...]
+#
+# Reads a list of paths from the standard input or the specified files.
+# For each path, a trailing dot-slash (./) will be removed, if present.
+# ---------------------------------------------------------------------------
+undotslash()
+{
+  sed -e "s:^\.\/::" "$@"
+}
+
+# mime <file>
+# ---------------------------------------------------------------------------
+mime()
+{
+  local mime="$(decompress "$1" | bheader 8 | file -bi -)"
+
+  echo ${mime%%[,. ]*}
+}
+
+# unpackable <archive>
+# ---------------------------------------------------------------------------
+unpackable()
+{
+  case $(mime $1) in
+    'application/x-tar') return 0 ;;
+    'application/x-zip') return 0 ;;
+  esac
+
+  return 1
+}
+
+# unpack <archive> [to]
+# ---------------------------------------------------------------------------
+unpack()
+{
+  case $(mime "$1") in
+    application/x-tar) tar ${2+-C "$2"} -xf "$1" && return 0 ;;
+    application/x-zip) unzip -L -qq -o ${2+-d "$2"} "$1" && return 0 ;;
+  esac
+
+  return 1
+}
+
+# match <needle> [haystack...]
+# ---------------------------------------------------------------------------
+match()
+{
+ #  local n="$1" arg
+  local n=$(escape_noquote "$1") arg
+
+  shift
+
+  for arg; do
+#    case $arg in
+#      $n) echo "$arg" && return 0 ;;
+#    esac
+    eval "case \$arg in
+      $n) echo \"\$arg\" ;;
+    esac"
+  done
+
+  return 1
+}
+
+# diff_plus_minus <path> <path>
+# ---------------------------------------------------------------------------
+diff_plus_minus()
+{
+  local IFS="$newline" \
+    d=$(diff -x .svn -ruN "$@" |
+        sed -n -e "/^[-+][-+][-+]\s\+$1/d" \
+               -e "/^[-+][-+][-+]\s\+$2/d" \
+               -e '/^[-+]/ s,^\(.\).*$,\1, p' 2>/dev/null)
+#  echo "d: $d"
+
+  IFS="-$newline "; eval set -- $d; local plus=$#
+  IFS="+$newline "; eval set -- $d; local minus=$#
+
+  echo "+$plus" "-$minus"
+}
+
+# eval_arith [arith...]
+# ---------------------------------------------------------------------------
+eval_arith()
+{
+  eval "echo $(make_arith "$@")"
+}
+
+# make_arith [arith...]
+# ---------------------------------------------------------------------------
+make_arith()
+{
+  echo '$(('"$@"'))'
+}
+
+# random_acquire <entropy>
+# ---------------------------------------------------------------------------
+random_acquire()
+{
+  local n IFS="$newline"
+
+  for n in $(echo "$@" | hexdump -d | sed "s,^[0-9a-f]\+\s*,,;s,\s\+,\n,g"); do
+    local rot=$(( (${random_seed:-0xdeadbeef} + (n >> 11)) & 0x1f)) xor=$((${random_seed:-0xdeadbeef} - (n & 0x07ff)))
+
+    random_seed=$(( ($(bitrotate $(( ${random_seed:-0xdeadbeef} )) $rot) ^ $xor) & 0xffffffff ))
+  done
+
+  echo "seed: ${random_seed:-0xdeadbeef}"
+}
+
+# rand [limit]
+# ---------------------------------------------------------------------------
+rand()
+{
+  local rot=$(( ${random_seed:-0xdeadbeef} & 0x1f ))
+  local xor=`expr ${random_seed:-0xdeadbeef} \* (${random_seed:-0xdeadbeef} "<<" $rot)` 
+
+  random_seed=$(( ( $(bitrotate "${random_seed:-0xdeadbeef}" "$rot") ^ $xor) & 0xffffffff ))
+
+  expr "$random_seed" % ${1:-4294967296}
+}
+
+# neighbours [list...]
+# ---------------------------------------------------------------------------
+neighbours()
+{
+  while test "${2+set}" = set
+  do
+    echo "$1" ${2+"$2"}
+    shift
+  done
+}
+
+# retcode [command] [args...]
+# ---------------------------------------------------------------------------
+retcode()
+{
+  "$@"
+
+  msg "\$? = $?"
+}
+
+# ---------------------------------------------------------------------------
+escape_required()
+{
+  local b="\\" q="\`\$\'\"${IFS}"
+
+  case "$1" in
+    '') return 1 ;;
+    ["$q"]* | *[!"$b"]["$q"]* ) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# unescape_newlines [files...]
+# ---------------------------------------------------------------------------
+unescape_newlines()
+{
+  sed -e ':start
+  /\$/ {
+    N
+    s|\\\n[ \t]*||
+    b start
+  }' "$@"
+}
+
+# remove_emptylines [files...]
+#
+# Removes lines containing either no or only whitespace characters.
+# ---------------------------------------------------------------------------
+remove_emptylines()
+{
+  sed -e '/^\s*$/d' "$@"
+}
+
+# linedelay
+#
+# This is a Z^-1 delay for lines read on stdin, which means that every
+# arrived line is not printed until the next line arrives.
+# ---------------------------------------------------------------------------
+linedelay()
+{
+  unset o
+  while read i; do
+    test "${o+set}" = set && echo "$o"
+    o=$i
+  done
+  test "${o+set}" = set && echo "$o"
+}
+
+
+# require
+# ---------------------------------------------------------------------------
+type require 1>/dev/null 2>/dev/null ||
+require()
+{
+  local mask script retcode cmd="source" pre=""
+
+  while :; do
+    case $1 in
+      -p) cmd="echo" ;;
+      -n) pre="$shlibdir/" ;;
+      *) break ;;
+    esac
+    shift
+  done
+
+  script=${1%.sh}
+
+  for mask in \
+    $shlibdir/$script.sh \
+    $shlibdir/*/${script%.sh}.sh \
+    $shlibdir/*/*/${script%.sh}.sh 
+  do
+    if test -r "$mask"; then
+      if test "$cmd" = echo && test -n "$pre"; then
+        mask=${mask#$pre}
+      fi
+      $cmd "$mask"
+      return 0
+     fi
+  done
+  echo "ERROR: loading shell script library $shlibdir/$script.sh" 1>&2
+  return 127
+}
+
+# reload
+# ---------------------------------------------------------------------------
+reload()
+{
+  local script retcode var force="no"
+
+  while :; do
+    case $1 in
+      -f) force="yes" ;;
+      *) break ;;
+    esac
+    shift
+  done
+  
+  script=$(require -p -n ${1%.sh})
+  name=${script%.sh}_sh
+  var=$(echo lib/$name | sed -e s,/,_,g)
+
+#  var_dump force
+
+  if test "$force" = yes; then
+    verbose "Forcing reload of $script"
+    local fn
+    for fn in $(sed -n -e 's/^\([_a-z][_0-9a-z]*\)().*/\1/p' $shlibdir/$script); do
+      case $fn in
+        require|verbose|msg) continue ;;
+      esac
+      verbose "unset -f $fn"
+      unset -f $fn
+    done
+  fi
+
+  verbose "unset $var"
+  unset "$var"
+
+  verbose "require $script"
+#  require "$script"
+  source "$shlibdir/$script"
+}
+
+
+# is_interactive
+# ---------------------------------------------------------------------------
+is_interactive()
+{
+  test -n "$PS1"
+}
+
+# in_path <file>
+# ---------------------------------------------------------------------------
+in_path()
+{
+  local dir IFS=:
+
+  for dir in $PATH; do
+   (cd "$dir" 2>/dev/null &&
+    set -- $1 &&
+    test -e "$1") &&
+    return 0
+  done
+
+  return 127
+}
+
+# http_head <host[:port]> <path>
+# ---------------------------------------------------------------------------
+http_head()
+{
+ (HOST=${1%%:*}
+  PORT=80
+  TIMEOUT=30
+  
+  if [ "$HOST" != "$1" ]; then
+    PORT=${1#$HOST:}
+  fi
+
+  if type curl >/dev/null 2>/dev/null; then
+    curl -q --head "http://$HOST:$PORT$2"
+  elif type lynx >/dev/null 2>/dev/null; then
+    lynx -head -source "http://$HOST:$PORT$2"
+  else
+    { 
+      echo -e "HEAD ${2} HTTP/1.1\r\nHost: ${1}\r\nConnection: close\r\n\r" 
+      sleep $TIMEOUT
+    } | nc $HOST $PORT | sed "s/\r//g"
+  fi)
+}
+
+# multiline_list [items...]
+#
+# Gets the content within the specified tag. XML is read from stdin.
+# ---------------------------------------------------------------------------
+multiline_list()
+{
+  local indent='  ' IFS="
+"
+  while [ "$1" != "${1#-}" ]; do
+    case $1 in
+      -i) indent=$2 && shift 2 ;;
+      -i*) indent=${2#-i} && shift ;;
+    esac
+  done
+
+  if test -z "$*" || test "$*" = -; then
+    cat
+  else
+    echo "$*"
+  fi | 
+  while read item; do
+    echo " \\"
+    echo -n "$indent$item"
+  done
+}
+
+# rcat [options] [files...]
+#
+# A recursive 'cat' through grep .*
+# ---------------------------------------------------------------------------
+rcat()
+{
+  local opts= args=
+  
+  while test -n "$1"; do
+    case $1 in
+      *) pushv args "$1" ;;
+      -*) pushv opts "$1" ;;
+    esac
+    shift
+  done
+  grep --color=no $opts '.*' $args
+}
+
+# modules [shlibdir]
+#
+# Lists the available script library modules
+# ---------------------------------------------------------------------------
+modules()
+{
+  local abs="no" ext="no" dir modules= IFS="
+"
+  require "fs"
+  
+  while :; do
+    case $1 in
+      -a) abs="yes" ;;
+      -e) ext="yes" ;;
+      -f) abs="yes" ext="yes" ;;
+      *) break ;;
+    esac
+    shift
+  done
+
+  if test "$abs" = yes; then
+    fs_recurse "$@"
+  else
+    for dir in "${@-$shlibdir}"; do
+      (cd "$dir" && fs_recurse)
+    done
+  fi | {
+    set --
+    while read module; do
+      case $module in
+        *.sh | *.bash) 
+          if test "$ext" = no; then
+            module="${module%.*}"
+          fi
+          if ! isin "$module" "$@"; then
+            set -- "$@" "$module"
+            echo "$module"
+          fi
+          ;;
+      esac
+    done
+  }
+}
+
+# blksize <device> [512]
+#
+# Gets the size of the device in blocks
+# ---------------------------------------------------------------------------
+blksize()
+{
+ (SIZE=`fdisk -s "$1"`
+  
+  [ -n "$SIZE" ] && expr "$SIZE" \* 512 / ${2-512}) 
+}
+
+# fn2re <pattern>
+#
+# Converts an fnmatch(3) style pattern into a regular expression
+# ---------------------------------------------------------------------------
+fn2re()
+{
+  echo "$1" | sed \
+    -e 's,\.,\\.,g' \
+    -e "s,\\?,${2-.},g" \
+    -e "s,\\*,${2-.}*,g" \
+    -e 's,\[!\([^\]]\+\)\],[^\1],g'
+}
+
+
+# regexp_to_fnmatch <pattern>
+# 
+# Converts a regular expression into an fnmatch()-style pattern
+# ---------------------------------------------------------------------------
+regexp_to_fnmatch()
+{
+ (expr=$1
+
+  case $expr in
+    '^'*) expr="${expr#^}" ;;
+    *) expr="*${expr}" ;;
+  esac
+
+  case $expr in
+    *'$') expr="${expr%$}" ;;
+    '*') ;;
+    *) expr="${expr}*" ;;
+  esac
+
+  case $expr in
+    *'.*'*) expr=`echo "$expr" | sed "s,\.\*,\*,g"` ;;
+  esac
+
+  case $expr in
+    *'.'*) expr=`echo "$expr" | sed "s,\.,\?,g"` ;;
+  esac
+
+  echo "$expr")
+}
+
+
+# Add an executable search path to the PATH environment variable, if
+# it doesn't already contain the specified path.
+# ---------------------------------------------------------------------------
+pathmunge()
+{
+  local IFS=":"
+
+  if ! echo "$PATH" | egrep -q "(^|:)$1($|:)"
+  then
+    if test "$2" = "after"
+    then
+      PATH="$PATH:$1"
+    else
+      PATH="$1:$PATH"
+    fi
+  fi
+}
+
+# --- eof ---------------------------------------------------------------------
+@DEBUG_FALSE@lib_util_sh=:;}

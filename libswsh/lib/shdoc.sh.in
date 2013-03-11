@@ -1,0 +1,207 @@
+#!/bin/sh
+#
+# shdoc.sh: Functions for extracting documentation from shell scripts
+#
+# $Id: shdoc.sh.in 588 2008-08-27 04:35:17Z enki $
+# -------------------------------------------------------------------------
+test -n "$lib_shdoc_sh" || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/util.sh
+. $shlibdir/std/array.sh
+. $shlibdir/fs.sh
+
+: ${shdoc_comment:=""}
+: ${shdoc_module:=""}
+: ${shdoc_fn:=""}
+: ${shdoc_help:=""}
+: ${shdoc_prefix:="@shdoc_prefix@"}
+
+# shdoc_titles [files...]
+#
+# Look up the title comment of every script library source.
+# -------------------------------------------------------------------------
+shdoc_titles()
+{
+  local IFS=" $nl"
+  sed -n "/^#!/ {
+    n
+    n
+    :lp
+    s/^#\s*//
+    /\.sh:/ s/\.sh://p
+    /\.bash:/ s/\.bash://p
+    /^#\s*$/ b lp
+  }" "$@" | while read name doc
+  do
+    while test "$name" != "${name#*/}"
+    do
+      name="  ${name#*/}"
+    done
+
+    name=${name%.sh:}
+    name=${name%.bash:}
+
+    printf "\t%-12s %s\n" "$name" "$doc"
+  done
+}
+
+# -------------------------------------------------------------------------
+shdoc_scripts()
+{
+  fs_recurse "$shlibdir" | while read path
+  do
+    case $path in
+      *.sh | *.bash) echo "$path" ;;
+    esac
+  done
+}
+
+# shdoc_lookup <function-name> [files...]
+#
+# Look up command syntax and description directly from scipt library sources.
+# -------------------------------------------------------------------------
+shdoc_lookup()
+{
+  local fn=$1
+
+  shift
+  sed -n "/^#/ {
+            :lp
+            N
+
+            /\n#[^\n]*$/ {
+              s/\n#\s\?/\n/g
+              b lp
+            }
+
+            /\n$fn()\$/ {
+              s/\n$fn()\$//
+              s/\n-\+$//
+              s/^#\s\?//
+              p
+            }
+          }" "$@"
+}
+
+# shdoc_scan <function-name> <comment-text>
+# -------------------------------------------------------------------------
+shdoc_scan()
+{
+  local IFS=$nl line syntax= desc=
+
+  for line in ${2-`shdoc_lookup "$1" $shlibdir/*`}
+  do
+    case $line in
+      $1' '*) array_push syntax "$line" ;;
+      *) array_push desc "$line" ;;
+    esac
+  done
+
+  obj syntax="$syntax" desc="$desc"
+}
+
+# shdoc_parse
+# -------------------------------------------------------------------------
+shdoc_parse()
+{
+  local line begin IFS="$newline"
+
+  unset shdoc_fn
+  unset shdoc_help
+
+  while read line; do
+    case "$line" in
+      '#'*)
+        array_empty shdoc_comment && _shdoc_begin_comment "$line"
+        array_push shdoc_comment "${line#'#'}"
+        ;;
+      *)
+        case $line in
+          *'()')
+              shdoc_fn=${line%()}
+              shdoc_fn=${shdoc_fn##*' '}
+              _shdoc_begin_fn "$shdoc_fn"
+              ;;
+#          '{') test -n "$shdoc_fn" && _shdoc_begin_fn "$shdoc_fn" ;;
+          '}') test -n "$shdoc_fn" && _shdoc_end_fn "$shdoc_fn" ;;
+        esac
+
+        array_empty shdoc_comment || _shdoc_end_comment "$shdoc_comment"
+        shdoc_comment=""
+        ;;
+    esac
+  done
+}
+
+# shdoc_parse_comment <comment> [prefix] [var-type]
+# -------------------------------------------------------------------------
+shdoc_parse_comment()
+{
+  local IFS="$newline" line p=${2+${2}_}
+  ${3-local} "${p}syntax" "${p}help"
+  var_set "${p}syntax" ""
+  var_set "${p}help" ""
+  for line in $1; do
+    case $line in
+      '!'* | *'$Id:'*'$'* | 'swsh_'* | 'test $swsh_'*) ;;
+      ' '---*--------------*) ;;
+      ' '$shdoc_fn | ' '$shdoc_fn' '*) var_set "${p}syntax" "${line#' '}" ;;
+      ' '[a-z]*)
+         local s=${line#' '}
+         local c=`str_index 0 "$s"`
+         array_push "${p}help" "`str_toupper "$c"`${s#?}."
+         ;;
+      *) array_push "${p}help" "$line" ;;
+    esac
+  done
+
+  IFS="$space$newline$tabstop"
+  var_set "${p}help" `var_get "${p}help"`
+  var_dump "${p}syntax" "${p}help"
+}
+
+_shdoc_begin_comment()
+{
+  :
+}
+
+_shdoc_end_comment()
+{
+  #msg "Comment:" $shdoc_comment
+
+  local p=${shdoc_prefix:+${shdoc_prefix}_}${shdoc_module:+${shdoc_module}_}
+
+  if test -n "$shdoc_fn"; then
+    shdoc_parse_comment "$shdoc_comment" "${p}$shdoc_fn"
+  else
+    local ${p}syntax ${p}help
+    eval "`shdoc_parse_comment "$shdoc_comment" "${p%_}"`"
+
+    if test "${shdoc_help-unset}" = "unset"; then
+      shdoc_help=`var_get "${p}help"`
+      var_dump "${p}help"
+    fi
+    #  local ${shdoc_module+${shdoc_module}_}help="$shdoc_help"
+
+  fi
+  :
+  #msg "Comment is: '$shdoc_comment'"
+}
+
+_shdoc_begin_fn()
+{
+  :
+}
+
+_shdoc_end_fn()
+{
+  :
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_shdoc_sh=:;}

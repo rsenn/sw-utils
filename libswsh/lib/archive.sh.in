@@ -1,0 +1,463 @@
+# $Id: archive.sh.in 973 2009-07-11 01:15:16Z enki $
+#
+# archive.sh: abstract file archiving functions
+#
+# -------------------------------------------------------------------------
+
+#EXPORT=is_archive archive_cmd archive_base archive_compression archive_infer archive_container archive_decompress archive_compress archive_create archive_unpack archive_list archive_files archive_empty archive_rootdir _archive_footprint_filter archive_footprint archive_diff archive_eval
+#REQUIRE=unpack msg bheader array array_push zip_unpack errormsg not verbose dir_enter rar_unpack quiet tempnam fs_count fs_list mktempdir
+test $lib_archive_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/util.sh
+. $shlibdir/fs/dir.sh
+. $shlibdir/archive/rar.sh
+. $shlibdir/archive/zip.sh
+. $shlibdir/archive/jar.sh
+
+# is_archive <file>
+#
+# Checks whether the specified file is any of the known archive types.
+# -------------------------------------------------------------------------
+is_archive()
+{
+  local c=`archive_container "$1"`
+  test -n "$c" && test "$c" != "-"
+}
+
+# archive_cmd [options] <archive> [files...]
+#
+# Creates a command line for archive creation, extraction or manipulation.
+# Valid options are:
+#
+#   --dereference       Instead of symlinks put their content into the archive.
+#
+# -------------------------------------------------------------------------
+archive_cmd()
+{
+  local cont= comp= args=
+
+  eval "set -- $(getopt --name=zip --shell=sh \
+                        --longoptions=level:,dereference,exclude:,no-recursion,create,delete,list,unpack,container,compression -o 0123456789hx:RcdluFZ -- "$@")"
+
+  while test -n "$1"
+  do
+    case $1 in
+      -F|--container) ;;
+      -Z|--compression) ;;
+      -x|--exclude)
+        args="${args:+$args }-x ''"
+        ;;
+      --) shift && break ;;
+      *)
+        args="${args:+$args }$1"
+        ;;
+    esac
+
+    shift
+  done
+}
+
+# -------------------------------------------------------------------------
+archive_base()
+{
+  local comp=`archive_compression ${1+"$1"}`
+  local cont=`archive_container ${1+"$1"}`
+  local base=$1
+
+  case $base in
+    *.$comp) base=${base%.$comp}
+  esac
+
+  case $base in
+    *.$cont) base=${base%.$cont}
+  esac
+
+  echo "$base"
+}
+
+# archive_compression [archive]
+#
+# detect the compression method used by the specified archive
+# returns false when the detected compression format is not recognized.
+# -------------------------------------------------------------------------
+archive_compression()
+{
+  local IFS="$space$newline$tabstop"
+
+  if test "${1:--}" = - || test -f "$1"
+  then
+    local magic=`file "${1--}"`
+    set -- ${magic#*:}
+    case $1 in
+      compress*) echo Z ;;
+      *[-/]gzip) echo gz ;;
+      gzip|bzip2) echo ${1//zip/z} ;;
+      Zip) echo zip ;;
+      RAR) echo rar ;;
+#      ''|POSIX|ASCII) ;;
+      *) echo - ;;
+    esac
+  else
+    msg "Inferring compression method from filename '$1'..."
+    set -- `archive_infer "$1"`
+    echo $2
+  fi
+}
+
+# archive_infer [archive]
+#
+# infer compression method and container format from filename and output them
+# to stdout in the following format:
+#
+# <container> <compression>
+# -------------------------------------------------------------------------
+archive_infer()
+{
+  local IFS=".$newline$space$tabstop" x='-' c='-' p f=${1##*/}
+
+  for p in $f
+  do
+    case $p in
+      deb) x="$p" ;;
+      zip|rar|lha) c="$p" x="$p" ;;
+      tar|cpio) c="$p" ;;
+      gz|bz2|Z) x="$p" ;;
+      tgz|tbz2) c="tar" x="${p#t}" ;;
+    esac
+  done
+
+  echo "$c" "$x"
+}
+
+# archive_container [archive]
+#
+# detect the container format (e.g. tar, zip) used by the specified archive.
+# returns false when the detected container format is not recognized.
+# -------------------------------------------------------------------------
+archive_container()
+{
+  local a=${1-"-"}
+  local magic=`file "$a"` IFS="$space$newline$tabstop"
+
+  set -- ${magic#*:}
+
+  case $1 in
+    POSIX|ASCII) shift ;;
+  esac
+
+  case $1 in
+    Debian) echo deb ;;
+    MS-DOS) echo zip ;;
+    Zip) echo zip ;;
+    RAR|rar) echo rar ;;
+    tar|cpio|zip) echo $1 ;;
+#    POSIX|ASCII) echo $2 ;;
+    gzip|*[-/]gzip|bzip2|compress*)
+      set -- "${1##*[-/]}"
+      archive_decompress "$a" "${1//zip/z}" | bheader | archive_container -
+      ;;
+    *) echo -;
+      return 1 ;;
+  esac
+}
+
+# archive_decompress <archive> [method]
+#
+# decompress archive while outputting the stream to stdout
+# -------------------------------------------------------------------------
+archive_decompress()
+{
+  local comp=${2-`archive_compression "$1"`}
+
+  case $comp in
+    gz|z|Z|compress*) gzip -dc "$1" ;;
+    bz2) bzip2 -dc "$1" ;;
+    ''|-) cat ${1+"$1"} ;;
+    zip|rar) cat ${1+"$1"} ;;
+    *) msg "Unrecognized compression scheme '$comp'."; return 1 ;;
+  esac
+}
+
+# archive_compress <archive> [method]
+#
+# compress archive while outputting the stream to stdout
+# -------------------------------------------------------------------------
+archive_compress()
+{
+  local comp=${2-`archive_compression "$1"`}
+
+  case $comp in
+    gz) gzip -c "$1" ;;
+    bz2) bzip2 -c "$1" ;;
+    ''|-) cat ${1+"$1"} ;;
+    *)
+      msg "Unrecognized compression scheme '$comp'."
+      return 1
+      ;;
+  esac
+}
+
+# archive_create <archive> [files...]
+#
+# pack the specified path into an archive
+# -------------------------------------------------------------------------
+archive_create()
+{
+  local a=$1 i=`archive_infer "$1"`
+  shift
+
+  msg "Creating archive '$a'..."
+ (msg "Inferred container '${i%$space*}'."
+
+  case ${i%$space*} in
+    cpio) test "$a" = - || exec >"$a"; array "$@" | cpio -o ;;
+    rar) ${a:+rm -f "$a"}; rar a ${a:-"-"} "$@" >/dev/null ;;
+    zip) zip -9 -r ${a:-"-"} "$@" 2>/dev/null ;;
+    *) tar -cf ${a:-"-"} "$@" ;;
+  esac)
+}
+
+# archive_unpack <archive> [path]
+#
+# unpack an archive to the specified destination path
+# -------------------------------------------------------------------------
+archive_unpack()
+{
+  local args strip=''
+
+  local opts=`getopt --name="${0##*/}" --longoptions="strip,exclude" -o "s:x:" -- "$@"`
+  eval "set -- $opts"
+
+  while [ -n "$1" -a "$1" != "--" ]; do
+    case $1 in
+      -s | --strip) strip=$2; shift;;
+      -x | --exclude) exclude="${exclude+:$exclude } -x \"$2\""; shift;;
+      *) array_push args "$1";;
+    esac
+    shift
+  done
+  shift
+
+  local a="$1" d="$2" cont=`archive_container "$1"` #comp=`archive_compression "$1"`
+
+  verbose "Directory: $d"
+    [ -n "$d" ] && mkdir -p "$d"
+
+  case $cont in
+    zip) zip_unpack "$@" && return $? ;;
+    tar) tar_unpack "$@" && return $? ;;
+  esac 2>/dev/null
+
+
+
+ ([ "$a" = "-" ] ||
+  {
+     if [ -f "$a" ]; then
+       exec <$a
+     else
+       errormsg "File $a not found."
+       exit 1
+     fi
+  }
+
+
+  archive_decompress "$a" |
+  {
+
+    [ -n "$d" ] && dir_enter "$d" #2>/dev/null
+
+    case $cont in
+      zip) zip_unpack "$a" ;;
+      rar) rar_unpack "$a" ;;
+      cpio) cpio --quiet -udmiv 2>/dev/null ;;
+      tar)
+        IFS="$newline" \
+        eval "tar ${strip:+--strip-components=\"\$strip\"} ${exclude} --no-same-owner -xv${d:+|sed -e "s:^:${d%/}/:"}" \
+          2>/dev/null 
+      ;;
+      *) errormsg "No such container type $cont." ;;
+    esac
+  })
+}
+
+# archive_list <archive>
+#
+# list the files in the archive
+# -------------------------------------------------------------------------
+archive_list()
+{
+  local opts=`getopt --name="${0##*/}" --longoptions="strip,exclude" -o "s:x:" -- "$@"` args strip=''
+
+  eval "set -- $opts"
+
+  while test "$1" && test "$1" != "--"
+  do
+    case $1 in
+      -s | --strip) strip=$2; shift;;
+      -x | --exclude) exclude="${exclude+:$exclude } -x \"$2\""; shift;;
+      *) array_push 'args' "$1";;
+    esac
+    shift
+  done
+  shift
+
+  if test ! -e "$1"
+  then
+    errormsg "you must specify an existing archive"
+    exit 127
+  fi
+
+  local a=$1 cont=`archive_container "$1"` #comp=`archive_compression "$1"`
+#  msg "Listing contents of $1 ..."
+
+ (test "$a" = "-" || exec <"$a"
+  archive_decompress "$1" |
+  case $cont in
+    cpio) cpio -udmt 2>/dev/null ;;
+    tar) IFS="$newline" eval "tar -tf ${strip:+--strip-components=$strip} ${exclude} -${d:+|sed s:^:$d/:}" 2>/dev/null ;;
+    *) ${cont}_list "$a" 2>/dev/null ;;
+  esac)
+}
+
+archive_files()
+{
+  archive_list "$@" | sed -n '\,/$,! p'
+}
+
+archive_empty()
+{
+  local files=`archive_files "$@"`
+
+  test -z "$files"
+}
+# archive_rootdir <archive>
+#
+# list the root-level links in the archive
+# -------------------------------------------------------------------------
+archive_rootdir()
+{
+  archive_list "$@" | sed "s,/.*,," | uniq
+}
+
+# pack archive from the specified destination path
+#
+# archive_pack <archive> <path> <files...>
+# -------------------------------------------------------------------------
+___archive_create()
+{
+  local archive=$1
+  local path=$2
+  local ext=${archive##*.}local tarsw
+
+  case $ext in
+    bz2) tarsw='j' ;;
+    gz|Z) tarsw='z' ;;
+    *) tarsw='' ;;
+  esac
+
+  if test ! -d "$path"
+  then
+    return 1
+  fi
+
+  shift 2
+
+  tar -C ${path+"$path"} -cv${tarsw}f ${archive+"$archive"} "$@"
+}
+
+# _archive_footprint_filter
+# ----------------------------------------------------------------------------
+_archive_footprint_filter()
+{
+  gawk '{
+    if ($7 == "->")
+      line="lrwxrwxrwx\t"$2"\t"$6" "$7" "$8;
+    else
+      line=$1"\t"$2"\t"$6;
+    if ($3 == "0" && $7 != "->" && $7 != "link" && $6 !~ /\/$/)
+      line=line" EMPTY";
+    print(line);
+  }'
+}
+
+# archive_footprint <archive>
+# ----------------------------------------------------------------------------
+archive_footprint()
+{
+ (tar -tv${1+f$1} | _archive_footprint_filter)
+}
+
+# archive_diff <archive1> <archive2>
+# ----------------------------------------------------------------------------
+archive_diff()
+{
+  local opts=`getopt --name="${0##*/}" --longoptions="exclude,autosense" -o "wx:a" -- "$@"` args auto=0
+  eval "set -- $opts"
+
+  while test "$1" && test "$1" != "--"
+  do
+    case $1 in
+      -a|--auto*) auto=$((!auto)) ;;
+      *) array_push 'args' "$1" ;;
+    esac
+    shift
+  done
+
+  shift
+
+  local t1=`tempnam` t2=`tempnam`
+
+  archive_unpack "${1%%:*}" "$t1" >/dev/null &&
+  archive_unpack "${2%%:*}" "$t2" >/dev/null &&
+  local d1='' d2=''
+
+  case $1 in
+    *:*) d1="/${1#*:}" ;;
+  esac
+
+  case $2 in
+    *:*) d2="/${2#*:}" ;;
+  esac
+
+  test $((auto)) = 1 &&
+  {
+    test -z "$d1" && test `fs_count "$t1"` = 1 && d1=`fs_list "$t1"`
+    test -z "$d2" && test `fs_count "$t2"` = 1 && d2=`fs_list "$t2"`
+  }
+
+  local IFS="$newline"
+
+  diff $args -ruN "$t1${d1:+/$d1}" "$t2${d2:+/$d2}" | sed -e "s: $t1/: :" -e "s: $t2/: :"
+
+#  echo rm -rf "$t1" "$t2"
+}
+
+# archive_eval <script> <archive>
+#
+# Evaluate the given script at the root of an unpacked archive.
+# ----------------------------------------------------------------------------
+archive_eval()
+{
+  local script="$1" dir
+
+ (trap 'rm -rf "$dir"' EXIT QUIT INT TERM
+
+  dir=`mktempdir`
+
+  shift
+
+  archive_unpack "$1" "$dir" 1>/dev/null
+
+  cd "$dir"
+
+  eval "set -x; $script")
+}
+
+
+# --- eof ---------------------------------------------------------------------
+lib_archive_sh=:;}

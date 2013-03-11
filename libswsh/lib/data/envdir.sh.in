@@ -1,0 +1,154 @@
+#!
+#
+# envdir.sh: Functions for "envdir" directory manipulation.
+#
+# $Id: envdir.sh.in 586 2008-08-27 03:24:45Z enki $
+# -------------------------------------------------------------------------
+test $lib_envdir_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/data/obj.sh
+. $shlibdir/fs/dir.sh
+
+# envdir_list <path>
+# 
+# Lists all variables in the specified envdir
+# -------------------------------------------------------------------------
+envdir_list()
+{
+  need_dir "${1-.}" &&
+  (
+    if cd "${1-.}" && set -- *
+    then 
+      IFS=$'\n' && echo "$*"
+    fi
+  )
+}
+
+# envdir_create <path> [initial-key-value-pairs...]
+# 
+# Creates a new envdir.
+# -------------------------------------------------------------------------
+envdir_create()
+{
+  dir_create "${1-.}" &&
+  (
+    #set -e
+    if test -d "${1-.}" && cd "${1-.}"
+    then
+      while shift && test -n "$1"
+      do
+        name=${1%%=*}
+      
+        if test "$name" != "$1"
+        then
+          rm -f "$name" && echo "${1#$name=}" >$name
+        else
+          echo -n >$name
+        fi
+      done
+    fi
+  )
+}
+
+# envdir_isset <path> <names...>
+# 
+# Returns true when all the given variable names exist within the envdir.
+# -------------------------------------------------------------------------
+envdir_isset()
+{
+  need_dir "$1" &&
+  (
+    if cd "$1" && shift
+    then
+      for v
+      do
+        test -e "$v" || exit 1
+      done
+    fi
+  )
+}
+
+# envdir_get <path> <key>
+# 
+# Returns the value of the specified key within the envdir.
+# -------------------------------------------------------------------------
+envdir_get()
+{
+  need_dir "$1" && 
+  (
+    if cd "$1" && test -e "$2"
+    then
+      echo "`<$2`"
+    fi
+  )
+}
+
+# envdir_set <path> <key> <value>
+# 
+# Sets a new value for the key.
+# -------------------------------------------------------------------------
+envdir_set()
+{
+  need_dir "$1" && 
+  (
+    if cd "$1" && shift
+    then
+      if test -n "$1"
+      then
+        echo "$2" >$1
+      else
+        IFS="
+" obj_print "`envdir_obj ${1+"$1"}`"
+      fi
+    fi
+  )
+}
+
+# envdir_unset <path-to-env> <keys...>
+# 
+# Clears the specified keys...
+# -------------------------------------------------------------------------
+envdir_unset()
+{
+  need_dir "$1" &&
+  (
+    cd "$1" && shift && rm -f -- "$@"
+  )
+}
+
+# envdir_obj [path-to-env]
+# 
+# Outputs an object which contains the envdir variables as properties.
+# -------------------------------------------------------------------------
+
+envdir_obj()
+{
+  local dir=${1-.}
+
+  need_dir "$dir" && (cd "$dir" && set -- && for v in *
+  do
+    set -- "$@" "$v=`<$v`"
+  done
+
+  obj "$@")
+}
+
+# envdir_dump [path-to-env]
+# 
+# Dumps all variables in the specified envdir.
+# -------------------------------------------------------------------------
+envdir_dump()
+{
+  local IFS="$nl" obj=`envdir_obj ${1+"$1"}`
+
+  echo ${1+"$1: "}`obj_print "$obj"`
+}
+
+
+# --- eof ---------------------------------------------------------------------
+lib_envdir_sh=:;}

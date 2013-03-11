@@ -1,0 +1,329 @@
+#!/bin/sh
+#
+# fs.sh: filesystem functions
+#
+# $Id: fs.sh.in 910 2009-03-09 10:54:43Z enki $
+# -------------------------------------------------------------------------
+test $lib_fs_sh || {
+
+# set path variable defaults
+# ---------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${bindir:="@bindir@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# include library modules
+# ---------------------------------------------------------------------------
+. $shlibdir/std/array.sh
+. $shlibdir/util.sh
+
+# fs_exists <path>
+#
+# return whether the specified path exists
+# -------------------------------------------------------------------------
+fs_exists()
+{
+  test -e "$1" || errormsg "The path '$1' doesn't exist."
+}
+
+# fs_size <path>
+#
+# return fs size
+# -------------------------------------------------------------------------
+fs_size()
+{
+  ls -1 -n --color=no -la "$@" | \
+    sed '/^total/ d; s,[-a-z]\+[ \t]\+[0-9]\+[ \t]\+[0-9]\+[ \t]\+[0-9]\+[ \t]\+\([0-9]\+\).*,\1,'
+}
+
+fs_type()
+{
+  if [ -L "$1" ]; then
+    echo symlnk
+  elif [ -d "$1" ]; then
+    echo dir
+  elif [ -f "$1" ]; then
+    if [ ! -s "$1" ]; then
+      echo file0
+    else
+      echo file
+    fi
+  elif [ -t "$1" ]; then
+    echo tty
+  elif [ -b "$1" ]; then
+    echo blkdev
+  elif [ -c "$1" ]; then
+    echo chrdev
+  elif [ -p "$1" ]; then
+    echo fifo
+  elif [ -S "$1" ]; then
+    echo sock
+  fi
+}
+
+# fs_list <path>
+#
+# lists content of the specified directory
+# -------------------------------------------------------------------------
+fs_list()
+{
+  local IFS="$space$nl"
+
+  ls -1 --color=no -A ${@+"$@"}
+}
+
+fs_dir()
+{
+  ls -1 --color=no -A -d "$@" | sed 's,/$,,' 2>/dev/null
+}
+
+fs_count()
+{
+  local IFS="$newline"
+  set -- `fs_list "$@"`
+  echo $#
+}
+
+# fs_sort_ext
+#
+# sort files by extension
+# -------------------------------------------------------------------------
+fs_sort_ext()
+{
+  sed -e '/^.*\.[a-z][0-9a-z]*\.\?[0-9]*.*$/ s|^\(.*\)\(\.[a-z][0-9a-z]*\)\(\.\?[0-9]*.*\)$|\2,\1,\3|
+          /^.*\.[a-z][0-9a-z]*\.\?[0-9]*.*$/! s|^\(.*\)$|,\1,|' | \
+  sort --field-separator=',' | \
+  sed -e 's|\(.*\),\(.*\),\(.*\)|\2\1\3|'
+}
+
+# fs_list_ext <FS_dir>
+#
+# list files in the specified directory and sort by extension
+# -------------------------------------------------------------------------
+fs_list_ext()
+{
+  ls -1 --color=no -a ${1:+"$1"} | \
+    sed '/^\.\.\?/d' | fs_sort_ext
+}
+
+# fs_dirs <FS_dir> [order]
+#
+# list dirs in the specified directory
+# -------------------------------------------------------------------------
+fs_dirs()
+{
+  local path=$1
+  local dirs=`ls -F -1 --color=no -a ${path:+"$path"} | sed -n '\,\/$, { \,^\.\.\?,d; s,/$,, p }'`
+  shift
+
+  if test -n "$*"
+  then
+    array_order dirs "$@"
+  fi
+
+  echo "$dirs"
+}
+
+# fs_dirs_recursive <FS_dir> [order]
+#
+# list dirs in the specified directory
+# -------------------------------------------------------------------------
+fs_dirs_recursive()
+{
+  local path=$1
+  local dirs=`ls -F -1 --color=no -a ${path:+"$path"} | sed -n '\,\/$, { \,^\.\.\?,d; s,/$,, p }'`
+  shift
+
+  if test "$*"; then
+    array_order 'dirs' "$@"
+  fi
+
+  for FS_dir in ${dirs}
+  do
+    echo "${path:+"${path%/}/"}$FS_dir"
+    fs_dirs_recursive "${path:+"${path%/}/"}$FS_dir" "$@"
+  done
+}
+
+# fs_list_prefix <FS_dir>
+#
+# list entries in the specified directory and sort by extension
+# -------------------------------------------------------------------------
+fs_list_prefix()
+{
+  ls -1 --color=no -a ${1:+"$1"} | \
+    sed '/^\.\.\?/d' | fs_sort_ext | sed "s,^,${1+"${1%/}/"},"
+}
+
+# fs_files <FS_dir>
+#
+# list files in the specified directory and sort by extension
+# -------------------------------------------------------------------------
+fs_files()
+{
+  ls -F -1 --color=no -a ${@:+"$@"} | \
+    sed -n '\,\/$,! { s,[*@|]\?$,, p }' | \
+    fs_sort_ext
+}
+
+# fs_files_prefix <FS_dir>
+#
+# list files in the specified directory and sort by extension
+# -------------------------------------------------------------------------
+fs_files_prefix()
+{
+  ls -F -1 --color=no -a ${1:+"$1"} | \
+    sed -n '\,\/$,! { s,[*@|]$,, p }' | \
+    fs_sort_ext | sed "s,^,${1+"${1%/}/"},"
+}
+
+# fs_recurse [-df] [-c command] <path>
+#
+# Recurse through all files and subdirs in the given directory tree, running
+# a command on each entry. When no command is specified, the relative path
+# is printed (command=echo).
+# -------------------------------------------------------------------------
+fs_recurse()
+{
+ (CMD=
+  ARGS=
+  h='*/.*' IFS="
+"
+  if [ "${FS_dir+set}${FS_file+set}" != "setset" ]; then
+    FS_dir= FS_file=
+  fi
+
+  while :; do
+    case $1 in
+      -a) ARGS=$1 h= ;;
+      -f) FS_file= FS_dir=: ;;
+      -d) FS_file=: FS_dir= ;;
+      -c) CMD=$2 && shift ;;
+      -c*) CMD=${1#-c} ;;
+      *) break ;;
+    esac
+    shift
+  done 
+
+  for ENTRY in ${*:-*}; do
+    case $ENTRY in
+      $h) continue ;;
+    esac
+
+    if test -d "$ENTRY"; then
+      $FS_dir ${CMD:-"echo"} "$ENTRY/" && 
+      test -x "$ENTRY/" && 
+#     for ENTRY in $ENTRY/*; do
+        fs_recurse ${FS_file:+-f} $ARGS $ENTRY/*
+#     done
+    elif test -e "$ENTRY"; then
+      test -d "$ENTRY" && $FS_dir ${CMD:-echo} "$ENTRY" || 
+      $FS_file ${CMD:-echo} "$ENTRY"
+    fi
+  done)
+}
+
+# -------------------------------------------------------------------------
+fs_empty_dir()
+{
+  test -d "$1" && test -z "`ls -i "$1"`"
+}
+
+# -------------------------------------------------------------------------
+fs_glob()
+{
+  local pattern IFS="$newline"
+  for pattern in `array "$@"`; do
+    test -f "$pattern" && echo "$pattern"
+  done
+  return 0
+}
+
+# -------------------------------------------------------------------------
+fs_remove()
+{
+  local path
+
+  for path
+  do
+    test -d "$path" && msg "Removing directory '$path'..." && rm -rf "$path"
+    test -f "$path" && msg "Removing FS_file '$path'..." && rm -f "$path"
+  done
+}
+
+# -------------------------------------------------------------------------
+fs_copy()
+{
+#  debug "COPY ${1##*/} -> ${2#$prefix/}"
+  cp -f "$1" "$2"
+  echo "$2/${1##*/}"
+}
+
+# -------------------------------------------------------------------------
+fs_duplicate()
+{
+  local suffix="orig" src dst
+
+  while test "$1" != "${1#-}"
+  do
+    case "$1" in
+      -s) sfx="$2" && shift ;;
+      -s*) sfx="${2#-s}" ;;
+      -s=*) sfx="${2#*=}" ;;
+      *) break ;;
+    esac
+    shift
+  done
+
+  case "$sfx" in
+    [0-9A-Za-z]*) sfx="_$sfx" ;;
+  esac
+
+  for src
+  do
+    src="${src%/}"
+    dst="$src${sfx:-_orig}"
+
+    msg "Duplicating directory $src to $dst"
+
+    rm -rf "$dst"
+    cp -rf "$src" "$dst"
+  done
+}
+
+# -------------------------------------------------------------------------
+fs_siblings()
+{
+  local IFS="
+"
+  set -- "${1:-.}"
+
+  if test ! -e "$1"
+  then
+    errormsg "The path $1 doesn't exist."
+    return 127
+  fi
+
+  set -- "${1%/}"
+  set -- "${1:+/}"
+
+  if test "`cd "$1" && pwd`" = /
+  then
+    warn "The root (/) has no siblings."
+    return 1
+  fi
+
+  set -- "${1%/*}"
+
+  test "$1" = / && set --
+
+  set -- "$1/"
+
+  set -- ${1#./}*
+
+  echo "$*"
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_fs_sh=:;}

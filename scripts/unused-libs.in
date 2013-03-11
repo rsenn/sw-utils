@@ -1,0 +1,43 @@
+#!@SHELL@
+#
+# checks for unused libraries
+#
+# $Id: unused-libs.in 32 2006-02-06 11:26:10Z roman $
+prefix="@prefix@"
+target="@target@"
+cwd="$(pwd)"
+libdir="$prefix/lib"
+linker="$prefix/lib/ld-linux.so.2"
+bindirs="$prefix/bin $prefix/sbin $prefix/libexec $prefix/$target/bin $prefix/$target/libexec $prefix/lib/gconv $prefix/lib/php $prefix/lib/php/extensions $prefix/lib/apache $prefix/lib/ImageMagick/modules/coders $prefix/lib/ImageMagick/modules/filters $prefix/lib/security $prefix/lib/engines"
+
+#if [ -z "$@" ]; then
+#  echo "Usage: $0 PATH..."
+#  exit 2
+#fi
+
+PATH="$prefix/bin"
+
+LIBS="$(ls "$libdir"/*.so* | sed 's,\.so.*$,.so,' | sort -u)"
+
+remove_libs()
+{
+  PATTERN="^($(echo $* | sed 's/ /|/g;;s/\+/\\\+/g;;s/\-/\\\-/g;;s/\./\\\./g'))"
+#  echo "pattern: $PATTERN"
+  LIBS="$(echo "$LIBS" | grep -vE "$PATTERN")"
+}
+
+for bindir in $bindirs
+do
+  for bin in $bindir/*
+  do
+    # is it a dynamically linked binary?
+    if [ -z "$(file "$bin" | grep -E '(dynamically linked|shared object)')" ]; then
+      continue
+    fi
+              
+    DEPS=$(ldd "$bin" | sed 's/^ *//;;s/.*=> //;;s/ \(.*\)$//;;s/\.so.*/.so/')
+    remove_libs $DEPS
+  done
+done
+
+echo "$LIBS"

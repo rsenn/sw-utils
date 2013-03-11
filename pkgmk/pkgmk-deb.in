@@ -1,0 +1,509 @@
+#!/usr/bin/env bash
+#
+#
+
+# paths and platform-triplet variables
+# ---------------------------------------------------------------------------
+: ${prefix="@prefix@"}
+: ${libdir="$prefix/lib"}
+: ${shlibdir="$libdir/sh"}
+: ${build="@build@"}
+: ${host="@host@"}
+: ${target="@target@"}
+
+# utility initialization
+# ---------------------------------------------------------------------------
+exec 10>&2
+
+# load the required libraries
+# ---------------------------------------------------------------------------
+source $shlibdir/util.sh
+source $shlibdir/array.sh
+
+# ------------------------------------------------------------------------------
+interrupted()
+{
+	echo ""
+	errormsg "Interrupted (PKG=$PKG)."
+
+  dir_exists "$PKG" && rm -rf "$PKG"
+
+ 
+#	if test $PKGMK_keep_work = no
+#  then
+#    PKGMK_cleanup
+#  fi
+#  remove_work
+#		rm -rf $pkgmk_work_dir &> /dev/null
+#  fi
+	
+	pkgmk_terminate 1
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_help() 
+{
+	echo "usage: `basename $pkgmk_command` [options]"
+	echo "options:"
+	echo "  -v,   --version                  print version and exit "
+	echo "  -h,   --help                     print help and exit"
+}
+
+# ------------------------------------------------------------------------------
+parse_options() 
+{
+  local opt
+	while test "$1"
+  do
+    opt=$1
+    case $opt in
+			-v|--version)
+				echo "`basename $pkgmk_command` (pkgutils) $pkgmk_version"
+				pkgmk_terminate 0
+        ;;
+
+			-h|--help)
+				pkgmk_help
+				pkgmk_terminate 0
+        ;;
+
+			--*|--*=*)
+				echo "`basename $pkgmk_command`: invalid option $opt"
+				pkgmk_terminate 1 
+        ;;
+
+      *=*)
+        var_set "${opt%%=*}" "${opt#*=}"
+        ;;
+
+      *)
+        local ports=$(port_dir "$opt" | sed -e "s:^${portsdir=prefix/ports}/::" | uniq) || exit 1
+      
+        if test $(array_length ports) -gt 1
+        then
+          msg "ambiguous port name: ${opt##*/}"
+          array "valid ports are:" "$ports"
+          exit 125
+        elif is_port "$opt"
+        then
+          array_push pkgmk_list "$opt"
+          shift
+          continue
+        elif test -d "$opt" && test -f "$opt/Pkgfile"
+        then
+          array_push pkgmk_list "$opt"
+          shift
+          continue
+        elif test -d "$PKGMK_ports_dir/$opt" && test -f "$PKGMK_ports_dir/$opt/Pkgfile"
+        then
+          array_push pkgmk_list "$PKGMK_ports_dir/$opt"
+          shift
+          continue
+        else
+  				errormsg "invalid argument $1"
+			  	pkgmk_terminate 1
+        fi
+        ;;
+		esac
+		shift
+    
+    case $opt in
+      -*) array_push pkgmk_options "$opt" ;;
+    esac
+	done
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_terminate()
+{ 
+  if test "$1" != "0" || test "$pkgmk_debug" = 'yes'
+  then
+    pkgmk_debug='no'
+  fi
+
+#  if test $PKGMK_keep_work = 'no'
+#  then
+#    PKGMK_cleanup
+#  fi
+	
+  if test "${PKG#/tmp}" != "$PKG"
+  then
+    rm -rf "$PKG"
+  fi
+  
+  exit ${1-0}
+}
+
+# ------------------------------------------------------------------------------
+main() 
+{
+	local file TARGET
+	
+  source $pkgmk_conffile
+  
+  for file in $pkgmk_confdir/*.conf
+  do
+    if test -r "$file"
+    then
+@DEBUG_TRUE@      debug "Loading extra config ${file##*/}"
+      source "$file"
+    fi
+  done
+  
+	parse_options "$@"
+
+  if test -n "$pkgmk_list"
+  then
+    pkgmk_iterate "$pkgmk_list"
+    pkgmk_terminate 0
+  fi
+
+	if test "$pkgmk_recursive" = yes 
+  then
+		pkgmk_recurse "$@"
+		pkgmk_terminate 0
+	fi
+
+#  if (set -- $(explode "$pkgmk_host" ,) && test "$#" -gt 1)
+#  then
+#    notice "Multiple host systems given, iterating..."
+#
+#    for pkgmk_host in $(explode "$pkgmk_host" ,)
+#    do
+##      notice "Building for host system $pkgmk_host ..."
+#
+#     (main "$@" --host="$pkgmk_host") || if test "$PKGMK_keep_going" = "no"
+#      then
+#        pkgmk_terminate "$?"
+#      fi
+#    done
+#
+#    pkgmk_terminate 0
+#  fi
+  
+  if test -n "$pkgmk_package"
+  then
+    if ! cd "$PKGMK_ports_dir/$pkgmk_package" 2>/dev/null 
+    then
+      errormsg "No such package $pkgmk_package"
+      pkgmk_terminate 1
+    fi
+    msg "Package $pkgmk_package"
+    pkgmk_cwd=$PWD
+  fi
+  
+	for file in $pkgmk_pkgfile
+  do
+		if test ! -f $file
+    then
+			errormsg "The file $file was not found."
+			pkgmk_terminate 1
+		fi
+		source $file 2>/dev/null
+	done
+	
+  pkgmk_work_dir="$PKGMK_source_dir/$category"
+  pkgmk_source_dirs=($PKGMK_source_dir $pkgmk_work_dir $PWD)
+  PKGMK_source_dir="$pkgmk_work_dir"
+  
+	if test -f $pkgmk_home_conffile
+  then
+		source $pkgmk_home_conffile
+	fi
+	
+  # source some libs
+  old_exec_prefix="$exec_prefix"
+  exec_prefix="@exec_prefix@"
+  libdir="@libdir@"
+  shlibdir="@shlibdir@"
+
+  exec_prefix="$old_exec_prefix"
+
+	check_directory "$PKGMK_source_dir"
+	check_directory "$pkgmk_portage"
+	check_directory "`dirname $pkgmk_work_dir`"
+	
+	check_pkgfile
+	
+  mkdir -p "$pkgmk_portage/${pkgmk_host:-$host}"
+  
+  : ${pkgmk_prefix=$prefix}
+  : ${pkgmk_build=$build}
+  : ${pkgmk_host=$host}
+  : ${pkgmk_target=$target}
+  : ${pkgmk_CC=$CC}
+  : ${pkgmk_LIBS=$LIBS}
+  : ${pkgmk_CXX=$CXX}
+  : ${pkgmk_AR=$AR}
+  : ${pkgmk_RANLIB=$RANLIB}
+  : ${pkgmk_CFLAGS=$CFLAGS}
+  : ${pkgmk_CXXFLAGS=$CXXFLAGS}
+  : ${pkgmk_LDFLAGS=$LDFLAGS}
+
+  export prefix
+  
+  umask 0755
+  
+  export prefix="$pkgmk_prefix"
+  export SRC="$PKGMK_source_dir"
+
+	pkgmk_destdir="$PKG_DIR/$pkgmk_host/$category"
+  
+  if test "$pkgmk_host" != "$pkgmk_target"
+  then
+    pkgprefix=$(triplet_uncommon "$pkgmk_host" "$pkgmk_target" pc)
+
+    name="${pkgprefix:+$pkgprefix-}$name"
+
+    unset -v pkgprefix
+  fi
+
+	pkgmk_package="$pkgmk_destdir/$name#$version-$release.pkg.tar.bz2"
+	
+  var_defer 'pkgmk_footprint'
+  
+  if test -n "$pkgmk_host" && test -e "$sysconfdir/pkgmk.d/$pkgmk_host"
+  then
+    :
+#    msg "Host configuration $sysconfdir/pkgmk.d/$pkgmk_host"
+
+#    . "$sysconfdir/pkgmk.d/$pkgmk_host"
+  else
+
+    # cross compilation?
+    if test "$pkgmk_build" != "$pkgmk_host"
+    then
+      pkgmk_prefix=$pkgmk_prefix/$pkgmk_host
+      pkgmk_CC=$pkgmk_host-gcc
+      pkgmk_LIBS=
+      pkgmk_CXX=$pkgmk_host-g++
+      pkgmk_AR=$pkgmk_host-ar
+      pkgmk_RANLIB=$pkgmk_host-ranlib
+      pkgmk_LIBTOOL=$pkgmk_host-libtool
+      pkgmk_STRIP=$pkgmk_host-strip
+
+    fi
+  fi  
+    
+  # other build system than default?
+  if test "$pkgmk_build" != "$build"
+  then
+    msg "Cross compilation on build system $pkgmk_build ."
+  fi
+  
+  # cross compilation?
+  if test "$pkgmk_build" != "$pkgmk_host"
+  then
+    msg "Cross compilation for host system $pkgmk_host ."
+  fi
+
+  if test "$pkgmk_print_pkg" = yes
+  then
+    echo "$pkgmk_package"
+    pkgmk_terminate 0
+  fi
+  
+  if test "$pkgmk_print_srcdir" != "no"
+  then
+    srcdir=$PKGMK_source_dir
+    if test "$pkgmk_print_srcdir" = "root"
+    then
+      if rootdir=$(port_rootdir "$pkgmk_cwd") && test -n "$rootdir"
+      then
+        srcdir=$srcdir/$rootdir
+      fi
+    fi
+    echo "$srcdir"
+    pkgmk_terminate 0
+  fi
+  
+  if test "$pkgmk_print_destdir" = yes
+  then
+    echo $pkgmk_destdir
+    pkgmk_terminate 0
+  fi
+  
+  if test "$pkgmk_info" = yes
+  then
+    pkginfo
+    pkgmk_terminate 0
+  fi
+  
+#	if test "$PKGMK_cleanup" = yes
+#  then
+#		PKGMK_cleanup
+#		pkgmk_terminate 0
+#	fi
+  
+	if test "$pkgmk_clean" = yes
+  then
+		clean
+		pkgmk_terminate 0
+	fi
+	
+#  notice "Build directory $bld"
+#  notice "Source directory $SRC"
+#  notice "Package directory $PKG"
+
+	if test "$PKGMK_update_footprint" = yes
+  then
+		PKGMK_update_footprint
+		pkgmk_terminate 0
+	fi
+	
+	if test "$pkgmk_list_files" = yes
+  then
+		list_files
+		pkgmk_terminate 0
+	fi
+	
+	if test "$pkgmk_update_md5sum" = yes
+  then
+    port_download .
+		make_md5sum >$pkgmk_md5sum
+		msg "Md5sum updated."
+    pkgmk_terminate 0
+	fi
+	
+	if test "$pkgmk_download_only" = yes
+  then
+    port_download .
+#		download_source
+		pkgmk_terminate 0
+	fi
+	
+  if test "$pkgmk_up_to_date" = yes
+  then
+		if test "`build_needed`" = yes
+    then
+			msg "Package $pkgmk_package is not up to date."
+		else
+			msg "Package $pkgmk_package is up to date."
+		fi
+		pkgmk_terminate 0
+	fi
+	
+  if test "$pkgmk_debug" = yes
+  then
+    CFLAGS="${CFLAGS//-ggdb/}"
+    CFLAGS="${CFLAGS//-g[0-9]/}"
+    CFLAGS="${CFLAGS//-g/}"
+    CFLAGS="${CFLAGS//-O[0-9]/-O0}"
+
+    CXXFLAGS="${CXXFLAGS//-ggdb/}"
+    CXXFLAGS="${CXXFLAGS//-g[0-9]/}"
+    CXXFLAGS="${CXXFLAGS//-g/}"
+    CXXFLAGS="${CXXFLAGS//-O[0-9]/-O0}"
+    
+    CFLAGS="-g -ggdb${CFLAGS:+ $CFLAGS}"
+    CXXFLAGS="-g -ggdb${CXXFLAGS:+ $CXXFLAGS}"
+  fi
+  
+	if test "`build_needed`" = no && test "$pkgmk_force" = "no"
+  then
+		msg "Package $pkgmk_package is up to date."
+	else
+#    if test $pkgmk_no_unpack = no
+#    then
+#      PKGMK_cleanup
+#    fi
+
+    port_download .
+
+		pkgmk_build || pkgmk_terminate $?
+    
+    msg "Checking package dependencies..."
+    pkgmk_deps >$pkgmk_cwd/.deps
+	fi
+  
+  if test "${pkgmk_merge+set}" = set && test "$pkgmk_merge" != no
+  then
+   (set --
+    for opt in $(str_to_list "$pkgmk_merge")
+    do
+      set -- "$@" -$opt
+    done
+    set -x
+    pkgadd "$@" "$pkgmk_package" || pkgadd.static "$@" "$pkgmk_package")
+  fi
+  
+  if test "$pkgmk_unpack" != "no"
+  then
+    msg "Unpacking $pkgmk_package to /"
+
+    #files=$(
+    archive_unpack "$pkgmk_package" "/"
+    #)
+  fi
+  
+	pkgmk_terminate 0
+}
+
+trap "interrupted" SIGHUP SIGINT SIGQUIT SIGTERM
+
+export LC_ALL=POSIX
+
+case $(type -t cd) in
+  function) unset -f cd ;;
+esac
+
+readonly pkgmk_version="@PACKAGE_VERSION@"
+readonly pkgmk_command="$0"
+
+pkgmk_cwd="$PWD"
+
+test -f $sysconfdir/epiphyte.conf && source $sysconfdir/epiphyte.conf
+
+pkgmk_conffile="@sysconfdir@/pkgmk.conf"
+pkgmk_confdir="@sysconfdir@/pkgmk.conf.d"
+pkgmk_home_conffile="$HOME/.pkgmk.conf"
+pkgmk_pkgfile="Pkgfile"
+pkgmk_footprint="\$pkgmk_host/.footprint"
+pkgmk_md5sum=".md5sum"
+pkgmk_package=""
+pkgmk_print_pkg="no"
+
+PKGMK_source_dir="$PWD"
+pkgmk_portage="$PWD"  
+PKGMK_ports_dir="@prefix@/ports"
+pkgmk_work_dir="$PWD/work"
+PKGMK_distfiles_dir="$prefix/src/distfiles"
+pkgmk_distfile_mirrors=""
+pkgmk_move_mirrors="no"
+#pkgmk_work_dir="$PKGMK_source_dir/$category/$name"
+
+pkgmk_template=""
+pkgmk_merge="no"
+pkgmk_unpack="no"
+pkgmk_patch_shell="no"
+PKGMK_patch_shell="yes"
+pkgmk_recursive="no"
+PKGMK_download="no"
+pkgmk_download_only="no"
+pkgmk_no_build="no"
+pkgmk_up_to_date="no"
+PKGMK_update_footprint="no"
+PKGMK_ignore_footprint="no"
+pkgmk_force="no"
+PKGMK_keep_work="no"
+pkgmk_no_unpack="no"
+pkgmk_update_md5sum="no"
+pkgmk_ignore_md5sum="no"
+PKGMK_no_strip="no"
+pkgmk_clean="no"
+pkgmk_minimal="no"
+pkgmk_debug="no"
+PKGMK_keep_going="no"
+#PKGMK_cleanup="no"
+pkgmk_print_srcdir="no"
+
+lastpwd=''
+#SRC=''
+
+export PKG=$(tempnam "${TEMP_DIR:-/tmp}")
+
+trap "PKG=\"$PKG\"; interrupted" SIGHUP SIGINT SIGQUIT SIGTERM
+
+main "$@"
+
+# End of file

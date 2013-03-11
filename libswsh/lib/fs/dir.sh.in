@@ -1,0 +1,231 @@
+#!
+#
+# dir.sh: directory functions
+#
+# $Id: dir.sh.in 589 2008-08-27 05:51:02Z enki $
+test $lib_dir_sh || {
+
+: ${prefix:="@prefix@"} # default for prefix
+: ${libdir:="@libdir@"} # default value for libdir
+: ${shlibdir:="@shlibdir@"} # default value for libdir
+
+. $shlibdir/fs.sh
+
+# is_dir <path>
+#
+# Checks wheter the specified path is a directory or not.
+# -------------------------------------------------------------------------
+is_dir()
+{
+  test -e "$1" || errormsg "The path $1 doesn't exist."
+  test -d "$1"
+}
+
+# need_dir <path>
+#
+# Checks wheter the specified path is an existing directory.
+# -------------------------------------------------------------------------
+need_dir()
+{
+  test -d "$1" || errormsg "The directory $1 doesn't exist."
+}
+
+# dir_exists <directory>
+#
+# checks wheter the directory exists or not...
+# -------------------------------------------------------------------------
+dir_exists()
+{
+  test -d "$1"
+}
+
+# dir_empty <directory>
+#
+# checks wheter the directory is empty or not...
+# -------------------------------------------------------------------------
+dir_empty()
+{
+  local IFS="$newline"
+
+  test -d "${1:-.}" || return 2
+
+  set -- `ls -A "${1:-.}"`
+  test 0 -eq $#
+}
+
+# dir_contains <directory> <masks...>
+#
+# Checks wheter the directory contains files matching each of the given masks
+# -------------------------------------------------------------------------
+dir_contains()
+{
+  local dir=$1 IFS='
+'
+  shift
+
+ (cd $dir && for file in $*
+  do
+    test -f $file || exit 1
+  done)
+}
+
+# dir_collapselist <directories...>
+#
+# Strips subdirectories of directories already mentioned from a list of
+# directories
+# -------------------------------------------------------------------------
+dir_collapselist()
+{
+  local IFS='
+'
+  echo "$*" | egrep -v "^(`IFS='|' && echo "$*"`)"
+}
+
+# dir_prune <directory>
+#
+# when the directory is empty it will be removed.
+# -------------------------------------------------------------------------
+dir_prune()
+{
+  local recursive=0 dir
+
+  case $1 in
+    -r) recursive=1 && shift ;;
+  esac
+
+  for dir; do
+    dir="${dir%/}"
+
+    if test -n "$dir" && dir_empty "$dir"; then
+  #    debug "Removing empty directory${dir:+ $dir }..."
+      rm -r "$dir"
+
+      if test "$recursive" = 1; then
+        dir_prune -r "${dir%/*}"
+      fi
+    fi
+  done
+}
+
+# dir_remove <directory>
+#
+# remove directory (recursively)
+# -------------------------------------------------------------------------
+dir_remove()
+{
+  if test -d "$1"
+  then
+    debug "Removing ${2+$2 }directory${1:+ $1 }..."
+    rm -r "${1:-.}"
+  fi
+}
+
+# dir_create [directories...]
+#
+# creates one or more directories, does not fail when some already exist!
+# -------------------------------------------------------------------------
+dir_create()
+{
+  mkdir -p "$@" || install -d "$@" 2>/dev/null
+}
+
+# dir_enter <directory>
+#
+# change into the specified directory, creating it when necessary.
+# -------------------------------------------------------------------------
+dir_enter()
+{
+  local d=${1:-'.'}
+
+  if test -n "$d"
+  then
+    test -d "$d" || dir_create "$d" &&
+#    debug "Entering directory $d" &&
+    cd "$d"
+  fi
+}
+
+# dir_for_each <directory> <var> <commands>
+#
+# for every entry in the specified directory we'll be setting ${var} and
+# executing the specified commands.
+# -------------------------------------------------------------------------
+dir_for_each()
+{
+  local IFS="$newline"
+
+  eval "for $2 in \$(ls -A ${1:-.}); do ${3:-:}; done"
+}
+
+# dir_recurse <directory>
+#
+# List the directory and all its subdirectories.
+# -------------------------------------------------------------------------
+dir_recurse()
+{
+  find "$@" -type d
+}
+
+# dir_reldirs <directory>
+#
+# List the subdirectories relative to the given directory.
+# -------------------------------------------------------------------------
+dir_reldirs()
+{
+  (cd "$1" && dir_recurse */)
+}
+
+#dir_relfile()
+#{
+#  (cd "$1" && dir_recurse */)
+#}
+
+# dir_absolute <directory>
+#
+# Determines the absolute path of the given directory.
+# -------------------------------------------------------------------------
+dir_absolute()
+{
+  need_dir "$1" &&
+  {
+    local dir
+    case $1 in
+      /*) echo "$1" ;;
+      *)
+        dir="$PWD/$1"
+
+        if test -d "$dir"
+        then
+          echo "$dir"
+        else
+          cd "$1" && pwd
+        fi
+        ;;
+    esac
+  }
+}
+
+# dir_dive <directory>
+#
+# Dives into subdirectory, as long as there is only one..
+# -------------------------------------------------------------------------
+dir_dive()
+{
+  local path
+  set -- "$1"
+  while test -d "$1" && test "$#" = 1
+  do
+    cd "${1-.}"
+    set -- */
+    if test -d "$1"
+    then
+      path="$path$1"
+    else
+      break
+    fi
+  done
+  echo "$path"
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_dir_sh=:;}

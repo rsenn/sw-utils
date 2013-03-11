@@ -1,0 +1,181 @@
+# $Id: nobuild.sh.in 862 2009-02-19 08:54:21Z enki $
+#
+# buildsys/nobuild.sh: default build system implementation
+#
+# -------------------------------------------------------------------------
+test $lib_buildsys_nobuild || {
+
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# -------------------------------------------------------------------------
+. $shlibdir/std/array.sh
+. $shlibdir/shell/emit.sh
+
+# -------------------------------------------------------------------------
+NOBUILD_files="*"
+NOBUILD_xdocs='(ChangeLog$|[A-Z][^.]*$|[^\.]+\.txt$)'
+NOBUILD_xnodocs='([MR]akefile|/\.)'
+
+# nobuild_scan [directories...]
+#
+# searches one or more directory trees for any of $NOBUILD_files.
+# -------------------------------------------------------------------------
+nobuild_scan()
+{
+  nobuild_find "$@" | sed -e "s,/[^/]\+$,," | sort -u
+}
+
+# nobuild_find [directories...]
+#
+# searches one or more directory trees for any of $NOBUILD_files.
+# -------------------------------------------------------------------------
+nobuild_find()
+{
+ (set -f
+  IFS=" "
+  find "${@:-.}" -type f | sed -e "s,^\.\/,,")
+}
+
+# nobuild_file [directory]
+# -------------------------------------------------------------------------
+nobuild_file()
+{
+ (${1+cd "$1"}
+  for file in $NOBUILD_files
+  do 
+    test -e "$file" && echo "$file" && break
+  done)
+}
+
+# -------------------------------------------------------------------------
+nobuild_subdirs()
+{
+  local dirs
+  array_print dirs
+}
+
+# nobuild_check [directories...]
+#
+# checks one or more directories for the presence of $NOBUILD_files
+# -------------------------------------------------------------------------
+nobuild_check()
+{
+  local n names='' IFS=" $newline$tabstop"
+
+ (for dir
+  do
+   (cd "$dir"
+    eval set -- $NOBUILD_files
+    for src
+    do
+      test -e "$src" && echo "$dir" && continue 2
+    done
+    errormsg "Not a valid source tree: '$dir'." 
+    return 1)
+  done)
+}
+
+# nobuild_instcmd <directory> <files...>
+#
+# Outputs installation command for installing the specified files in the
+# specified directory.
+# -------------------------------------------------------------------------     
+nobuild_instcmd()
+{
+ (DIR=$1
+  IFS=" "
+  shift
+  echo "install -d $DIR"
+  echo "install -m 644 $* $DIR")
+}
+
+# nobuild_commands [source dirs...]                                           
+#                                                                               
+# -------------------------------------------------------------------------     
+nobuild_commands()                                                            
+{                                                                               
+  local dir="$1" scriptpath parent base cmds= docs= IFS="
+"
+  shift
+
+  nobuild_check "$dir" >/dev/null || return 1
+
+  docs=`nobuild_documents "$dir"`
+
+  if test -n "$docs"; then
+    obj_push cmds inst "`nobuild_instcmd \$ROOT/share/doc/$name $docs`"
+  fi
+
+  echo "$cmds"
+}
+  
+
+
+# nobuild_documents [source dirs...]                                           
+#                                                                               
+# -------------------------------------------------------------------------     
+nobuild_documents()                                                            
+{                                                                               
+  local dir="$1" docs= filename IFS=" ""
+"
+  shift
+
+  nobuild_check "$dir" >/dev/null || return 1
+
+  for filename in AUTHORS COPYING README ChangeLog INSTALL; do
+    test -f "$dir/$filename" && pushv docs "$filename"
+  done
+
+  if [ -n "$docs" ]; then
+    echo "$docs"
+  fi
+}
+
+nobuild_extractdocs()                                                            
+{
+  local strip=0 xremove= xdocs="$NOBUILD_xdocs\$"
+
+  while [ "$#" -gt 0 ]; do
+    case $1 in
+      -p) strip=$2; shift ;;
+      -p*) strip=${1#-p} ;;
+    esac
+    shift
+  done  
+
+  while [ "$strip" -gt 0 ]; do
+    xdocs="[^/]+/${xdocs}"
+    xremove="[^/]\+/$xremove"
+    strip=`expr $strip - 1`
+  done
+
+  egrep "$xdocs" | egrep -v "$NOBUILD_xnodocs" | sed -e "s:^${xremove:-./}::" -e "/[Mm]akefile/d"
+}
+
+# nobuild_buildfn <vars...>
+# -------------------------------------------------------------------------
+nobuild_buildfn()
+{
+  local IFS="$obj_s$nl" dir name version srcdir inst
+
+#  emit_startfn 'build'
+
+  name=`obj_get "$*" name`
+  version=`obj_get "$*" version`
+  srcdir=`obj_get "$*" srcdir`
+  inst=`obj_get "$*" inst`
+
+  emit_cmd "cd ${srcdir//$version/\$version}"
+  emit_cmd
+  
+  if [ "$inst" ]; then
+    emit_cmd "$inst"
+  fi
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_buildsys_nobuild_sh=:;}

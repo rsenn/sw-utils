@@ -1,0 +1,55 @@
+#!
+#
+# html.sh: HTML extraction and conversion functions.
+#
+# $Id: html.sh.in 574 2008-08-25 22:13:42Z enki $
+test $lib_html_sh || {
+
+: ${prefix:="@prefix@"}
+: ${sysconfdir:="@sysconfdir@"}
+: ${libdir:="@libdir@"}
+: ${bindir:="@bindir@"}
+
+# html_text <file>
+#
+# Formats the given HTML as plain text.
+# The structure of the text will follow roughly the graphical layout
+# (lynx-style). Each paragraph of text in HTML will result in a line of text in
+# the output which is delimited by a blank line. The indentation reflects the
+# nesting OR the type (h1,h2,h3...) of these elements, so a <h1> heading won't
+# be indented.
+# -------------------------------------------------------------------------
+html_text()
+{
+  for file in "${@:--}"; do
+    test "$file" = - || exec <$file
+    lynx -dump \
+         -stdin \
+         -stderr \
+         -force_html \
+         -nolist \
+         -nomargins \
+         -nobold \
+         -nocolor \
+         -nounderline \
+         -width="${html_width:-16384}" | sed \
+    -e '1 {
+          :lp; /^\s*\$/ { N; b lp; }
+          s,^\s*,,
+        }' \
+    -e 's,^\s\+_\+\s*$,\n-,'
+  done
+}
+
+# -------------------------------------------------------------------------
+html_dequote()
+{
+  echo "$*" | sed \
+    -e 's|&quot;|"|g' \
+    -e 's|&amp;|\&|g' \
+    -e 's|&lt;|<|g' \
+    -e 's|&gt;|>|g'
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_html_sh=:;}

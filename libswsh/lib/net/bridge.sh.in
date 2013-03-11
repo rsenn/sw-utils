@@ -1,0 +1,100 @@
+# $Id: bridge.sh.in 888 2009-03-07 21:14:19Z enki $
+#
+# net/bridge.sh: interface address and interface functions
+#
+# ---------------------------------------------------------------------------
+@DEBUG_FALSE@test $lib_net_bridge_sh || {
+
+# directories
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# modules
+# -------------------------------------------------------------------------
+. $shlibdir/util.sh
+. $shlibdir/net/if.sh
+
+# bridge_list [pattern]
+#
+# List all known network bridges
+# -------------------------------------------------------------------------
+bridge_list()
+{
+  brctl show | awk 'NR>1 { print $1 }'
+}
+
+# bridge_new <name>
+#
+# Create a bridge interface
+# -------------------------------------------------------------------------
+bridge_new()
+{
+  brctl addbr "$1"
+}
+
+# bridge_delete <name>
+#
+# Delete the specified bridge interface
+# -------------------------------------------------------------------------
+bridge_delete()
+{
+  brctl delbr "$1"
+}
+
+# bridge_clear
+#
+# -------------------------------------------------------------------------
+bridge_clear()
+{
+ (for BRIDGE in `bridge_list`; do
+    bridge_delete "$BRIDGE"
+  done)
+}
+
+# bridge_slaves <bridge>
+#
+# List the slaves of a bridge.
+# -------------------------------------------------------------------------
+bridge_slaves()
+{
+  brctl show | awk '{
+    if ($1=="'$1'") { 
+      print $4
+      while (i = getline) { 
+        if (NF>1) break
+        print $NF 
+      }
+    }
+  }'
+}
+
+# bridge_add <bridge> <slaves...>
+#
+# Add slave interfaces to the specified bridge.
+# -------------------------------------------------------------------------
+bridge_add()
+{
+ (BRIDGE="$1"
+  while [ "$#" -gt 1 ]; do
+    shift
+    brctl addif "$BRIDGE" "$1"
+  done)
+}
+
+# bridge_remove <bridge> <slaves...>
+#
+# Remove slave interfaces from the specified bridge.
+# -------------------------------------------------------------------------
+bridge_remove()
+{
+ (BRIDGE="$1"
+  while [ "$#" -gt 1 ]; do
+    shift
+    brctl delif "$BRIDGE" "$1"
+  done)
+}
+
+# --- eof ---------------------------------------------------------------------
+@DEBUG_FALSE@lib_net_bridge_sh=:;}

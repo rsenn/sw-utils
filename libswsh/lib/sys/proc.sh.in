@@ -1,0 +1,192 @@
+# $Id: proc.sh.in 976 2009-07-23 15:38:43Z enki $
+#
+# sys/proc.sh: Shell functions for reading process info.
+# -------------------------------------------------------------------------
+test $lib_sys_proc_sh || {
+
+# proc_pids
+#
+# Get all process ids (pid)
+# -------------------------------------------------------------------------
+proc_pids()
+{
+  (cd /proc && echo [0-9]*)
+}
+
+# proc_cmdline [pid]
+#
+# Get command line of a process.
+# -------------------------------------------------------------------------
+proc_cmdline()
+{
+  xargs -0 -n1 2>/dev/null </proc/${1:-$$}/cmdline
+}
+
+proc_environ()
+{
+  xargs -0 -n1 2>/dev/null </proc/${1:-$$}/environ
+}
+
+# proc_alive [pid]
+#
+# is the process alive?
+# -------------------------------------------------------------------------
+proc_alive()
+{
+  test -e "/proc/${1:-self}/stat"
+}
+
+# proc_parent [pid]
+#
+# Gets the process id of the parent process.
+# -------------------------------------------------------------------------
+proc_parent()
+{
+  local IFS=" "
+
+  if test -e "/proc/${1:-self}/exe"
+  then
+    set -- `</proc/${1:-self}/stat`
+    echo $4
+  fi
+}
+
+# find all children
+# -------------------------------------------------------------------------
+proc_children()
+{
+  while [ "$#" -gt 0 ]; do
+    grep -E "^PPid:[	 ]+$1\$" /proc/[0-9]*/status 2>/dev/null | sed 's,^/proc/,,;;s,/.*,,'
+    shift
+  done
+}
+
+proc_rchildren()
+{
+ (CHILDREN=`proc_children "$@"`
+  for child in $CHILDREN; do
+    echo "$child"
+    proc_rchildren "$child"
+  done)
+}
+
+# find proc by cmdline
+#
+# proc_find <expr>
+# -------------------------------------------------------------------------
+proc_find()
+{
+  local expr=$1 pid cmdline
+
+  shift
+
+  for pid in ${*:-`proc_pids`}
+  do
+    cmdline=`proc_cmdline $pid`
+
+    case $cmdline in
+      *${expr}*)
+        echo $pid
+        ;;
+      *)
+        continue
+        ;;
+    esac
+  done
+}
+
+# get the pid of svscanboot
+# -------------------------------------------------------------------------
+proc_svscanboot()
+{
+  if test -e $bindir/pgrep; then
+    pgrep -f 'svscanboot$' || pgrep 'svscan$'
+  else
+    proc_find 'svscanboot'  `proc_children 1` || \
+    proc_find 'svscan'  `proc_children 1`
+    return $?
+  fi
+}
+
+# svscanboot must be installed and running
+# -------------------------------------------------------------------------
+proc_mustbeinstalled()
+{
+  test -n "`proc_svscanboot`" ||
+    {
+    error "svscanboot not running, use --install"
+    return 1
+    }
+}
+
+# recursively get PIDs
+# -------------------------------------------------------------------------
+proc_descend()
+{
+  echo $1
+
+  for pid in `proc_children $1`
+  do
+    proc_descend ${pid}
+  done
+}
+
+# get PIDs of all supervised processes
+# -------------------------------------------------------------------------
+proc_supervised()
+{
+  proc_descend `proc_svscanboot`
+}
+
+# from a list of given PIDs, output those who are still running
+# -------------------------------------------------------------------------
+proc_still_running()
+{
+  for pid in $*
+  do
+    [ -d /proc/$pid ] && echo $pid
+  done
+}
+
+# merge a list of PIDs
+# -------------------------------------------------------------------------
+proc_merge()
+{
+  for pid
+  do
+    echo $pid
+  done | sort -u
+}
+
+# count number of PIDs in the list
+# -------------------------------------------------------------------------
+proc_count()
+{
+  set -- $*
+  echo $#
+}
+
+# search for process matching the regular expression
+# -------------------------------------------------------------------------
+proc_grep() 
+{
+  pgrep "$1" || pgrep -f "$1"
+}
+
+# proc_cwd [pid] 
+# -------------------------------------------------------------------------
+proc_cwd()
+{
+  proc_readlink ${1+"$1"} cwd
+}
+
+# proc_readlink [pid] [link-name]
+# -------------------------------------------------------------------------
+proc_readlink()
+{
+  readlink "/proc/${1-self}/${2-exe}"
+  return $?
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_sys_proc_sh=:;}

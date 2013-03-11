@@ -1,0 +1,127 @@
+#!/bin/sh
+#
+# archive/rar.sh: RAR archiving functions.
+#
+# $Id: rar.sh.in 967 2009-06-22 07:18:20Z enki $
+
+test $lib_archive_rar_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/util.sh
+. $shlibdir/std/escape.sh
+
+# rar_cmd [options] <rar-archive> [files/directories...]
+#
+# Outputs a suitable command-line for the rar program.
+#
+#     -l, --level NUM         Compression level: 0 = store -> 9 = best.
+#     -d, --dereference       Dump the files instead of symlink pointing to.
+#     -x, --exclude PATTERN   Exclude files matching PATTERN.
+# -------------------------------------------------------------------------
+rar_cmd()
+{
+  local cmd= uncmd= un= arg= xcl= a= s=' ' c=false IFS=$nl
+  eval "set -- $(getopt --name=rar --shell=sh \
+                        --longoptions=level:,dereference,exclude:,no-recursion,create,delete,list,unpack -o 0123456789hx:Rcdlu -- "$@")"
+
+  cmd="rar"
+
+  local filter= #"|sed -e 's|^\s*[^:\s]\+:\s\+||' -e 's|\s\+([^()]\+)$||'"
+  local unfilter="|sed -ne 's|^\s*[0-9]\+\s\+[0-1][0-9]-[0-3][0-9]-[0-9][0-9]\s\+[0-2][0-9]:[0-5][0-9]\s\+\(.*\)$|\1|p'"
+
+  while test -n "$1"; do
+    case $1 in
+      # compression level
+      -[0-9]|--level)
+         ;;
+
+      # exclude files/dirs...
+      -x|--exclude)
+
+         xcl=${xcl:+$xcl$s}'--exclude="'"`escape_dquote "$2"`"'"'
+         shift
+         ;;
+
+      -c|--create)
+         cmd=${cmd//-[cxtv]$s/} && cmd=${cmd%$s-[cxtv]}
+         cmd=${cmd:+$cmd$s}'-c'$s'-v'
+         ;;
+
+      -l|--list)
+         cmd=${cmd#*rar${s}[a-z]*$s}
+         cmd=${cmd#-p-$s}
+         cmd="unrar${s}vb${s}-p-"
+         arg="${arg:+$arg$s}2>/dev/null"
+         ;;
+
+      -u|--unpack)
+         cmd=${cmd#*rar' '[ax]$s}
+         cmd="un${cmd}"
+         cmd=${cmd:+$cmd$s}'x -o+'
+         un='un'
+         ;;
+
+      -h|--dereference)  cmd=${cmd:+$cmd$s}'-h' ;;
+      -R|--no-recursion) cmd=${cmd:+$cmd$s}'--no-recursion' ;;
+
+      --) shift && break ;;
+    esac
+    shift
+  done
+  a=$1
+  shift
+  while test -n "$1"; do
+    arg="${arg:+$arg$s}\"`escape_dquote "$1"`\""
+    shift
+  done
+  echo $cmd "\"`escape_dquote "$a"`\"" $arg $xcl `var_get ${un}filter`
+}
+
+# rar_create <rar-archive> [files/directories...]
+#
+# Pack the specified files and directories into a newly created rar-archive.
+# -------------------------------------------------------------------------
+rar_create()
+{
+  local IFS= a=${1:?archive name required}
+  msg "Creating rar-archive '$1'..."
+  eval `rar_cmd --create "$@"`
+}
+
+# -------------------------------------------------------------------------
+rar_unpack()
+{
+  local IFS= a=${1:?archive name required}
+  msg "Unpacking rar-archive '$1'..."
+  eval `rar_cmd --unpack "$@"`
+}
+
+# rar_update <rar-archive> [files/directories]
+#
+# Update the rar-archive (adding when necessary) with the specified files
+# and directories.
+# -------------------------------------------------------------------------
+rar_update()
+{ 
+  local IFS= a=${1:?archive name required}
+  msg "Creating rar-archive '$1'..."
+  eval `rar_cmd --update "$@"`  
+}
+
+# rar_list <rar-archive> [files/directories]
+#
+# List either all or only the specified files and directories from the rar-archive.
+# -------------------------------------------------------------------------
+rar_list()
+{ 
+  local IFS= a=${1:?archive name required}
+  msg "Listing contents of rar-archive '$1'..."
+  eval `rar_cmd --list "$@"`  
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_archive_rar_sh=:; }

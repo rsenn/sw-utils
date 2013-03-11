@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+#
+#  pkgutils
+# 
+#  Copyright (c) 2000-2003 Per Liden <per@fukt.bth.se>
+#  Modifications for sw-ports by Lukas Beeler <lb-debian@projectdream.org>
+# 
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, 
+#  USA.
+#
+
+# --------------------------------------------------------------------------------
+info()
+{
+  echo "=======> $@"
+}
+
+# --------------------------------------------------------------------------------
+warning()
+{
+  info "WARNING: $@"
+}
+
+# --------------------------------------------------------------------------------
+error()
+{
+  info "ERROR: $@"
+}
+
+# --------------------------------------------------------------------------------
+get_filename()
+{
+  local FILE="`echo $1 | sed 's|^.*://.*/||g'`"
+
+  if [ "$FILE" != "$1" ]; then
+    FILE="$NEXMK_SOURCE_DIR/$FILE"
+  fi
+
+  echo $FILE
+}
+
+# --------------------------------------------------------------------------------
+unpack_source() 
+{
+	local FILE LOCAL_FILENAME COMMAND
+	
+	for FILE in ${source[@]}; do
+		LOCAL_FILENAME=`get_filename $FILE`
+		case $LOCAL_FILENAME in
+			*.tar.gz|*.tar.Z|*.tgz)
+				COMMAND="tar -C $SRC --use-compress-program=gzip -xvf $LOCAL_FILENAME" ;;
+			*.tar.bz2)
+				COMMAND="tar -C $SRC --use-compress-program=bzip2 -xvf $LOCAL_FILENAME" ;;
+			*.zip)
+				COMMAND="unzip -L -qq -o -d $SRC $LOCAL_FILENAME" ;;
+			*)
+				COMMAND="cp $LOCAL_FILENAME $SRC" ;;
+		esac
+
+		echo "$COMMAND"
+
+		$COMMAND || true
+
+		if [ $? != 0 ]; then
+			if [ "$NEXMK_KEEP_WORK" = "no" ]; then
+				rm -rf $NEXMK_WORK_DIR &> /dev/null
+			fi
+			error "Building '$PACKAGE' failed."
+			exit 1
+		fi
+	done
+}
+
+main()
+{
+  source ${NEXMK_CONFFILE}
+  source Pkgfile
+
+  export CWD="$NEXMK_CWD"
+  export PKG="$NEXMK_WORK_DIR/pkg"
+  export SRC="$NEXMK_WORK_DIR/src"
+  export ROOT="$NEXMK_WORK_DIR/pkg/${prefix}"
+  umask 022
+  
+  patch=$1
+  patch_new=$(echo ${patch} | sed "s,[0-9][0-9\.p]\+,${version},")
+  
+  mkdir -p ${SRC}
+  
+  unpack_source
+  
+  srcdir=$(find ${SRC} -maxdepth 1 -mindepth 1 -type d | head -n1)
+  srcdir=$(basename ${srcdir})
+  
+  (cd ${SRC}
+   cp -rvf ${srcdir} ${srcdir}_orig)
+  
+  (cd $SRC/${srcdir}
+   patch -p1 -i ../../../${patch})
+   
+  (cd ${SRC}
+   echo "writing ../../${patch_new}"
+   udiff ${srcdir}_orig ${srcdir} > ../../${patch_new})
+}
+
+trap "interrupted" SIGHUP SIGINT SIGQUIT SIGTERM
+
+export LC_ALL=POSIX
+
+readonly NEXMK_VERSION="@PACKAGE_VERSION@"
+readonly NEXMK_COMMAND="$0"
+readonly NEXMK_CWD="$PWD"
+
+NEXMK_CONFFILE="@sysconfdir@/pkgmk.conf"
+NEXMK_HOME_CONFFILE="$HOME/.pkgmk.conf"
+NEXMK_PKGFILE="Pkgfile"
+NEXMK_FOOTPRINT=".footprint"
+NEXMK_MD5SUM=".md5sum"
+
+NEXMK_SOURCE_DIR="$PWD"
+NEXMK_PACKAGE_DIR="$PWD"
+NEXMK_WORK_DIR="$PWD/work"
+
+NEXMK_RECURSIVE="no"
+NEXMK_DOWNLOAD="no"
+NEXMK_DOWNLOAD_ONLY="no"
+NEXMK_NO_BUILD="no"
+NEXMK_UP_TO_DATE="no"
+NEXMK_UPDATE_FOOTPRINT="no"
+NEXMK_IGNORE_FOOTPRINT="no"
+NEXMK_FORCE="no"
+NEXMK_KEEP_WORK="no"
+NEXMK_UPDATE_MD5SUM="no"
+NEXMK_IGNORE_MD5SUM="no"
+NEXMK_NO_STRIP="no"
+NEXMK_CLEAN="no"
+NEXMK_MINIMAL="no"
+
+main "$@"
+
+# End of file

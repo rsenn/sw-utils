@@ -1,0 +1,812 @@
+#!@SHELL@
+#
+# $Id: pkgrelease.in 692 2007-04-18 22:22:49Z  $
+
+prefix="@prefix@"
+libdir="$prefix/lib"
+localstatedir="$prefix/var"
+
+target="@target@"
+
+shlibdir="$libdir/sh"
+releasedir="$localstatedir/lib/rel"
+#templatedir="$localstatedir/lib/tpl"
+packagedir="$prefix/pkg/$target"
+
+me="${0##*/}"
+
+source $shlibdir/util
+source $shlibdir/pkg
+source $shlibdir/port
+source $shlibdir/template
+
+templatedir="$portsdir/templates"
+
+# these binaries we need statically linked in every release
+# ---------------------------------------------------------------------------
+static_bins="bin/basename
+             bin/bash
+             bin/cat
+             bin/chmod
+             bin/chown
+             bin/cp
+             bin/df
+             bin/dialog
+             bin/dirname
+             bin/du 
+             bin/getopt
+             bin/grep
+             bin/head
+             bin/hostname 
+             sbin/ifconfig
+             bin/ln
+             bin/ls
+             bin/mkdir
+             bin/mktemp
+             bin/mv 
+             bin/pkgadd
+             bin/printf 
+             bin/readlink
+             bin/rm
+             bin/sed
+             bin/sort
+             bin/tail
+             bin/wc"
+
+# show pkgrelease usage
+# ---------------------------------------------------------------------------
+usage()
+{
+  echo "Usage: $me [OPTIONS] 
+options:
+  --release <dir|iso|tar> <version> <template>
+                                     Forge a release, either to a directory,
+                                     an ISO image or a .tar archive
+
+  --update  <dir|iso|tar> <from> <to> <template>   
+                                     Forge a release, either to a directory,
+                                     an ISO image or a .tar archive
+                                     
+  --history                          Show the release history
+  --collect <dir>                    Collect release info from a previous release
+  --tag <version>                    Tag the current portage as a release
+  --help                             Print help and exit"
+}
+
+# print a prefixed message
+# ---------------------------------------------------------------------------
+msg()
+{
+  echo "$me: $*" 1>&2
+}
+
+# print an error message and exit
+# ---------------------------------------------------------------------------
+error()
+{
+  msg "$@"
+  exit 1
+}
+
+# collect info from a existing release
+# ---------------------------------------------------------------------------
+collect()
+{
+  # check if there are packages
+  if [ ! -d "$1/packages" ]; then
+    error "$1 is not a valid release directory"
+  fi
+  
+  # get version of that release
+  if ! version=$(releasenumber "$1"); then
+    error "can't extract release version from $1"
+  fi
+  
+  # now get the package info
+  for pkg in "$1/packages"/*/*.pkg.tar.*
+  do
+    pkginfo ${pkg}
+  done 2>/dev/null > $releasedir/${version} &&
+  
+  msg "release info written to $releasedir/$version" ||
+
+  error "couldn't write to $releasedir/$version"
+}
+
+# get package info
+# ---------------------------------------------------------------------------
+pkginfo()
+{
+  local pkgname=$(basename "$1")
+  local pkgcat=$(basename $(dirname "$1"))
+  local name=${pkgname%%#*}
+  local version=${pkgname##*#} ; version=${version%-*.pkg.tar*}
+  local release=${pkgname##${name}#${version}-} ; release=${release%.pkg.tar*}
+
+  echo ${pkgcat} ${name} ${version} ${release}
+}
+
+# get release number from iso/tar/directory name
+# ---------------------------------------------------------------------------
+releasenumber()
+{
+  local version=$(echo $1 | sed 's,^.*-\([0-9\.]\+.*\)$,\1,')
+  
+  if [ -z "$version" ] || [ "$version" = "$1" ]; then
+    return 1
+  else
+    echo ${version%.[a-z]*}
+  fi
+}
+
+# prepare a release version for sorting
+# ---------------------------------------------------------------------------
+formatrelease()
+{
+  local major minor patch extra extraname extranum release=${1##*/} 
+  
+  major=${release%%.*} ; release=${release#$major.}
+  minor=${release%%[-.a-z]*} ; release=${release#$minor} 
+
+  if [ "${release%%[-.a-z]*}" != "$minor" ]; then
+    release=${release#[-.]}
+    patch=${release%%[-.a-z]*}
+    release=${release#${patch}}
+  fi
+
+  release=${release#[-.]}
+  extra=${release} #%%[-.]*}
+  major=${major##*-}
+ 
+#  echo "maj:$major" "min:$minor" "ptc:$patch" "ext:$extra" 
+
+  extraname=${extra%%[0-9]*}
+  extranum=${extra#${extraname}}
+  
+  printf "%05u %05u %05u %-10s %05u\n" "$major" "$minor" "$patch" \
+                                  "${extraname:-zzzzzzzzzzzzzzzzzz}" \
+                                  "$extranum" 2>/dev/null
+}
+
+# sort several releases
+# ---------------------------------------------------------------------------
+sortreleases()
+{
+  local release ret=0
+
+  for release in "$@"
+  do
+    formatrelease "$release" || { ret=1; break; }
+  done | sort -u
+  
+  return ${ret}
+}
+
+# convert back from sortable format to human readable
+# ---------------------------------------------------------------------------
+assemblerelease()
+{
+  local extranum=$(($(echo $5 | sed 's,^0\+,,'))) extraname=$4 patch
+    
+  if [ "$extranum" = "0" ]; then
+    extranum=""
+  fi
+  
+  if [ "$extraname" = "zzzzzzzzzzzzzzzzzz" ]; then
+    extraname=""
+  fi
+    
+  { patch=$(( $(echo $3 | sed 's,^0*,,') )) && [ "$patch" -gt 0 ]; } || unset patch
+
+  echo $(($1)).$(($2))${patch+.$patch}${extraname:+-}${extraname}${extranum}
+}
+
+# show history of released distributions
+# ---------------------------------------------------------------------------
+history()
+{
+  sortreleases "$@" | while read major minor extraname extranum
+  do
+    assemblerelease ${major} ${minor} ${extraname} ${extranum}
+  done
+}
+
+# check if a release doesn't already exist and there isn't any newer one
+# ---------------------------------------------------------------------------
+releaseok()
+{
+  local arg="$1" current new last
+
+  # released in the past 
+  releases=$releasedir/*
+  set -- ${releases}
+
+  if [ "$1" = "$releases" ]; then
+    releases=""
+  fi
+
+  current=$(sortreleases ${releases})
+
+  # releases including the new one
+  if ! new=$(sortreleases ${releases} ${arg}); then
+    error "invalid release number ${arg}"
+  fi
+
+  # last release so far
+  last=$(echo "$new" | tail -n1)
+
+  if [ "$current" = "$new" ]; then
+    error "release ${arg} already exists"
+  fi
+
+  if [ "$last" != "$(formatrelease "$arg")" ]; then
+    error "there is already a newer release ($(assemblerelease ${last})) than ${arg}"
+  fi
+}
+
+# prepare output directory
+# ---------------------------------------------------------------------------
+prepare_output()
+{
+  # guess output type
+  case $1 in
+    *.iso|*.tar)
+      output="${1##*.}"
+      destfile="$1"
+      destname="$(basename "${1%.*}")"
+      tempdir="$(mktempdir)"
+      destdir="$tempdir/${destname}"
+      ;;
+    *)
+      output="dir"
+      destfile=""
+      destdir="$1"
+		 
+      if [ -d ${destdir} ]; then
+        warn "${destdir} already exists!"
+#        exit 1
+      fi
+#		  mkdir -p ${destdir}
+      ;;
+  esac
+}
+
+# install terminfo stuff
+# ---------------------------------------------------------------------------
+install_terminfo()
+{
+  msg "Copying terminfo database..."
+  cp -rl $prefix/share/terminfo $destdir/lib 2>/dev/null ||
+  cp -r $prefix/share/terminfo $destdir/lib 
+}
+
+# installing swconfig and pkginstall scripts
+# ---------------------------------------------------------------------------
+install_scripts()
+{
+  mkdir -p $destdir/bin
+  
+  if [ ! -f "$destdir/bin/$1" ]; then
+    sed 's,#!.*/sh,#!/bin/sh,' $prefix/bin/$1 >$destdir/bin/$1
+  else
+    sed -i 's,#!.*/sh,#!/bin/sh,' $destdir/bin/$1
+  fi
+  chmod 755 $destdir/bin/$1
+  
+#  cp -L $prefix/bin/pkg{config,svc,$1} $destdir/bin
+
+  if [ "$1" = "pkginstall" ]; then
+    cat > $destdir/${1#pkg} << EOF
+#!/bin/sh
+# check for procfs, mount it if necessary
+if ! test -d /proc/\$$; then
+  /sbin/mount -t procfs nodev /proc ||
+  { echo "FATAL: could not mount /proc"; exit 1; }
+fi
+# get absolute location of this script
+script=\$0
+if test "\${script%/*}" = "\$script"; then
+  script="./\$script"
+fi
+scriptdir=\$(cd "\${script%/*}" && pwd)
+
+exec "\$scriptdir/bin/bash" "\$scriptdir/bin/pkginstall"${install_args:+ $install_args} "\$@"
+EOF
+    chmod 755 "$destdir/${1#pkg}"
+  fi
+} 
+
+# installing static binaries needed by swconfig and pkginstall
+# ---------------------------------------------------------------------------
+install_static_bins()
+{
+  for bin in ${static_bins}
+  do
+    local src=${prefix}/${bin}.static
+    local dst=${destdir}/bin/${bin##*/}
+  
+    if [ -f "$dst" ]; then
+      if ! [ "$src" -nt "$dst" ]; then
+        msg "${bin}.static is up to date!"
+        continue
+      fi
+      
+      rm -f "$dst"
+    fi
+
+    msg "stripping $(printf %-20s ${bin}.static) -> $dst"
+    strip --strip-all "$src" -o "$dst"
+
+#    if upx -t "$src" 2>/dev/null 1>/dev/null; then
+#      msg "copying $(printf %-21s ${bin}.static) -> $dst"
+#      cp "$src" "$dst"
+#    else
+#      msg "compressing $(printf %-17s ${bin}.static) -> $dst"
+#      local tmp=$(tempnam)
+#      strip --strip-all "$src" -o ${tmp}
+#      upx -q --best -o "$dst" ${tmp} >/dev/null ||
+#      {
+#        error "failed adding static binary '${bin##*/}' to the distribution!"
+#      }
+#      rm -f ${tmp}
+#    fi
+  done
+  
+  ln -sf pkgadd ${destdir}/bin/pkgrm
+  ln -sf pkgadd ${destdir}/bin/pkginfo
+}
+
+# adds a package to the release distribution
+#
+# add_package <category> <archive>
+# ---------------------------------------------------------------------------
+add_package()
+{
+  local category=$1 archive=$2
+  
+  local src="$packagedir/$category/$archive"
+  local dst="$destdir/packages/$category/$archive"
+
+  if [ -f "$dst" ]; then
+    if ! [ "$src" -nt "$dst" ]; then
+      msg "package $archive is up-to-date"
+      return 0
+    fi
+    
+    msg "updating package $archive"
+  else
+    msg "adding package $archive"
+  fi
+  
+  # copying package to destination dir
+  cp -l "$src" "$destdir/packages/$category" 2>/dev/null || \
+  cp "$src" "$destdir/packages/$category" || \
+  return 1
+  
+  # extract swconfig library stuff
+  #      if [ ${category} != devel ]; then
+  local extract=0
+  NEXPATHS="${prefix#/}/bin/pkginstall
+            ${prefix#/}/bin/swconfig
+            ${prefix#/}/bin/svctool
+            ${prefix#/}/lib/swconfig
+            ${prefix#/}/lib/pkgadd
+            ${prefix#/}/lib/pkgrm
+            ${prefix#/}/lib/svcmon
+            ${prefix#/}/lib/sh
+            ${prefix#/}/lib/pkgservice"
+        
+  (cd ${destdir} && tar -xvjf "packages/$category/$archive" ${NEXPATHS} 2>/dev/null | grep -v '/$') | \
+  while read support
+  do
+    if [ "$extract" = "0" ]; then
+      msg "Extracting support files from package $archive:"
+    fi
+    
+    extract=1
+        
+    msg "$support"
+  done
+}
+
+# ---------------------------------------------------------------------------
+install_packages()
+{
+  # loop through all the supplied categories
+  while read pkgpath
+  do
+    set -- $(pkg_split "$pkgpath")
+  
+    # make a subdirectory for the category
+    mkdir -p $destdir/packages/$2
+
+    # get archive name
+    archive=${pkgpath##*/}
+
+    if [ ! -f "$packagedir/$2/$archive" ]; then
+      warn "package $archive is not built" 
+    else
+			
+      pkgsize=$(bzip2 -dc "$packagedir/$2/$archive" | wc -c)
+      size=$((size + pkgsize))
+  
+      if ! add_package "$2" "$archive"; then
+        break
+      fi      
+
+      # add the md5sum
+      (cd ${destdir} && md5sum "packages/$2/${archive}" >> md5sums)
+		
+      # add to package list
+      #	packages="$packages $category/$name#$version-$release.pkg.tar.bz2"
+    fi
+  done
+}
+
+# tag the current portage as a release
+# ---------------------------------------------------------------------------
+tag()
+{
+  number="$1"
+  
+  if [ -z "$number" ]; then
+    error "requiring release number"
+  fi
+  
+  releaseok ${number}
+  echo ${number}
+  
+  shift
+  
+  # load pkgmk config file
+  source $prefix/etc/pkgmk.conf
+
+  local tmp=$(tempnam)
+
+  # loop through all categories
+#  for category in ${categories}
+#  do
+    # now loop through all packages in this category
+    port_packages | while read pkg
+    do
+      pkgdir=$portsdir/$pkg
+    
+      # load the Pkgfile
+      (cd ${pkgdir}
+       set -e
+       source Pkgfile
+
+       echo ${category} ${name} ${version} ${release}) || error "Failed loading port '$pkg'."
+#    done
+  done >"$tmp" &&
+  
+  { msg "release info written to $releasedir/${number}"; mv "$tmp" "$releasedir/$number"; } ||
+  
+  error "couldn't write to $releasedir/${number}"
+}
+
+# make the package list from release info and template
+#
+# build_pkglist <tag> <template> [parent]
+# ---------------------------------------------------------------------------
+build_pkglist()
+{
+  local tag=$1
+  local template=$2
+  local parent=${3-"$3"}
+  local pkgcats=$(template_children "$template" "$parent")
+
+  for pkgcat in ${pkgcats}
+  do
+    local pkg=${pkgcat#*/}
+    local cat=${pkgcat%/*}
+    
+    local entry=$(grep "^$cat $pkg " "$releasedir/$tag")
+    
+#    set -- $entry
+    if [ -z "$entry" ]; then
+      error "No such package in release info: $pkgcat"
+      return 1
+    fi
+    
+    build_pkglist "$tag" "$template" "$pkgcat" || return 1
+    
+    echo "$entry"
+  done
+}
+
+# strip packages
+#
+# strip_packages <flags>
+# ---------------------------------------------------------------------------
+strip_packages()
+  {
+  while read category name version release
+  do
+    local pkgpath=$(pkg_assemble "$packagedir" "$category" "$name" "$version" "$release")
+    local pkgstripped
+    
+    if [ "$1" ]; then
+      pkgstripped=$(pkgstrip --flags "$1" --output-path "$pkgpath")
+    else
+      pkgstripped=${pkgpath}
+    fi
+    
+    echo ${pkgstripped}    
+  done
+  }
+
+# create a release distribution
+#
+# release <destdir> <tag> <template>
+# ---------------------------------------------------------------------------
+release()
+{
+  local temp tag template
+
+  tag="${2-$(history | tail -n1)}"
+
+  if [ ! -f "$releasedir/$tag" ]; then
+    error "no such tag: $tag"
+  fi
+
+  template="${3-all}"
+
+  if ! template_exists "$template"; then
+    error "no such template: $template"
+  fi
+
+  # load pkgmk config file
+  source $prefix/etc/pkgmk.conf
+
+  prepare_output "$1"
+
+  trap "msg Aborted ; rm -rf ${destdir} ; exit 1" EXIT HUP INT TERM
+
+  # track size
+  size=0
+
+  pattern=$(echo "$@" | sed 's, ,|,g')
+  
+  # build package list from the release info and the template
+  build_pkglist "$tag" "$template" | \
+  strip_packages $(template_strip "$template") | \
+  install_packages
+  
+  # move swconfig library to another dir
+  root=${prefix#/}
+
+  if [ -d $destdir/$root/lib ]; then
+    cp -rf "$destdir/$root/lib" "$destdir"
+    rm -rf "$destdir/${root%%/*}"
+  fi
+  
+  install_terminfo
+  install_scripts "swconfig"
+  install_scripts "pkginstall"
+  install_scripts "esvc"
+  install_static_bins
+  
+  # swconfig template
+  vars=$(template_vars "$template")
+  
+  if [ -n "$vars" ]; then
+    echo "$vars" > "$destdir/swconfig.tmpl"
+  fi
+
+  # pre/postinstall scripts
+  pre=$(template_fn "$template" preinstall)
+  post=$(template_fn "$template" postinstall)
+
+  if [ -n "$pre" ]; then
+    mkdir -p "$destdir/lib/pkginstall"
+    echo "$pre" > "$destdir/lib/pkginstall/install.pre"
+    chmod 755 "$destdir/lib/pkginstall/install.pre"
+  fi
+
+  if [ -n "$post" ]; then
+    mkdir -p "$destdir/lib/pkginstall"
+    echo "$post" > "$destdir/lib/pkginstall/install.post"
+    chmod 755 "$destdir/lib/pkginstall/install.post"
+  fi
+
+  cp $prefix/etc/pkgadd.conf ${destdir}
+  
+  # write some vars
+  for var in tag size
+  do
+    eval echo "${var}=\$${var}"
+  done > $destdir/RELEASE
+  
+  # if target is an ISO image or tar archive, pack it up now!
+  msg "Packing into $destfile..."
+  
+  case ${output} in
+    iso)
+  	  ln -sf /tmp/epiphyte.conf ${destdir}
+  	  ln -sf /tmp/pkginstall.log ${destdir}
+  	  ln -sf /tmp/swconfig.log ${destdir}
+  	  mkisofs -rock -joliet -l -o ${destfile} ${destdir}
+  	  ;;
+  	tar)
+  	  tar -C ${tempdir} -cf ${destfile} ${destname}
+  	  ;;
+  esac
+  
+  # we're done
+  msg "${destfile:-$destdir} ready!"
+
+  # collect info from this release and store in the release database
+#  (exec $0 --collect ${destdir})
+
+  # remove temp dir
+  if [ -d "$tempdir" ]; then
+    rm -r ${tempdir}
+  fi
+  
+  trap - HUP INT TERM EXIT
+}
+
+# create an update distribution
+# ---------------------------------------------------------------------------
+update()
+{
+  from=$(releasenumber "$1")
+  number=$(releasenumber "$2")
+
+  releaseok ${number}
+
+  echo ${release}
+
+  # load pkgmk config file
+  source $prefix/etc/pkgmk.conf
+
+  prepare_output "$2"
+
+  shift 2
+
+  trap "msg Aborted ; rm -rf $destdir ; exit 1" EXIT HUP INT TERM
+
+  # no categories supplied, take them all
+  if [ "$#" = "0" ]; then
+    set devel libs epiphyte php mail
+  fi
+
+  # track size
+  size=0
+
+  # loop through all the supplied categories
+  for category in "$@"
+  do
+    # make a subdirectory for the category
+    mkdir -p "$destdir/packages/$category"
+
+    # now loop through all packages in this category
+    for pkg in $portsdir/$category/*/Pkgfile
+  	do
+	    # load the Pkgfile
+      source "$pkg"
+
+      # get archive name
+      archive="$name#$version-$release.pkg.tar.bz2"
+
+      if [ ! -f "$pkgmk_PACKAGE_DIR/$category/$archive" ]; then
+        warn "package \`$name' is not built!"
+      else
+		    msg "Adding package \`$name'..."
+			
+			  # copying package to destination dir
+        cp -Ll "$pkgmk_PACKAGE_DIR/$category/$archive" "$destdir/packages/$category" 2>/dev/null ||
+        cp -L "$pkgmk_PACKAGE_DIR/$category/$archive" "$destdir/packages/$category" || 
+        break
+		
+        pkgsize=$(bzip2 -dc "$dst" | wc -c)
+        size=$((size + pkgsize))
+    
+        # extract swconfig library stuff
+        if [ "$category" != "devel" ]; then
+          NEXPATHS="${prefix#/}/lib/swconfig
+                    ${prefix#/}/lib/pkgadd
+                    ${prefix#/}/lib/pkgrm
+                    ${prefix#/}/lib/svcmon"
+        
+          (cd "$destdir" && extract=$(tar -xvjf "packages/$category/$archive" "$NEXPATHS" 2>/dev/null | grep -v '/$') &&
+           echo "Extracted "$extract" from package \`${name}'...")
+        fi
+
+        # add the md5sum
+        (cd "$destdir" && md5sum "packages/$category/$archive" >> md5sums)
+		
+        # add to package list
+        #	packages="$packages $category/$name#$version-$release.pkg.tar.bz2"
+      fi
+    done
+  done
+
+  # move swconfig library to another dir
+  root=${prefix#/}
+
+  if [ -d "$destdir/$root/lib" ]; then
+    cp -rf "$destdir/$root/lib" "$destdir"
+    rm -rf "$destdir/${root%%/*}"
+  fi
+  
+  install_terminfo
+  install_scripts "update"
+  install_static_bins  
+  
+  # write some vars
+  for var in number size
+  do
+    eval echo "${var}=\$${var}"
+  done > $destdir/RELEASE
+  
+  # if target is an ISO image or tar archive, pack it up now!
+  case ${output} in
+    iso)
+  	  ln -sf /tmp/epiphyte.conf "$destdir"
+  	  mkisofs -rock -joliet -l -o "$destfile" "$destdir"
+  	  ;;
+  	tar)
+  	  tar -C "$tempdir" -cvf "$destfile" "$destname"
+  	  ;;
+  esac
+  
+  # we're done
+  msg "${destfile:-$destdir} ready!"
+
+  # collect info from this release and store in the release database
+  (exec $0 --collect ${destdir})
+
+  # remove temp dir
+  if [ -d "$tempdir" ]; then
+    rm -r "$tempdir"
+  fi
+  
+  trap - HUP INT TERM EXIT
+}
+
+
+if [ $# = 0 ]; then
+  usage
+fi
+
+install_args=""
+
+while [ "$1" ]; do
+  case "$1" in
+    --install-args)
+      shift
+      install_args="$1"
+      ;;
+    --release)
+      shift
+      release "$@"
+      exit
+      ;;
+    --collect)
+      shift
+      collect "$@"
+      exit
+      ;;
+    --tag)
+      shift
+      tag "$@"
+      exit
+      ;;
+    --history)
+      history $releasedir/*
+      exit
+      ;;
+    --help)
+      usage
+      exit
+      ;;
+    *)
+      usage
+      exit 1
+      ;;
+  esac
+  
+  shift
+done

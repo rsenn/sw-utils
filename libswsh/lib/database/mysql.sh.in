@@ -1,0 +1,267 @@
+#!/bin/sh
+#
+# mysqlsh: mysql client functions
+#
+# $Id: mysql.sh.in 711 2008-09-19 21:47:56Z enki $
+# ----------------------------------------------------------------------------
+@DEBUG_FALSE@test $lib_mysql_sh || {
+
+# set default directories
+# ----------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${bindir:="@bindir@"}
+: ${libdir:="@libdir@"}
+: ${sysconfdir:="@sysconfdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+for conf in $sysconfdir/epiphyte.conf $pkgroot/epiphyte.conf $swconf $swload; do
+  test -f $conf && source $conf
+done
+
+mysql_privileges="select insert update delete create drop reload shutdown
+                  process file grant references index alter show_db super
+                  create_tmp_table lock_tables execute repl_slave repl_client
+                  create_view show_view create_routine alter_routine
+                  create_user"
+
+# mysql_passwd <host> <user> <password>
+#
+# set passwords after installing the db
+# -------------------------------------------------------------------------
+mysql_passwd()
+{
+  mysqladmin \
+    -h "$1" \
+    -u "$2" \
+    -P "$MYSQL_port" \
+    -S "$MYSQL_sock" \
+    password "$3"
+}
+
+# mysql_cmd <command> [options]
+#
+# execute a mysql cmdline utility
+# ----------------------------------------------------------------------------
+mysql_cmd()
+{
+  local cmd="$1"
+  shift
+  "$cmd" \
+    ${MYSQL_host+-h "$MYSQL_host"} \
+    ${MYSQL_user+-u "$MYSQL_user"} \
+    ${MYSQL_pass:+-p"$MYSQL_pass"} \
+    ${MYSQL_port+-P "$MYSQL_port"} \
+    ${MYSQL_sock+-S "$MYSQL_sock"} "$@"
+}
+
+# execute a query as the root user
+# ----------------------------------------------------------------------------
+mysql_client()
+{
+  mysql_cmd "mysql" "$@"
+}
+
+# do a dump as the root user
+#
+# mysql_dump_db [options] <database> [tables]
+# ----------------------------------------------------------------------------
+mysql_dump()
+{
+  mysql_cmd "mysqldump" "$@"
+}
+
+# dump db and the specified tables
+#
+# mysql_dump_databases [options] <database> [database2 database3...]
+# ----------------------------------------------------------------------------
+mysql_dump_databases()
+{
+  mysql_dump --databases "$@"
+}
+
+# dump all databases
+#
+# mysql_dump_all [options]
+# ----------------------------------------------------------------------------
+mysql_dump_all()
+{
+  mysql_dump --all-databases "$@"
+}
+
+# binlog
+#
+# mysql_binlog [options] <logfile...>
+# ----------------------------------------------------------------------------
+mysql_binlog()
+{
+  mysql_cmd "mysqlbinlog" "$@"
+}
+
+# execute a query as the root user, connecting to localhost
+# ----------------------------------------------------------------------------
+mysql_query()
+{
+  # pipe sql query to the mysql command line client
+  # using connection settings from epiphyte.conf
+  # (those for the server, not those for the client!!!)
+  echo "$@" | mysql_client
+}
+
+# adds a user to the mysql.user table
+#
+# mysql_useradd <host> <user> <password>
+# ----------------------------------------------------------------------------
+mysql_useradd()
+{
+  local priv query="insert into mysql.user (host,user,password"
+
+  # add privilege fields to the field list
+  for priv in ${mysql_privileges}
+  do
+    query="${query},${priv}_priv"
+  done
+
+  # set host,user,password
+  query="${query}) values ('$1','$2',password('$3')"
+
+  # set each privilege to 'y'
+  for priv in ${mysql_privileges}
+  do
+    query="${query},'y'"
+  done
+
+  query="${query});"
+
+  mysql_query "$query"
+}
+
+# mysql_grant <privileges> <on> <to> [password]
+# ----------------------------------------------------------------------------
+mysql_grant()
+{
+  local grant="GRANT ${1:-ALL}${2:+ ON $2}${3:+ TO $3}${4+ IDENTIFIED BY '$4'}"
+
+  mysql_query "$grant"
+}
+
+# does a db exist?
+# ----------------------------------------------------------------------------
+mysql_db_exists()
+{
+  test -f "$prefix/db/mysql/host.frm"
+}
+
+# cleanup db directory
+# ----------------------------------------------------------------------------
+mysql_db_clean()
+{
+  # remove the directory
+  rm -rf $prefix/db
+
+  # create new one and set permissions
+  mkdir -p $prefix/db
+  chown ${mysqld_user}:${mysqld_group} $prefix/db
+}
+
+# install a new db
+# ----------------------------------------------------------------------------
+mysql_db_install()
+{
+  setuidgid "$mysqld_user" mysql_install_db \
+    --skip-name-resolve --datadir="$prefix/db" 1>/dev/null
+}
+
+# launch the mysql server
+# ----------------------------------------------------------------------------
+MYSQL_host()
+{
+  exec setuidgid "$mysqld_user" $prefix/libexec/mysqld 1>&2
+}
+
+# launch mysql server as daemon
+# ----------------------------------------------------------------------------
+mysql_daemon()
+{
+  MYSQL_host & pid=$!
+  sleep 1
+  echo ${pid}
+}
+
+# lists the databases
+# ----------------------------------------------------------------------------
+mysql_databases()
+{
+  mysql_query 'show databases' | sed -n \
+  '/^Database$/ {
+    :lp
+    n
+    p
+    b lp
+  }'
+}
+
+# lists the binary logs
+# ----------------------------------------------------------------------------
+mysql_binlogs()
+{
+  local binlog=${1-'mysql-bin'}
+  sed \
+    "s,^\.\/,$prefix/db/," \
+    "$prefix/db/$binlog.index"
+}
+
+# full backup
+#
+# mysql_backup_all [options]
+# ----------------------------------------------------------------------------
+mysql_backup_all()
+{
+  mysql_dump_all \
+    --single-transaction \
+    --flush-logs \
+    --master-data=2 \
+    --delete-master-logs \
+    "$@"
+}
+
+# backup of specific databases
+#
+# mysql_backup_databases [options] <databases...>
+# ----------------------------------------------------------------------------
+mysql_backup_databases()
+{
+  mysql_dump_databases \
+    --single-transaction \
+    --flush-logs \
+    --master-data=2 \
+    --delete-master-logs \
+    "$@"
+}
+
+# flush logs
+#
+# mysql_flush_logs [options]
+# ----------------------------------------------------------------------------
+mysql_flush_logs()
+{
+  echo "FLUSH LOGS;" | mysql_query "$@"
+}
+
+# fast full backup
+#
+# mysql_backup [options]
+# ----------------------------------------------------------------------------
+#mysql_backup_fast()
+#{
+#  echo "SET AUTOCOMMIT = 0;"
+#  echo "SET FOREIGN_KEY_CHECKS=0;"
+#
+#  mysql_backup "$@"
+#
+#  echo "SET FOREIGN_KEY_CHECKS = 1;"
+#  echo "COMMIT;"
+#  echo "SET AUTOCOMMIT = 1;"
+#}
+
+# --- eof ---------------------------------------------------------------------
+lib_mysql_sh=:;}

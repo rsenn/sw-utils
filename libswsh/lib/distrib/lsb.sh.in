@@ -1,0 +1,60 @@
+#!/bin/sh
+#
+# distrib/lsb.sh: LSB compatible distribution detection and handling of distribution-specific things.
+#
+# $Id: lsb.sh.in 655 2008-09-12 00:21:46Z enki $
+# ------------------------------------------------------------------------- 
+test $lib_distrib_lsb_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${sysconfdir:="@sysconfdir@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/util.sh
+. $shlibdir/std/str.sh
+
+# is_lsb [lsb-release-file]
+#
+# Is it an LSB conform distribution?
+# ---------------------------------------------------------------------------
+is_lsb()
+{
+  local rf=`lsb_relfile "$@"`
+
+  test -r "$rf" &&
+  test "${rf##*/}" = lsb-release
+}
+
+# lsb_relfile [lsb-release-file]
+#
+# Prints the name of the LSB release file.
+# ---------------------------------------------------------------------------
+lsb_relfile()
+{
+  echo "${@-$ROOT/etc/lsb-release}"
+}
+
+# lsb_release [lsb-release-file]
+#
+# Reads the lsb-release file of an LSB compatible distribution (usually
+# resides in /etc/lsb-release).
+# ---------------------------------------------------------------------------
+lsb_release()
+{
+  local rf=`lsb_relfile "$@"` IFS="="
+
+  if test -r "$rf"
+  then
+   (while read key value
+    do
+      echo "`str_tolower "${key#*_}"`=$value"
+    done <$rf)
+  else
+    errormsg "Cannot read $rf"
+  fi
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_distrib_lsb_sh=:;}

@@ -1,0 +1,289 @@
+#!/bin/sh -e -x 
+#
+# $Id: svadm.in 617 2006-11-23 15:18:22Z roman $
+
+# ------------------------------------------------------------------------------
+prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+libdir="@libdir@"
+bindir="@bindir@"
+sysconfdir="@sysconfdir@"
+logdir="@prefix@/logs"
+
+# set pkginstall path and root dir
+# ------------------------------------------------------------------------------
+: ${swconf=$sysconfdir/epiphyte.conf}
+: ${swload=$swconf}
+
+# get absolute path of the script originally invoked
+# ------------------------------------------------------------------------------
+scriptdir()
+{
+  local absdir reldir thisdir="$(pwd)"
+  
+  # if $0 specified a pathname, then put that into reldir
+  if [ "$0" != "${0%/*}" ]; then
+    reldir="${0%/*}"
+  fi
+  
+  # change into the relative directory in a subshell
+  # and get the output of "pwd", which will lead
+  # to an absolute directory
+  if [ "${reldir#/}" != "$reldir" ]; then
+    absdir=$(cd "$reldir" && pwd)
+  else
+    absdir=$(cd "$thisdir/$reldir" && pwd)
+  fi
+
+  echo "$absdir"
+}
+
+# set to pkginstall mode
+esvc=$(scriptdir)
+pkgroot=${esvc%/bin}
+
+if test -d "$pkgroot/packages"; then
+  pkginstall="true"
+else
+  pkginstall="false"
+fi
+
+# configure terminal
+: ${TERM:="linux-vt"}
+export TERM
+
+if $pkginstall
+then
+  : ${TERMINFO_DIRS:=$pkgroot/lib/terminfo}
+  export TERMINFO_DIRS
+fi
+
+# configure the user-interface
+DIALOG_WIDTH=$(( ${COLUMNS:-80} - 8 ))
+DIALOG_HEIGHT=$(( ${LINES:-25} - 5 ))
+
+if $pkginstall
+then
+  libdir=$pkgroot/lib
+  export PATH="$pkgroot/bin:$prefix/bin:$prefix/sbin"
+else
+  export PATH="$prefix/bin:$prefix/sbin"
+fi
+
+pkglibdir=$libdir/svadm
+  
+test -f "$swload" && source "$swload"
+
+# initialize
+BACKTITLE="svadm v@PACKAGE_VERSION@ - administrative/monitoring tool"
+
+main_MENUTEXT="Welcome to svadm!
+
+Config file is: ${swconf}"
+
+# load the library
+for lib in $libdir/sh/{config,util,array,service}
+do
+  source $lib.sh
+done
+
+# load the modules
+for module in $pkglibdir/{autostart,startstop,ui}
+do
+  source $module
+done
+
+# load the service configurations
+config_root 
+
+for service in $libdir/pkgservice/*
+do
+  test "$service" = "$libdir/pkgservice/*" && break
+  source "$service"
+done
+
+SERVICES=${MEMBERS}
+#echo services: ${SERVICES}
+
+me="${0##*/}: "
+
+foreach()
+{
+  fn="$1"
+   
+  shift
+  
+  for arg; do
+    "$fn" "$arg"
+  done
+}
+
+if true #test "${0##*/}" = "esvc"
+then
+  usage()
+  {
+    echo "Usage: ${me} <OPTION>... [SERVICES]..."
+    echo
+    echo "This is a front-end to daemontools, a high-availability"
+    echo "solution for supervising daemons."
+    echo
+    echo "      --list      show a list of known services and their status"
+    echo "  -t, --tree      show a tree of all processes corresponding to"
+    echo "                  daemontools and the services"
+    echo "  -p, --pids      show all pids corresponding to daemontools and"
+    echo "                  the services"
+    echo "  -h, --help      show this help"
+    echo 
+    echo "Options for individual service control:"
+    echo 
+    echo "  -d, --down       shut down one or more services"
+    echo "  -u, --up         start one or more services"
+    echo "  -s, --status     show status of a service, or all"
+    echo "                   if none is specified"
+    echo
+    echo "Options for svscanboot, the main process which starts"
+    echo "a supervise process for each service which is linked"
+    echo "to $prefix/services:"
+    echo
+    echo "  -a, --add        add one or more services from autostart"
+    echo "  -r, --remove     remove one or more services from autostart"
+    echo
+    echo "Adding/removing services is equivalent to linking/unlinking"
+    echo "them from $prefix/etc/services to $prefix/services."
+    echo "If you're adding services while svscanboot is running,"
+    echo "they will be fired up immediately."
+    echo  
+    echo "  -i, --install    install svscan to /etc/inittab"
+    echo "  -k, --uninstall  remove svscan from /etc/inittab"
+    echo "  -x, --rehash     send a SIGHUP signal to the init [1]"
+    echo "                   process, which causes it to re-read"
+    echo "                   the inittab and to launch or kill"
+    echo "                   the svscanboot process according to"
+    echo "                   a previous --install or --uninstall"
+    echo
+    echo "  -z, --kill       shut down all services and uninstall"
+    echo 
+    echo "Usually the SIGHUP signal is sent on both, --install and"
+    echo "--uninstall, commands."
+    echo "However ${0##*/} will not send it on --uninstall when there"
+    echo "are still services running."
+    echo
+    echo 
+    echo "  -l, --follow     follow the log of a service"
+    echo "  -g, --trace      strace the supervise process of a service"
+    echo "                   and all the children it forks"
+    echo 
+  }
+
+  if [ "$#" = 0 ]; then
+    usage
+    exit 1
+  fi
+
+  # esvc
+  eval "set -- $(getopt -n "$me" -l 'list,tree,pids,help,down,up,status,add:,remove:,install,uninstall,rehash,follow:,trace:,kill' \
+           'tphdusa:r:ikxl:g:z' "$@")"
+  
+  # build argument list 
+  for arg; do
+    if [ "$arg" = "--" ]; then
+      args=""
+    else
+      args="$args ${arg##*/}"
+    fi    
+  done
+  
+  # handle arguments
+  while test "$#" -gt 0
+  do
+    opt=$1
+    arg=${2##*/}
+  
+    shift
+
+    case $opt in
+      -h|--help)
+        usage
+        exit 
+        ;;
+      -d|--down)
+        service_wrap service_stop ${args}
+        ;;
+      -l|--follow)
+        log_follow --prefix ${arg}
+        ;;
+      -u|--up)
+        service_wrap service_start ${args}
+        ;;
+      -s|--status)
+        service_wrap service_status ${args}
+        ;;
+      -a|--add)
+        shift 
+        service_wrap service_add ${arg} ${args}
+        ;;
+      -r|--remove)
+        shift 
+        service_wrap service_remove ${arg} ${args}
+        ;;
+      -x|--rehash)
+        service_rehash
+        ;;
+      -i|--install)
+        service_install
+        ;;
+      -k|--uninstall)
+        service_uninstall
+        ;;
+      -z|--kill)
+        service_fullstop
+        ;;
+      -p|--pids)
+        service_pids 2>/dev/null
+        ;;
+
+      --list)
+        svcdir=${args:-$service_svcdir}
+        msg "Listing services in '$svcdir'."
+        for svc in $(service_list "$svcdir")
+        do
+          echo -n "$svc"
+          log=''
+          for subsvc in $(service_tree "$svcdir/$svc" ""); do
+            case $subsvc in
+              log) log='x' ;;
+              *) echo -n "${log:+' (logged)'}$newline$svc/$subsvc" ;;
+            esac
+          done
+          echo
+        done
+        ;;
+
+      --)
+        break
+        ;;
+      *)
+        error "Invalid argument '$opt'."
+        ;;
+    esac    
+  done
+
+  exit 0
+
+else
+  # show the main menu
+  while choice=$(menu --default ${choice:=1.} --cancel "Exit" \
+                 "svadm v@PACKAGE_VERSION@" \
+                 1. "Start/Stop a service" \
+                 2. "Enable/Disable autostart")
+#                 3. "Trace a service" \
+#                 4. "Read logs")
+  do
+    case ${choice} in
+      1.) startstop_menu ;;
+      2.) autostart_menu ;;
+#      3.) trace_menu ;;
+#      4.) log_menu ;;
+    esac
+  done
+fi

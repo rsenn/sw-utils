@@ -1,0 +1,40 @@
+#
+# /etc/pkgmk.conf: pkgtools(8) configuration
+#
+
+build="@build@"
+host="@host@"
+target="@target@"
+
+# ---------------------------------------------------------------------------
+PKGMK_source_dir="$prefix/src"
+PKGMK_ports_dir="$prefix/ports"
+PKG_DIR="$prefix/pkg"
+PKGMK_distfiles_dir="$prefix/src/distfiles"
+TEMP_DIR="/tmp"
+#pkgmk_build_debug="@BUILD_DEBUG@"
+#pkgmk_build_opt="@BUILD_OPT@"
+
+PKGMK_no_strip=no
+PKGMK_keep_work=no
+pkgmk_debug=no
+PKGMK_build_profiling=no
+PKGMK_build_static=no
+
+#pkgmk_distfile_mirrors=(rsync://pkgmk@10.0.0.51/distfiles
+#                        rsync://pkgmk@10.0.0.33/distfiles
+#                        rsync://pkgmk@10.0.0.35/distfiles)
+#pkgmk_move_mirrors="yes"
+
+PKGMK_download="yes"
+PKGMK_patch_shell="no"
+PKGMK_keep_going="no"
+NO_LOG="no"
+pkgmk_silent="no"
+USE_FAKEROOT="yes"
+TRACE_BIN="no"
+USE_IWATCH="no"
+USE_STRACE="no"
+
+# pkgmk_work_dir="$PWD/work"
+PKGMK_ignore_footprint="no"

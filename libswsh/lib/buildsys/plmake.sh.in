@@ -1,0 +1,199 @@
+#!/bin/sh
+#
+# buildsys/plmake.sh: perl build system implementation
+#
+# $Id: plmake.sh.in 597 2008-08-27 11:41:43Z enki $
+# -------------------------------------------------------------------------
+test $lib_buildsys_plmake_sh || {
+
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# -------------------------------------------------------------------------
+. $shlibdir/std/array.sh
+. $shlibdir/shell/emit.sh
+
+# -------------------------------------------------------------------------
+plmake_files="*.PL"
+
+# plmake_scan [directories...]
+#
+# searches one or more directory trees for any of $plmake_files.
+# -------------------------------------------------------------------------
+plmake_scan()
+{
+  plmake_find "$@" | sed -e "s,/[^/]\+$,," | sort -u
+}
+
+# plmake_find [directories...]
+#
+# searches one or more directory trees for any of $plmake_files.
+# -------------------------------------------------------------------------
+plmake_find()
+{
+ (set -f
+  IFS=" "
+  find "${@:-.}" -type f -name "*.PL" | sed -e "s,^\.\/,,")
+}
+
+# plmake_file [directory]
+# -------------------------------------------------------------------------
+plmake_file()
+{
+ (${1+cd "$1"}
+  for file in $plmake_files
+  do 
+    test -e "$file" && echo "$file" && break
+  done)
+}
+
+# -------------------------------------------------------------------------
+plmake_subdirs()
+{
+  local dirs
+  array_print dirs
+}
+
+# plmake_check [directories...]
+#
+# checks one or more directories for the presence of $plmake_files
+# -------------------------------------------------------------------------
+plmake_check()
+{
+  local n names='' IFS=" $newline$tabstop"
+
+ (for dir
+  do
+   (cd "$dir"
+    eval set -- $plmake_files
+    for src
+    do
+      test -e "$src" && echo "$dir" && continue 2
+    done
+    errormsg "Not a valid perl source tree: '$dir'." 
+    return 1)
+  done)
+}
+
+# plmake_commands [source dirs...]                                           
+#                                                                               
+# -------------------------------------------------------------------------     
+plmake_commands()                                                            
+{                                                                               
+  local dir="$1" scriptpath parent base cmds= IFS="
+"
+  shift
+
+  plmake_check "$dir" >/dev/null || return 1
+
+  set -- $dir/*.PL
+
+  for scriptpath
+  do
+    script=${scriptpath##*/}
+  
+    if test -e "$scriptpath"
+    then
+      if test "$script" = Build.PL
+      then
+        pushv scriptvars "installdirs=\"vendor\""
+      fi
+    
+      if test -x "$scriptpath"
+      then
+        obj_set cmds "premake" "./$script${scriptvars:+ $scriptvars}"
+      else
+        obj_set cmds "premake" "perl $script${scriptvars:+ $scriptvars}"
+      fi
+
+      # Special case: 
+      # 
+      # Build system providing Build.PL instead of Makefile.PL
+      # The 'Build' file will install the package rather than a Makefile.      
+      if test "${script##*/}" = Build.PL
+      then
+        obj_set cmds "make" "./Build install destdir=\"\$PKG\""
+        continue
+      fi
+      
+#      local changevars=$(
+#        cd "$dir" &&
+#        perl "${script##*/}" >/dev/null &&
+#        make_values . |
+#        sed -n \
+#            -e '\,/share/perl/[0-9], s,/perl/\([0-9]\)[.0-9]*,/perl\1,p' \
+#            -e '\,/lib/perl/[0-9], s,/perl/\([0-9]\)[.0-9]*,/perl\1,p' \
+#            -e '\,/man/, { \,/share/man/,! s,/man/,/share/man/,p; }' \
+#            -e '\,[\$/][^ ]*/local$,p' \
+#            -e '\,[\$/][^ ]*/local/,p' |
+#        sed -e 's,[\$/][^ ]*/local$,`PREFIX`,' \
+#            -e 's,[\$/][^ ]*/local/,`PREFIX`/,' |
+#        sed -e 's,\$,\\$,g' |
+#        sed -e 's,^\([^=]*\)=\(.\+\),\1=\"\2\",' |
+#        sort -u |
+#        grep -E '(^INSTALLSITE|PREFIX=|MAN)'
+#      )
+      local makevars changevars=$(
+         cd "$dir" &&
+         perl "${script##*/}" >/dev/null &&
+         make_variables .
+      )
+      
+      if isin 'INSTALLDIRS' $changevars  #echo "$changevars" | grep -q '^INSTALLDIRS$'
+      then
+        pushv makevars "INSTALLDIRS=\"vendor\""
+      fi
+
+      if isin 'PREFIX' $changevars #echo "$changevars" | grep -q '^PREFIX$'
+      then
+        pushv makevars "PREFIX=\"\$prefix\""
+      fi
+
+      obj_set cmds "makevars" "$makevars"
+  
+    fi
+  done
+  
+  echo "$cmds"
+}
+  
+  
+# plmake_buildfn <vars...>
+# -------------------------------------------------------------------------
+plmake_buildfn()
+{
+  local IFS="$obj_s$nl" dir args name version srcdir
+
+#  emit_startfn 'build'
+
+  name=`obj_get "$*" name`
+  version=`obj_get "$*" version`
+  srcdir=`obj_get "$*" srcdir`
+  premake=`obj_get "$*" premake`
+  make=`obj_get "$*" make`
+  makevars=`obj_get "$*" makevars`
+
+  emit_cmd "cd ${srcdir//$version/\$version}"
+  emit_cmd
+  
+  if test -n "$premake"
+  then
+    emit_cmd_ml "$premake"
+    emit_cmd
+  fi
+
+  if test -n "$make"
+  then
+    emit_cmd_ml "$make"
+  else
+    emit_cmd_ml 'make' 'DESTDIR="$PKG"' $makevars 'install'
+  fi
+
+#  emit_endfn
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_buildsys_plmake_sh=:;}

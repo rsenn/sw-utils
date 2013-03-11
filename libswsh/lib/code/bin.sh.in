@@ -1,0 +1,136 @@
+#!/bin/sh
+#
+# bin.sh: binary executable functions
+#
+# $Id: bin.sh.in 586 2008-08-27 03:24:45Z enki $
+test $lib_code_bin_sh || {
+
+: ${prefix:="@prefix@"}
+: ${bindir:="@bindir@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/std/array.sh
+. $shlibdir/fs.sh
+
+default_target=''
+
+# bin_size <path> [target]
+#
+# return size of all sections within a binary (object/executable) file
+# -------------------------------------------------------------------------
+bin_size()
+{
+  local target=$2
+
+  ${target:+$target-}size ${1+"$1"} | sed -n \
+    '/^[ \t]*[0-9]\+/ { 
+      s, *[0-9]\+[ \t]\+[0-9]\+[ \t]\+[0-9]\+[ \t]\+\([0-9]\+\).*,\1, p 
+    }'
+}
+
+# bin_strings <path> [target]
+#
+# Return all nul-terminated strings found within a binary section.
+# -------------------------------------------------------------------------
+bin_strings()
+{
+  local target=$2
+
+  cat "$@" | ${target:+$target-}strings
+}
+
+# bin_paths <path> 
+#
+# Return all strings found within a binary section which are possibly a path.
+# -------------------------------------------------------------------------
+bin_paths()
+{
+  bin_strings "$@" | sed -n "\:^/[^/]\+.*:p"
+}
+
+# bin_reloc <path> <from> <to>
+# -------------------------------------------------------------------------
+bin_reloc()
+{
+  local relocations from to
+
+  bin_paths "$1" | uniq | { while read path
+  do
+    from=$path
+    to=${path//$2/$3}
+    
+    if test "$from" != "$to"
+    then
+      array_push_unique relocations "$from=$to"
+    fi
+  done
+  
+  IFS="
+"
+  for reloc in $relocations
+  do
+    (set -x && bsed -zi0 "$reloc" "$1")
+  done
+  }
+}
+
+# bin_libs <path>
+# -------------------------------------------------------------------------
+bin_libs()
+{
+  readelf -a "$1" | sed -n 's/.*Shared library: \[\(.*\)\].*/\1/p'
+}
+
+# bin_libs <path>
+# -------------------------------------------------------------------------
+bin_libs()
+{
+  local filetype=`file - <$1`
+
+  debug "filetype: $filetype"
+
+  case $filetype in
+    *' ELF '*)
+      readelf -a "$1" | sed -n 's/.*Shared library: \[\(.*\)\].*/\1/p'
+      ;;
+      
+    *MS-DOS*executable*PE*)
+
+      i586-mingw32msvc-objdump -p "$1" | 
+        sed -n -e 's/^\s*DLL Name: //p' |
+        sort -u
+      ;;
+  esac
+}
+
+# bin_rpath <path>
+# -------------------------------------------------------------------------
+bin_rpath()
+{
+  local IFS="
+"
+  set -- $(readelf -a "$1" | sed -n \
+    -e '/(RPATH)/ s,.*\[\(.\+\)].*$,\1,p' \
+    -e '/(RUNPATH)/ s,.*\[\(.\+\)].*$,\1,p')
+    
+  IFS=":"
+  
+  echo "$*"
+}
+
+# bin_hexdump <path>
+# -------------------------------------------------------------------------
+bin_hexdump()
+{
+  local size=`fs_size "$1"`
+
+  hexdump -ve "$((size))/1"' " %02x" "\n"' "$1" | sed \
+    -e 's, \+, ,g' \
+    -e 's, $,,' \
+    -e 's, ,\\x,g' \
+    -e 's,\\x00,\\0,g'
+}
+
+#--- eof ---------------------------------------------------------------------
+lib_code_bin_sh=:;}

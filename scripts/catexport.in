@@ -1,0 +1,60 @@
+#!/bin/sh
+source @prefix@/etc/pkgmk.conf
+
+# we need at least an argument
+if [ -z "$1" ]
+then
+  echo "Usage: $0 <category>"
+  exit 1
+fi
+
+#category=$(echo $1 | sed 's/\/.*//')
+category=$1
+
+if [ ! -d "$PKGMK_PORTS_DIR/$category" ]
+then
+  echo "Valid categories are:"
+  echo
+  echo $(cd $PKGMK_PORTS_DIR && ls -1 --color=no | grep -v '[A-Z]')
+  echo
+  exit 1
+fi
+
+#PACKAGE=$(echo $1 | sed 's/.*\///')
+#
+#if [ ! -d "$PKGMK_PORTS_DIR/$category" ]
+#then
+#  echo "Valid categories are:"
+#  echo
+#  echo $(cd $PKGMK_PORTS_DIR && ls -1 --color=no | grep -v '[A-Z]')
+#  echo
+#  exit 1
+#fi
+
+mkdir -p "ports/$category"
+
+find "$PKGMK_PORTS_DIR/$category" -maxdepth 1 -mindepth 1 -type d | while read x
+do
+  PACKAGE=$(echo $x | sed 's/.*\///')
+  
+  if [ ! -f "$x/Pkgfile" ]
+  then
+    continue
+  fi
+  
+  . "$x/Pkgfile"
+  
+  mkdir -p "ports/$category/$PACKAGE"
+  
+  cp -v "$x/Pkgfile" "ports/$category/$PACKAGE"
+  cp -v "$x/.footprint" "ports/$category/$PACKAGE"
+  cp -v "$x/.md5sum" "ports/$category/$PACKAGE"
+  
+  for y in ${source[@]}
+  do
+    if [ "$(echo $y | sed 's/:\/\///')" = "$y" ]
+    then
+      cp -v "$x/$y" "ports/$category/$PACKAGE"
+    fi
+  done
+done

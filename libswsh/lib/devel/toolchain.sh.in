@@ -1,0 +1,97 @@
+#!/bin/sh
+#
+# toolchain.sh: toolchain functions
+#
+# $Id: toolchain.sh.in 575 2008-08-26 12:07:20Z enki $
+# -------------------------------------------------------------------------
+test $lib_toolchain_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+: ${bindir:="@bindir@"}
+: ${sysconfdir:="@sysconfdir@"}
+
+. $shlibdir/fs.sh
+
+toolchain_essentials=`array "cc" "gcc" "g++" "as" "ld" "ar" "ranlib"`
+
+# list all available toolchains
+#
+# toolchain_scan
+# -------------------------------------------------------------------------
+toolchain_scan()
+{
+  local cwd=`pwd` dir dirs IFS="
+"
+  dirs="${prefix:+$prefix$IFS}`IFS=":" && for dir in $PATH; do dir=${dir%/bin} && echo ${dir#${prefix:+$prefix/}}; done`"
+
+  set --
+
+  for dir in $dirs
+  do
+#    msg "Checking in $dir"
+
+    cd "$dir" 2>/dev/null && set -- "$@" `fs_glob */bin/{[gi],}c[cl]{-[0-9].[0-9]*,}{,.exe} 2>/dev/null`; cd "$cwd"
+    cd "$dir" 2>/dev/null && set -- "$@" `fs_glob bin/*-{[gi],}cc{-[0-9].[0-9]*,}{,.exe} 2>/dev/null`; cd "$cwd"
+    cd "$dir" 2>/dev/null && set -- "$@" `fs_glob bin/{,i}cl.exe 2>/dev/null`; cd "$cwd"
+  done
+
+  IFS=" $newline"
+
+  if false && realpath -v >&/dev/null
+  then
+    set -- `cd "$prefix" && realpath "$@" 2>/dev/null`
+  fi
+
+#  msg "Found binaries: $@"
+
+  set -- "${@#bin/}"
+#  set -- "${@%%/*}"
+  set -- "${@%-[0-9]*}"
+  set -- "${@%-[gi]c[cl]}"
+  set -- "${@%-cc}"
+
+  local tc list
+
+  for tc
+  do
+    array_push_unique 'list' "$tc"
+  done
+
+  array_print 'list'
+}
+
+# toolchain_tools <toolchain> [tools...]
+# -------------------------------------------------------------------------
+toolchain_tools()
+{
+  local tc=$1 IFS="$newline" tool list; shift
+  for tool in ${1:-$toolchain_essentials}; do
+    array_push_unique 'list' \
+       `cd $prefix && fs_glob $tc/bin/$tool{,-[0-9].[0-9]"*"} bin/$tc-$tool{,-[0-9].[0-9]"*"}`
+  done
+  array_print 'list'
+}
+
+# toolchain_symlink <toolchain> [tools...]
+# -------------------------------------------------------------------------
+toolchain_symlink()
+{
+  local tc=$1 IFS="$newline" tool link; shift
+  if [ ! -d $prefix/$tc/bin ]; then
+    msg "Toolchain $tc is missing bindir."
+    return 1
+  fi
+  for tool in ${1:-$toolchain_essentials}; do
+    (cd $prefix/$tc/bin &&
+     for link in `fs_glob "../../bin/$tc-*"`; do
+       local name=${link##*/}
+       test -e ${name#$tc-} || ln -s $link ${name#$tc-}
+     done)
+  done
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_toolchain_sh=:;}

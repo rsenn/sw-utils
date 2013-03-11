@@ -1,0 +1,246 @@
+# $Id: obj.sh.in 875 2009-02-27 21:23:56Z enki $
+#
+# obj.sh: store associated key=value pairs
+# -------------------------------------------------------------------------
+test $lib_data_obj_sh || {
+
+# set any directory variable needed and not yet set
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# load script dependencies
+# -------------------------------------------------------------------------
+. $shlibdir/std/var.sh
+. $shlibdir/shell/script.sh
+
+# initialize static variables
+# -------------------------------------------------------------------------
+obj_s="	"  # member separator
+obj_d="
+"   # object delimiter
+
+# obj [prototype] [values...]
+#
+# constructs an object.
+# -------------------------------------------------------------------------
+obj()
+{
+ (case $1 in
+    -s) obj_s="$2" && shift 2 ;;
+    -s*) obj_s="${1#-s}" && shift ;;
+  esac
+
+  IFS="$obj_s" ARRAY_s="$obj_s"
+
+  for __prop in $*; do
+    case "$__prop" in
+      *=*) obj_set __obj "${__prop%%=*}" "${__prop#*=}" ;;
+      *) array_push __obj "$__prop" ;;
+    esac
+  done
+  echo "$__obj")
+}
+
+# obj_get <obj> <property...>
+#
+# gets a property
+# -------------------------------------------------------------------------
+obj_get()
+{
+ (IFS="$obj_s" p="$2"
+  for v in $1; do
+    case $v in
+      $p=*) echo "${v#$p=}" && exit 0 ;;
+    esac
+  done
+  exit 1)
+}
+
+# obj_get_default <obj> <property> [default value]
+#
+# gets a property
+# -------------------------------------------------------------------------
+obj_get_default()
+{
+  local IFS=$obj_s v p=$2
+
+  for v in $1
+  do
+    case $v in
+      $p=*) eval echo "${v#$p=}" && return 0 ;;
+    esac
+  done
+
+  if test "${3+set}" = set
+  then
+    echo "$3"
+  fi
+}
+
+# obj_members <obj>
+#
+# Lists all members of the object.
+# -------------------------------------------------------------------------
+obj_members()
+{
+  local IFS=$obj_s x
+
+  for x in $1
+  do
+    echo "${x%%[= ]*}"
+  done
+}
+
+# obj_raw <obj> [member-separator]
+#
+# Output object in raw mode (decoded special characters).
+# -------------------------------------------------------------------------
+obj_raw()
+{
+  local cmd=${2+"IFS='$2' && "}'echo "$*"'
+
+  var_dump cmd
+  obj_eval "$1" "$cmd"
+}
+
+# obj_isset <name> <property...>
+#
+# Is the specified property set?
+# -------------------------------------------------------------------------
+obj_isset()
+{
+  local IFS=$obj_s obj="$1" x y ok r=0
+
+  shift
+
+  for x in $obj
+  do
+    ok=false
+    for y
+    do
+      case $x in
+        $y=*) ok=true ;;
+        *) ;;
+      esac
+    done
+    if ! $ok
+    then
+      r=1
+      break
+    fi
+  done
+  return $r
+}
+
+# obj_isempty <name> <property>
+#
+# Is the specified property empty?
+# -------------------------------------------------------------------------
+obj_isempty()
+{
+  local x=`obj_get "$@"`
+
+  test -z "$x"
+}
+
+# obj_print <obj>
+#
+# -------------------------------------------------------------------------
+obj_print()
+{
+  local old_IFS=$IFS IFS=$obj_s
+
+  set -- $*
+  IFS=$old_IFS
+  echo "$*"
+}
+
+# obj_eval <obj> <commands...>
+# -------------------------------------------------------------------------
+obj_eval()
+{
+  local IFS=$obj_s __obj=$1
+
+  shift
+  eval "local "$__obj";set -- "$__obj";$@"
+}
+
+# obj_each <object> <script-commands...>
+#
+# Evaluate a sequence of commands for every member of the object.
+# During evaluation of the commands there are additional special parameters
+# which can be used as placeholders for the key/value data:
+#
+#     $.  Prints the member name
+#     $=  Prints the value
+#     $^  Prints name=value
+#     $~  Prints a safe escaped and quoted form of name="value"
+# -------------------------------------------------------------------------
+obj_each()
+{
+  local __ifs="$IFS" __obj=$1 __it __cmds
+
+  shift
+  local IFS=";"
+  
+  __cmds=`echo "$*" | sed \
+    -e 's,$^,$1,g' \
+    -e 's,$~,$2=`str_quote "$3"`,g' \
+    -e 's,$\.,$2,g' \
+    -e 's,$=,$3,g'
+  `
+
+  IFS=$obj_s
+
+  eval 'set -- '$__obj'; IFS=$__ifs; for __it
+  do
+    set -- "${__it}" "${__it%%=*}" "${__it#*=}"
+    '$__cmds'
+  done'
+}
+
+# obj_set <obj-var> <property> <value...>
+#
+# Set the the specified property.
+# -------------------------------------------------------------------------
+obj_set()
+{
+  local o=$1 p=$2
+  shift 2
+  local x v="$p=$*" IFS="$obj_s"
+#  msg "v=$v"
+  set --
+  for x in `var_get $o`; do
+    case $x in
+      $p[=$lp]*) set -- "$@" "$v"; unset v ;;
+      *) set -- "$@" "$x"
+    esac
+  done
+  eval $o='$*${v+${*+$obj_s}$v}'
+}
+
+# obj_push <obj-var> <property> <value...>
+#
+# Set the the specified property.
+# -------------------------------------------------------------------------
+obj_push()
+{
+  local o=$1 p=$2 v=`obj_get "$1" "$2"`
+  shift 2
+  eval "set -- \"\`obj_get \"\${$o}\" \"\$p\"\`\" \"\$@\""
+  local x IFS="$obj_s" v="$p=$*"
+  set --
+  for x in `var_get "$o"`; do
+    case $x in
+      $p[=$lp]*) set -- "$@" "$v"; unset v ;;
+      *) set -- "$@" "$x"
+    esac
+  done
+  eval $o='$*${v+${*+$obj_s}$v}'
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_data_obj_sh=:;}

@@ -1,0 +1,1931 @@
+#!/usr/bin/env bash
+#
+#  pkgutils
+# 
+#  Copyright (c) 2000-2003 Per Liden <per@fukt.bth.se>
+#  Modifications for sw-ports by Lukas Beeler <lb-debian@projectdream.org>
+# 
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, 
+#  USA.
+#
+
+# set default paths
+# ---------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# load the required libraries
+# ---------------------------------------------------------------------------
+. $shlibdir/util.sh
+. $shlibdir/std/array.sh
+. $shlibdir/shell/script.sh
+. $shlibdir/template.sh
+. $shlibdir/archive.sh
+. $shlibdir/archive/tar.sh
+. $shlibdir/data/config.sh
+. $shlibdir/fs/dir.sh
+. $shlibdir/port.sh
+. $shlibdir/shell/script.sh
+. $shlibdir/std/var.sh
+. $shlibdir/fs.sh
+. $shlibdir/devel/triplet.sh
+. $shlibdir/code/bin.sh
+. $shlibdir/code/perl.sh
+. $shlibdir/shell/child.sh
+. $shlibdir/net/url.sh
+. $shlibdir/distrib.sh
+
+# ------------------------------------------------------------------------------
+readonly dirnames=(
+  prefix exec_prefix bindir sbindir libexecdir datadir sysconfdir
+  sharedstatedir localstatedir libdir includedir infodir mandir
+)
+
+# pkgmk_var_defer <name>
+#
+# Substitute/Evaluate variable.
+# ------------------------------------------------------------------------------
+pkgmk_var_defer()
+{
+  eval "eval $1=\"\${$1}\""
+  
+#  notice "Deferring $1=`eval 'echo ${'$1'}'`..."
+}
+
+# make a variable assignment list:
+#
+#    prepare_function_vars <script and lib source>
+#
+# outputs shell-parseable assignments
+# ------------------------------------------------------------------------------
+pkgmk_prepare_function_vars()
+{
+  local IFS=$nl vars var
+
+  vars=`script_vars "$1" | grep -v '_'`
+  
+  echo ": \${prefix=$prefix}"
+  
+  for var in $vars; do
+    if [ "$var" = "prefix" ]; then
+      continue
+    fi
+  
+    eval value="\$$var"
+    
+    if test "$value" != "${value#$shlibdir/}"; then
+      value="\$shlibdir/${value#$shlibdir/}"
+    elif [ "$value" != "${value#$libdir/}" ]; then
+      value="\$libdir/${value#$libdir/}"
+    elif [ "$value" != "${value#$prefix/}" ]; then
+      value="\$prefix/${value#$prefix/}"
+    fi
+
+    if var_isset "$var"; then
+      eval echo ": \\\${$var=\$value}"
+    fi
+  done
+}
+
+# get strings from script source likely to be function/variable names.
+# pass them along to pkgmk_find_library_deps to determine required libraries.
+#
+# pkgmk_get_function_libs <script source> [libs]
+#
+# outputs a list of library files
+# ------------------------------------------------------------------------------
+pkgmk_get_function_libs()
+{
+  local lib dep deps ids=`script_identifiers "$1"`
+   
+  pkgmk_find_library_deps "$ids" "${2-`pkgmk_get_library_sources`}"
+}
+
+# pkgmk_resolve_libs <scriptfile> [libs] [deps]
+# ------------------------------------------------------------------------------
+pkgmk_resolve_libs()
+{
+  local libs=${2-`pkgmk_get_library_sources`}
+  local script=$1
+  local dep
+  local newdeps=`pkgmk_get_function_libs "$script" "$libs"`
+
+  for dep in $newdeps; do
+    echo "$dep"
+  done
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_get_library_sources()
+{
+  array $shlibdir/* #{shell,config,monitor}/*
+}
+
+# pkgmk_find_library_deps <identifier list> [sources]
+# ------------------------------------------------------------------------------
+pkgmk_find_library_deps()
+{
+  local pattern="" id 
+  
+  for id in $1; do
+    pattern="${pattern}|^${id}\(\)$|^${id}="
+  done
+
+  grep -E "(${pattern#|})" ${2-`pkgmk_get_library_sources`} | sed 's,:.*$,,' | sort -u
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_get_filename() 
+{
+  local IFS=$nl file=${1##*://*/}
+
+  case "$1" in
+    git://* | svn*://*)
+      return 1
+    ;;
+  esac
+
+  if [ "$file" != $1 -a -e "$PKGMK_distfiles_dir/$file" ]; then
+    file="$PKGMK_distfiles_dir/$file"
+  fi
+  echo $file
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_check_pkgfile() 
+{
+  local n IFS=" $newline"
+
+  if ! port_isset "." $port_variables; then
+    errormsg "Variable $n not specified in $PKGMK_pkgfile"
+    pkgmk_terminate 1
+  fi
+
+  if [ "`type -t build`" != function ]; then
+    errormsg "Function 'build' not specified in $PKGMK_pkgfile."
+    pkgmk_terminate 1
+  fi
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_check_directory() 
+{
+  if [ -z "$1" ]; then
+    error "Empty path '$1'"
+    return 1
+  fi
+
+  if [ ! -d "$1" ]; then
+    warn "Directory $1 does not exist, creating it."
+    mkdir -p $1
+  fi
+
+  if [ ! -w "$1" ]; then
+    chmod 755 $1
+    errormsg "Directory $1 not writable."
+    pkgmk_terminate 1
+  fi
+
+  if test ! -x "$1" -a ! -r "$1"; then
+    chmod 755 "$1"
+    errormsg "Directory $1 not readable."
+    pkgmk_terminate 1
+  fi
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_mirrored_file()
+{ 
+  local IFS=" $newline" base=${1##*/} 
+
+  for share in ${PKGMK_distfile_mirrors[@]}; do
+    case $share in
+      *://${global_ipaddr-XXX}* | *://${global_hostname-XXX}*)
+        continue
+        ;;
+
+      rsync://*)
+
+        local args
+        
+        if [ "$PKGMK_move_mirrors" = yes ]; then
+          pushv args "--remove-sent-files"
+        fi
+
+        pushv args '--progress'
+        pushv args "${share%/}/${base#/}"
+        
+        if [ "$PKGMK_move_mirrors" = yes ]; then
+          pushv args "$PKGMK_distfiles_dir/$base"
+        else
+          pushv args "$PKGMK_source_dir/$base"
+        fi
+
+        msg "Trying to get sources from mirror $share..."
+
+       (msg rsync $args
+        rsync $args || { 
+          test $PKGMK_move_mirrors = yes &&
+          array_shift 'args' &&
+          msg rsync $args &&
+          rsync $args
+        }) && return 0
+        ;;
+
+      *://*)
+        error "No such protocol: ${share%%://*}"
+        ;;
+
+      *)
+        error "Invalid share: $share"
+        ;;
+    esac
+  done
+  return 1
+}
+
+# ------------------------------------------------------------------------------
+_url_download() 
+{
+  msg "Downloading $1${3:+ to $3}..."
+
+  if [ ! "`type -p wget 2>/dev/null`" ]; then
+    errormsg "Command 'wget' not found."
+    pkgmk_terminate 1
+  fi
+
+  localfile="$2" #`pkgmk_get_filename "$1"`
+  localdir="$3"
+
+  pkgmk_mirrored_file "$1" || 
+  url_download "$1" \
+    ${localfile:+"$localfile"} \
+    ${localdir:+"$localdir"} ||
+  {
+    errormsg "Downloading $1 failed."
+    pkgmk_terminate 1
+  }
+}
+
+# ------------------------------------------------------------------------------
+#download_source() 
+#{
+#  local file localfile
+#
+#  for file in ${source[@]}; do
+#
+#    localfile=`pkgmk_get_filename "$file"`
+#    exists=no
+#    base=${localfile##*/}
+#
+#    if [ ! -e "$localfile" ]; then
+#      if [ "$localfile" = "$file" ]; then
+#        errormsg "Local file of $file is $localfile."
+#        errormsg "Source file $localfile not found (can not be downloaded, URL not specified)."
+#        pkgmk_terminate 1
+#      else
+#        if [ "$PKGMK_download" = yes ]; then
+#          echo _url_download "$file" "$localfile" 1>&2
+#          _url_download "$file" "$localfile" "${SRC:-$srcdir/$category}"
+#        else
+#          errormsg "Source file $localfile not found (use option -d to download)."
+#          pkgmk_terminate 1
+#        fi
+#      fi
+#    else
+#      if [ "$localfile" != "$file" ]; then
+#        if [ "$pkgmk_download_only" = yes ]; then
+#          notice "Source file $localfile already retrieved."
+#        fi
+#      fi
+#    fi
+#  done
+#  :
+#}
+
+# ------------------------------------------------------------------------------
+pkgmk_make_md5sum() 
+{
+  local file localfile localfiles srcdir
+  
+  for file in ${source[@]}; do
+
+    localfile=`pkgmk_get_filename "$file"`
+
+    for srcdir in ${PKGMK_source_dirs[@]}; do
+      base=`basename "$localfile"`
+
+      if [ -e "$srcdir/$base" ]; then
+        localfile="$srcdir/$base"
+      fi
+
+      if [ -e "$localfile" -a ! -d "$localfile" ]; then
+        localfiles="${localfiles:+$localfiles }$localfile"
+        break
+      fi
+    done
+  done
+  
+  if [ "$PKGMK_strict" = yes ]; then
+    localfiles="Pkgfile${localfiles:+ $localfiles}"
+  fi
+        
+  if [ -n "$localfiles" ]; then
+    msg "Executing md5sum $localfiles"
+    md5sum $localfiles | sed -e 's|[ \t]\+.*[/\*]|  |' | sort -k 2
+  fi
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_check_md5sum() 
+{
+  local file=$PKGMK_work_dir/.tmp
+
+  cd $PKGMK_cwd
+  
+  PKGMK_status=0
+  
+  if [ -f "$pkgmk_md5sum" ]; then
+    pkgmk_make_md5sum > $file.md5sum
+    sort -k 2 $PKGMK_md5sum > $file.md5sum.orig
+    diff -w -t -U 0 $file.md5sum.orig $file.md5sum | \
+      sed -e '/^@@/d' \
+          -e '/^+++/d' \
+          -e '/^---/d' \
+          -e 's/^+/NEW       /g' \
+          -e 's/^-/MISSING   /g' >$file.md5sum.diff
+      
+    if [ -s $file.md5sum.diff ]; then
+      while read what md5 name; do
+        changes=`grep " $name\$" $file.md5sum.diff`
+
+        n=`IFS="$nl" && set -- $changes && echo "$#"`
+
+        if [ "$n" -lt 2 ]; then
+          unset changes
+        else
+          break
+        fi
+      done <$file.md5sum.diff
+    
+      if [ -n "$changes" ]; then
+        errormsg "Md5sum mismatch found:"
+        
+        while read missing expected name && read new given name; do
+          echo "EXPECTED $expected  $name"
+          echo "GIVEN    $given  $name"
+        done <$file.md5sum.diff
+        
+        errormsg "Building $PKGMK_package failed."
+        return 1
+      fi
+    fi
+    
+    minus=`grep "^MISSING " $file.md5sum.diff | wc -l`
+    plus=`grep "^NEW " $file.md5sum.diff | wc -l`
+    
+    if [ "$plus" -gt 0 ]; then
+      message="$plus new source files detected"
+    fi
+
+    if [ "$minus" -gt 0 ]; then
+      message="${message:+$message, }$minus source files removed"
+    fi
+
+    if [ -n "$message" ]; then
+      message="${message:+$message, }updating md5sum"
+      warn "$message"
+    fi
+  else
+    message="Md5sum not found, creating new."
+  fi
+
+  if [ -n "$message" ]; then
+    pkgmk_make_md5sum >$PKGMK_md5sum
+    unset message
+  fi
+  
+  return $PKGMK_status
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_cache_dir()
+{
+  PKGMK_cache=${PKGMK_host%%/*}
+
+  if [ ! -d "$PKGMK_cache" ]; then
+    mkdir -p "$PKGMK_cache"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_strip_files() 
+{
+ (cd $PKG
+ 
+  IFS="
+"
+  for file in `find . -type f`; do
+    if [ "`echo "$file" | sed 's/\.[ch]$//'`" = "$file" ]; then
+      if file -b "$file" | grep -q '^.*ELF.*statically linked.*not stripped$'; then
+        strip --strip-all -R .comment -R .note $file
+        chmod go-w $file
+      elif file -b "$file" | grep -q '^.*ELF.*statically linked.*stripped$'; then
+        chmod go-w $file
+      elif file -b "$file" | grep -q '^.*ELF.*executable.*not stripped$'; then
+        strip --strip-all $file
+      elif file -b "$file" | grep -q '^.*ELF.*shared object.*not stripped$'; then
+        strip --strip-unneeded $file
+      elif file -b "$file" | grep '^current ar archive$'; then
+        strip --strip-debug $file
+      fi
+    fi
+  done 2>/dev/null)
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_compress_binaries()
+{
+  local file
+  
+  cd $PKG
+  
+  for file in `find . -type f -name "*.static"`; do
+    if [ "`echo $file | sed 's/\.[ch]$//'`" = "$file" ]; then
+      if [ -n "`file -b "$file" | grep '^.*ELF.*statically linked.*not stripped$'`" ]; then
+        strip --strip-all -R .comment -R .note $file
+        upx -q -f --no-color --no-progress -9 $file | tail -3 | head -1
+        chmod go-w $file
+      fi
+    fi
+  done
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_compress_manpages_and_info() 
+{
+  local file symlink_target
+  
+  cd $PKG
+  
+  for file in `find . -type f -path "*/man?/*" -or -path "*/info/*"`; do
+    if ! (echo "$file" | grep '\.gz$'); then
+      gzip -f -9 $file
+    fi
+  done
+  
+  for file in `find . -type l -path "*/man?/*"`; do
+    symlink_target=`ls -l "$file" | gawk '{ print $11 }'`
+    symlink_target=${symlink_target##*/}
+
+    rm -f $file
+
+    if [ -z "$(echo "$file" | grep '\.gz$')" ]; then
+      file=$file.gz
+    fi
+    
+    if test -z `echo $symlink_target | grep '\.gz$'`; then
+      symlink_target=$symlink_target.gz
+    fi
+
+    if test -e ${file%/*}/$symlink_target; then
+      rm -f $file
+      ln -sf $symlink_target ${file%/} 2>/dev/null
+    fi
+  done
+}
+
+# ------------------------------------------------------------------------------
+#pkgmk_link_footprint()
+#{
+#  if [ "$PKGMK_footprint_link" != "$PKGMK_footprint" ]; then
+#    rm -f "${PKGMK_footprint_link%/}"
+#    ln -sf "$PKGMK_footprint" "${PKGMK_footprint_link%/}" 2>/dev/null
+#  fi
+#}
+
+# ------------------------------------------------------------------------------
+pkgmk_check_footprint() 
+{
+  local temp="$PKGMK_work_dir/.tmp"
+  
+  cd "$PKGMK_cwd"
+  
+  PKGMK_footprint="$PKGMK_cwd/.footprint"
+  
+  msg "Checking footprint of $PKGMK_package ..."
+  
+  if [ -f "$PKGMK_package" ]; then
+    archive_footprint "$PKGMK_package" >$temp.footprint
+
+    if [ -e "$PKGMK_footprint" ]; then
+      cat "$PKGMK_footprint" >$temp.footprint.orig
+      diff -w -t -U 0 $temp.footprint.orig $temp.footprint | \
+        sed -e '/^@@/d' \
+            -e '/^+++/d' \
+            -e '/^---/d' \
+            -e 's/^+/NEW       /g' \
+            -e 's/^-/MISSING   /g' >$temp.footprint.diff
+
+      if test -e $temp.footprint.diff &&
+         test `fs_size "$temp.footprint.diff"` -gt 0
+      then
+        minus=`grep '^MISSING ' $temp.footprint.diff | wc -l`
+        plus=`grep '^NEW ' $temp.footprint.diff | wc -l`
+
+        errormsg "Footprint mismatch found ($((plus)) new, $((minus)) missing):"
+        cat $temp.footprint.diff
+        success=no
+      fi
+    else
+      warn "Footprint not found, creating new."
+
+      mv "$temp.footprint" "$PKGMK_footprint"
+      
+      #pkgmk_link_footprint
+    fi
+  else
+    errormsg "Package $PKGMK_package was not found."
+    success="no"
+  fi
+}
+
+# add script <function> <libsubdir> <extension>
+# ------------------------------------------------------------------------------
+pkgmk_add_script()
+{
+  local fn="$1" ext="${3:+.$3}" file="${2##*/}"
+  local path="$PKG/$prefix/lib/$2/${name}${ext}" vars libs header footer
+
+  unset header footer
+
+  local lame="export PATH=\"$prefix/bin:$prefix/sbin:/sbin:/bin:/usr/sbin:/usr/bin:\$PATH\""
+
+  script=`script_readfn "$fn" "$PKGMK_cwd/Pkgfile"`
+
+#@DEBUG_TRUE@  debug "pkgmk_add_script '$fn' '$file' '$ext'"
+
+  if [ -n "$script" ]; then
+    if [ "$file" != "$2" ]; then
+      path=$PKG/$prefix/lib/$2
+    else
+      mkdir -p $PKG/$prefix/lib/$2
+    fi
+    
+    # get referenced library file list
+    libfiles=`pkgmk_resolve_libs "$script" | sort -u`
+    
+    config_file=
+    libfiles_noconfig=`array $libfiles`
+    libfiles=`array $config_file $libfiles_noconfig`
+    
+    verbose "Script name: $2"
+    
+    # don't load other configs in swconfig scripts, they're all loaded anyway!
+    case $2 in
+      #*conf*|
+      *service)
+        script=`config_eval "$script" && config_export ''`
+        ;;
+    esac
+    
+    case $2 in
+      *config)
+        libfiles=`array $libfiles_noconfig | grep -v 'swconfig'`
+        ;;
+    esac
+
+    if [ "$file" = "run" ]; then
+      libfiles=`array ${libfiles} ${prefix}/lib/pkgservice/${name}`
+    fi
+    
+    local shell=${prefix}/bin/sh
+
+    if test "$2" != "swconfig"; then
+      vars=`pkgmk_prepare_function_vars "$scriptandlibs"`
+    fi
+    
+    if test "$2" = "swconfig" -a "$2" = "pkgadd"; then
+      lame=""
+    fi
+
+    shift 3
+    local "$@"
+
+    cat >$path <<EOF
+${header-#!/bin/sh
+#
+# $fn script for package $PKGMK_category/${name}
+# generated by `basename $PKGMK_command` on `date --iso`
+${vars:+"
+${vars}
+"}${libs:+"
+${libs}
+"}${lame:+"
+${lame}
+"}
+set -e
+
+}$script${footer-
+
+exit 0}
+EOF
+    chmod 500 "$path"
+    return 0
+  fi
+  
+  return 1
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_inst_scripts()
+{
+  pkgmk_add_script "preinstall" "pkginstall" "pre"
+  pkgmk_add_script "postinstall" "pkginstall" "post"
+
+  pkgmk_add_script "preinst" "pkgadd" "pre"
+  pkgmk_add_script "postinst" "pkgadd" "post"
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_rm_scripts() 
+{
+  pkgmk_add_script "prerm" "pkgrm" "pre"
+  pkgmk_add_script "postrm" "pkgrm" "post"  
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_config_scripts() 
+{
+  pkgmk_add_script "templates" "pkgtmpl" "templates" header="" footer=""
+  pkgmk_add_script "config" "pkgconf" "config" \
+    header=$'#!/bin/sh\n\nset -e\n\n' \
+    footer=
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_service_scripts() 
+{
+  if pkgmk_add_script 'services' 'pkgservice'; then
+
+    local tmp=`tempnam`
+    script_readfn "services" "$PKGMK_cwd/Pkgfile" >$tmp
+    
+    local pkgservices=$(source "$shlibdir/config" &&
+                        source "$tmp" &&
+                        config_tree '' '/')
+
+    services="$pkgservices "$(
+      { script_readfn "config" "$PKGMK_cwd/Pkgfile" | grep SERVICES | sed "s,SERVICES=,,;;s,${SERVICES},,;;s,\",,g;;s,',,g;;s, ,,g"; }
+    )
+
+    set -- $services
+
+    while [ "$1" ]; do
+      service="$1"
+      shift
+
+      msg "Setting up service $service ..."
+    
+      local svcdir=$PKG/$sysconfdir/service/$service
+      mkdir -p $svcdir
+    
+     (cd $svcdir
+      rm -rf log run supervise
+      pkgmk_add_script $service ../etc/service/$service/run
+      mkdir -p supervise
+      mkfifo supervise/{control,ok})
+     
+     if [ $1 = $service/log ]; then
+       shift
+      (mkdir -p $svcdir/log
+       {
+         echo "#!/bin/sh"
+         echo "PATH=\"/usr/local/bin:/usr/local/sbin\""
+         echo "cd $localstatedir/log"
+         echo "exec multilog t ./$service"
+       } >$svcdir/log/run
+     
+       mkdir -p $svcdir/log/supervise
+       mkfifo $svcdir/log/supervise/{control,ok}
+       chmod 755 $svcdir/log/run
+       mkdir -p $PKG/$localstatedir/log/$service)
+     fi
+    done
+  fi
+}
+
+# pkgmk_list_tree <prefix> [order]
+# ------------------------------------------------------------------------------
+pkgmk_list_tree()
+{
+ (prefix=$1 IFS="
+"  bla=0
+
+  shift
+
+  local files=`fs_files "$prefix"`
+  local dirs=`fs_dirs "$prefix"`
+
+  if [ $((bla)) = 1 ]; then 
+    msg "Dirs:" $dirs 1>&2
+  fi
+
+  if [ -n "$prefix" ]; then 
+    echo "$prefix"
+  fi
+  
+  if [ "$dirs" ]; then
+    [ $bla = 1 ] && echo array_order 'dirs' "$@" 1>&2
+    array_order 'dirs' lib pkgadd pkgconf pkgservice pkgtmpl swconfig #"$@" 
+
+    if [ $((bla)) = 1 ]; then 
+      msg "Dirs:" $dirs 1>&2
+    fi
+
+    for dir in ${dirs}; do
+      pkgmk_list_tree "${prefix:+${prefix}/}$dir" $*
+    done
+  fi  
+
+  if [ "$files" ]; then
+    for file in $files; do
+      echo "${prefix:+${prefix}/}$file"
+    done
+  fi)
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_patch_shell() 
+{
+  duplicate_sources
+
+  msg "Dropping you to a patch shell... (Control-D to exit and diff)"
+  sh 
+  cd "$SRC/.."
+
+  patch_file="$PKGMK_cwd/failover-`date '+%Y%m%d'`.patch"
+  msg "Diffing your changes..."
+  udiff -ru "${PKGMK_host}_orig" "$PKGMK_host" >$patch_file
+
+  if [ ! -s "$patch_file" ]; then
+    rm -f "$patch_file"
+    msg "No changes."
+  else
+    msg "Your changes were saved to $patch_file ."
+  fi
+}
+
+# Lists all the links in the source directory.
+# ------------------------------------------------------------------------------
+pkgmk_get_sources()
+{
+  if test -f "$PKGMK_cwd/.sources"; then
+    PKGMK_sources=`sed -e "s:$SRC/::" -e 's:/.*::' "$PKGMK_cwd/.sources" | uniq`
+  elif [ -z "$PKGMK_sources" ]; then
+    PKGMK_sources=`port_listsources "$PKGMK_cwd" | sort | tee "$PKGMK_cwd/.sources" | sed 's|/.*||' | uniq`
+  fi
+  echo "$PKGMK_sources"
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_remove()
+{
+  local path t what=$1
+  shift
+  for path; do
+    if [ -e "$path" ]; then
+      if [ -d "$path" ]; then
+        t='directory'
+      else
+        t='file'
+      fi
+      verbose "Removing ${what:+$what }$t `abspath "$path"` ..." 1
+      rm -rf "$path"
+    fi
+  done
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_cleanup()
+{
+  local IFS="$newline"
+
+  if test -d "$SRC" && [ "$SRC" != "$PKGMK_cwd" ]; then
+    (cd "$SRC" && pkgmk_remove 'source' `pkgmk_get_sources`)
+  fi
+
+  pkgmk_remove 'package' $PKG
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_deps()
+{
+ (cd $PKG
+
+  IFS="
+"
+  mimetypes=`find * -not -type d -exec file -i '{}' ';' 2>/dev/null`
+  unknown_types=
+
+  for line in $mimetypes; do
+
+    path=${line%%": "*}
+    mime=${line#*": "}
+    mime=${mime%%";"*}
+    deps=
+    
+    test -f "$path" -a ! -L "$path" || continue
+  
+    case $mime:$path in
+      application/x-perl:* | *:*.pm)
+        pushv deps `perl_libs "$path" 2>/dev/null`
+        ;;
+
+      application/x-ruby:* | *:*.rb)
+        pushv deps `ruby_libs "$path" 2>/dev/null`
+        ;;
+
+      application/*:*)
+
+        ftype=`file "$path" | sed 's,^[^:]*:\s*,,'`
+        
+        case $ftype in
+          *'GNU message catalog'* | 'data') continue ;;
+        esac
+
+        libs=`bin_libs "$path" 2>/dev/null`
+      
+@DEBUG_TRUE@   #test -z "$libs" && debug "binary format dependency check failed for: $path"
+      
+        for lib in $libs; do
+          pushv deps "$lib"
+        done
+        ;;
+      *)
+        array_push_unique unknown_types "$mime"
+        ;;
+    esac
+
+    if [ -n "$deps" ]; then
+      echo "$path:" $deps
+    fi
+  done
+
+@DEBUG_TRUE@  verbose "Unknown MIME types:" $unknown_types 2
+  )
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_build() 
+{
+  local success="no" exists="no"
+
+  msg "Building package $PKGMK_package"
+  
+  export cwd="$PKGMK_cwd"
+  local IFS="$newline"
+  
+  umask 022
+  
+  cd "$PKGMK_cwd"
+
+  pkgmk_remove 'package' $PKG
+
+  msg "Entering directory $SRC"
+
+  mkdir -p "$SRC" "$PKG"
+  
+  local IFS="$space$newline$tabstop"
+  
+  if [ "$PKGMK_ignore_md5sum" = no ]; then
+    pkgmk_check_md5sum || return 1
+  fi
+
+  # Prepare the source files...
+  if [ "$PKGMK_no_build" = no -a "$PKGMK_no_unpack" = no ]; then
+
+    PKGMK_sources=`
+        port_unpack "$PKGMK_cwd" | 
+        sort |
+        tee "$PKGMK_cwd/.sources" | 
+        sed 's|^\([^/]\+\)/.*|\1|' | 
+        uniq
+    ` 2>/dev/null
+    
+    if [ -z "$PKGMK_sources" ]; then
+      errormsg "Failed unpacking sources."
+      return 1
+    fi
+  fi
+
+  cd $SRC
+  
+  if [ "${host%-*}" = "${build%-*}" ]; then
+     build="$host"
+     msg "Same architecture ($build <=> $host); not enforcing cross build"
+  fi
+  
+  var_map PKGMK_ "" prefix build host target
+
+  if [ "$PKGMK_no_build" = no ]; then
+    if [ "$TRACE_BIN" = yes -a -d "$libdir/pkgmk" ]; then
+      PATH="$libdir/pkgmk:$PATH" 
+      CWD="$PKGMK_cwd"
+
+      export PATH CWD
+       
+      exec 10>$CWD/.cmds
+       
+      msg "Logging commands to $CWD/.cmds"
+    fi
+
+    unset {lib,include,bin,sysconf,data}dir
+
+#     var_map 'PKGMK_' '' CC LIBS CXX AR RANLIB LIBTOOL STRIP
+     var_map 'PKGMK_' '' {lib,include,bin,sysconf,data}dir
+     var_map 'PKGMK_' '' prefix
+
+     if test -n "$PKGMK_host" -a -e "$sysconfdir/pkgmk.d/$PKGMK_host"; then
+       msg "Host configuration $sysconfdir/pkgmk.d/$PKGMK_host"
+
+       . "$sysconfdir/pkgmk.d/$PKGMK_host"
+       
+       PKGMK_host="$host"
+     fi
+
+     export ROOT="$PKG$PKGMK_prefix"
+  
+     if [ "$NO_LOG" = no ]; then
+         rm -f $PKGMK_cwd/.log
+         touch $PKGMK_cwd/.log
+        
+         if in_path "inotail"; then
+           TAIL="inotail"
+         else
+           TAIL="tail"
+         fi
+   
+         child_spawn $TAIL -f --lines=1000 $PKGMK_cwd/.log 
+         tail_pid=$child_lastpid
+
+        ((sleep 0.1 
+          set -ex
+          PS4='Executing: '
+          build 
+          exit $?) 2>&1 | \
+	    sed -u \
+	      -e '1d' \
+	      -e '/^+ exit [0-9]\+$/d' \
+	      -e "s,$ROOT\([^_A-Za-z]\),\$ROOT\1,g" \
+	      -e "s,$PKG\([^_A-Za-z]\),\$PKG\1,g"
+
+	 ) >>$PKGMK_cwd/.log & build_pid=$!
+          kill -STOP $build_pid
+          pushv child_pids "$build_pid"
+          
+       if [ "${USE_STRACE:-no}" = yes ]; then
+         child_spawn strace -p $build_pid -v -ff -q -e read="!all" -o $PKGMK_cwd/.strace
+         strace_pid=$child_lastpid
+
+         msg "Spawned strace -p $build_pid [$strace_pid]"
+       fi
+       
+       if [ "${USE_IWATCH:-no}" = yes ]; then
+         child_spawn iwatch -r -v -e default `port_rootdir "$PKGMK_cwd"` >&$PKGMK_cwd/.iwatch
+         iwatch_pid=$child_lastpid
+
+         msg "Spawned iwatch -p $build_pid [$iwatch_pid]"
+       fi
+       
+         kill -CONT $build_pid
+         wait $build_pid
+
+         sleep 0.5
+
+         PKGMK_status=$?
+
+       { kill $tail_pid $strace_pid $iwatch_pid
+         wait $tail_pid $strace_pid $iwatch_pid
+       } >&/dev/null
+     else       
+      (if [ "$PKGMK_silent" = no ]; then
+         set -ex && trap 'echo DEBUG 1>&2' DEBUG && build 2>&1
+       else
+         set -ex && trap 'echo DEBUG 1>&2' DEBUG && build 2>&1 >/dev/null
+       fi) &
+       
+       fg %1
+       PKGMK_status=$?
+       wait %2
+       
+     fi
+
+     if [ "$PKGMK_status" != 0 ]; then
+       errormsg "Exit code: $PKGMK_status"
+
+       if test "$PKGMK_keep_going" != yes -a "$PKGMK_patch_shell" = yes; then
+         pkgmk_patch_shell
+         exit 1
+       fi
+     fi
+  else
+    archive_unpack "$PKGMK_package" "$PKG"
+  fi
+
+  PKGMK_status=$?
+  
+  if test $((PKGMK_status)) = 0; then
+    if [ $PKGMK_no_build = no ]; then
+      if [ "$PKGMK_no_strip" = no ]; then
+        pkgmk_strip_files
+      else
+        pkgmk_compress_binaries
+      fi
+    
+      pkgmk_compress_manpages_and_info
+    fi
+
+   {
+    pkgmk_inst_scripts
+    pkgmk_rm_scripts
+    pkgmk_config_scripts
+    pkgmk_service_scripts
+   } 2>/dev/null >/dev/null
+    # Check if there were actually some files installed into the temporary destination directory.
+    if fs_empty_dir "$PKG"; then
+      errormsg "Empty destination directory $PKG"
+      PKGMK_status=1
+      return 1
+    fi
+    
+    cd $PKG
+
+    local pfx=`IFS="/" && echo $prefix lib`
+    
+    pkgmk_list_tree '' $pfx 'pkgadd' 'pkgservice' 'swconfig' >"$SRC/FILES-SORTED"
+    IFS=$tmp_IFS
+
+    PKGMK_pkgdir=`dirname "$PKGMK_package"`
+ 
+    dir_create "$PKGMK_pkgdir"
+    
+    msg "Succeeded"
+    rm -f "$PKGMK_package"
+    tar cvvs --no-recursion --use-compress-program="bzip2" --files-from=$SRC/FILES-SORTED -f "$PKGMK_package" | #>>$PKGMK_cwd/.log 2>&1
+    _archive_footprint_filter
+  fi
+    
+  if [ "$PKGMK_status" = 0 ]; then
+    success="yes"
+
+    if [ "$PKGMK_ignore_footprint" = yes ]; then
+      warn "Footprint ignored."
+    else
+      pkgmk_check_footprint
+    fi
+  fi
+  
+   (cd $SRC
+    IFS="
+"
+    tmp=`mktemp`
+    rootdir=`port_rootdir "$PKGMK_cwd"`
+    
+    fs_recurse "${rootdir%/}" | sort | sed -e 's,/\+,/,g' | diff -U -1 "$PKGMK_cwd/.sources" - >$tmp
+    
+    vanished=`sed -n -e '1d; 2d; 3d; /^-/ s/^-//p' $tmp`
+    
+    if [ -n "$vanished" ]; then
+      warn "`count $vanished` Files vanished"
+      
+      echo "$vanished" >$PKGMK_cwd/.vanished
+    fi
+    
+    sed -n \
+        -e '1d; 2d; 3d; /^+/ s/^+//p' \
+        -e 's,/\+,/,g' \
+        $tmp
+
+   ) >$PKGMK_cwd/.builds
+  
+   (cd $PKG
+
+    fs_recurse "$PKG" | sort
+   ) >$PKGMK_cwd/.package  
+    
+  if [ -f "$PKGMK_package" ]; then
+    msg "Checking package dependencies..."
+    pkgmk_deps >$PKGMK_cwd/.deps
+  fi
+  
+  if [ "$success" = yes ]; then
+    msg "Done building $PKGMK_package"
+    PKGMK_status=0
+  else
+    if [ -f "$PKGMK_package" ]; then
+      touch -r $PKGMK_cwd/$PKGMK_pkgfile "$PKGMK_package" &> /dev/null
+    fi
+    errormsg "Failed building $PKGMK_package"
+    PKGMK_status=1
+  fi
+  
+  if [ "$PKGMK_keep_work" = no ]; then
+    pkgmk_cleanup
+  fi
+  
+  return $((PKGMK_status))
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_recurse()
+{
+  local ARGS file DIR
+  
+  export PKGMK_{prefix,host,libdir,bindir,sysconfdir,datadir}
+    
+    export USE_STRACE
+
+    ARGS=`echo "$@" | sed -e "s/--recursive//g" -e "s/-r//g"`
+    
+    # Template or directory recursion?
+    if [ -n "$PKGMK_template" ]; then
+      ports=`template_pkglist "$PKGMK_template"`
+      set -- $ports
+      msg "Considering template" $PKGMK_template "($# packages)"
+    else
+      ports=`port_find .`
+    fi
+    
+   (if [ -n "$PKGMK_template" ]; then
+      cd "$PKGMK_ports_dir"
+    fi
+    
+    for port in $ports; do
+      if [ -d "$port" ]; then
+        msg "Entering directory $port"
+
+        (cd "$port" && local IFS=" $IFS" && pkgmk_main $ARGS); PKGMK_status=$?
+
+        verbose "Leaving directory $port"
+
+        if test $PKGMK_status != 0 -a "$PKGMK_keep_going" != yes; then
+          exit $PKGMK_status
+        fi
+      fi
+    done)
+  }
+
+# ------------------------------------------------------------------------------
+  pkgmk_iterate()
+  {
+    local port IFS="
+  "" "
+    export PKGMK_{prefix,host,libdir,bindir,sysconfdir,datadir}
+
+ (set -- $PKGMK_list
+  for port; do
+    if is_port "$port"; then
+      verbose "Entering directory $port" 2
+
+      (cd `port_dir "$port"` && IFS=" $IFS" && pkgmk_main $PKGMK_options); PKGMK_status=$?
+
+      verbose "Leaving directory $port" 2
+
+      if test "$PKGMK_status" != 0 -a "$PKGMK_keep_going" != yes; then
+        exit $PKGMK_status
+      fi
+    fi    
+  done)
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_pkginfo()
+{
+  local file localfile
+  
+  if [ -f "$PKGMK_package" ]; then
+    msg "Package $PKGMK_package is built"
+  else
+    msg "Package $PKGMK_package not built"
+  fi
+
+  if test -f ".md5sum"; then
+    msg "MD5 sum is present (`cat .md5sum | wc -l` files)"
+  else
+    msg "MD5 sum not present"
+  fi
+  
+  if [ -f ".footprint" ]; then
+    msg "Footprint is present (`cat .footprint | wc -l` files)"
+  else
+    msg "Footprint not present"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+PKGMK_update_footprint() 
+{
+  PKGMK_footprint="$PKGMK_cwd/.footprint"
+  
+  if [ ! -f "$PKGMK_package" ]; then
+    errormsg "Unable to update footprint. File $PKGMK_package not found."
+    pkgmk_terminate 1
+  fi
+  
+  pkgmk_cache_dir
+
+  msg "Making footprint of $PKGMK_package"
+
+  archive_footprint "$PKGMK_package" >$PKGMK_footprint
+  touch "$PKGMK_package"
+  
+ # if [ "$PKGMK_footprint_link" != "$PKGMK_footprint" ]; then
+ #   rm -f "${PKGMK_footprint_link%/}"
+ #   ln -sf "$PKGMK_footprint" "${PKGMK_footprint_link%/}" 2>/dev/null
+ # fi
+
+  msg "Footprint updated."
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_list_files()
+{
+  if [ ! -f "$PKGMK_footprint" ]; then
+    errormsg "No footprint, please use $0 -uf"
+    pkgmk_terminate 1
+  fi
+  
+  sed -n 's,^[-a-z]\+[ \t]\+[a-z0-9]\+/[a-z0-9]\+[ \t]\+,/,;
+          s, .*$,,; \,/$,! p' \
+    $PKGMK_footprint
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_build_needed() 
+{
+  local file RESULT
+  
+  RESULT="yes"
+
+  if [ -e "$PKGMK_package" ]; then
+    RESULT="no"
+
+    for file in $PKGMK_pkgfile ${source[@]}; do
+      file=`pkgmk_get_filename $file`
+      if test ! -e $file -o ! "$PKGMK_package" -nt $file; then
+        RESULT="yes"
+        break
+      fi
+    done
+  fi
+  
+  echo $RESULT
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_interrupted()
+{
+  echo ""
+  errormsg "Interrupted (PKG=$PKG)."
+
+  dir_exists "$PKG" && rm -rf "$PKG"
+
+  if [ "$PKGMK_keep_work" = no ]; then
+    pkgmk_cleanup
+  fi
+  
+  pkgmk_terminate 1
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_help() 
+{
+  echo "usage: `basename $PKGMK_command` [options]"
+  echo "options:"
+  echo "  -r,   --recursive                search for and build packages recursively"
+  echo "  -d,   --download                 download missing source file(s)"
+  echo "  -do,  --download-only            do not build, only download missing source file(s)"
+  echo "  -utd, --up-to-date               do not build, only check if package is up to date"
+  echo "  -uf,  --update-footprint         update footprint using result from last build"
+  echo "  -lf,  --list-files               list files in package"
+  echo "  -if,  --ignore-footprint         build package without checking footprint"
+  echo "  -um,  --update-md5sum            update md5sum"
+  echo "  -im,  --ignore-md5sum            build package without checking md5sum"
+  echo "  -nb,  --no-build                 do not build the source (only replace pre-/post-(un)inst"
+  echo "  -ns,  --no-strip                 do not strip executable binaries"
+  echo "  -f,   --force                    build package even if it appears to be up to date"
+  echo "  -kw,  --keep-work                keep temporary working directory"
+  echo "  -kg,  --keep-going               keep going on error"
+  echo "  -ps,  --patch-shell              unpack sources, make a copy and drop to a patch shell"
+  echo "  -nl,  --no-log                   do not write build output to logfile"
+  echo "  -tb,  --trace-bin                trace binary that get executed from build(), save into .cmds"
+  echo "  -s,   --silent                   do not show build output"
+  echo "  -nf,  --info                     show info about the package"
+  echo "  -cf,  --config-file <file>       use alternative configuration file"
+  echo "  -t,   --template <name>          build packages from template"
+  echo "  -p,   --package                  build package by name"
+  echo "  -sd,  --srcdir                   print source directory"
+  echo "  -sdr, --srcdir-root              print source root directory"
+  echo "  -dd,  --destdir                  print destination directory"
+  echo "  -pp,  --print-package            print package name only"
+  echo "  -mp,  --merge-package [args]     merge package after building"
+  echo "  -up,  --unpack-package           unpack package after building"
+  echo "        --prefix <directory>       override prefix [$prefix]"
+  echo "        --host <host-triplet>      build for host [$host]"
+  echo "        --target <target-triplet>  build for target [$target]"
+  echo "  -v,   --version                  print version and exit "
+  echo "  -h,   --help                     print help and exit"
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_parse_options() 
+{
+  local OPT
+
+  PKGMK_options=
+  PKGMK_list=
+
+  while test "$1"
+  do
+    OPT=$1
+    case $OPT in
+      -r|--recursive)
+        PKGMK_recursive="yes" ;;
+      -t|--template)
+        PKGMK_template="$2" && shift && OPT="$OPT$array_s$1" ;;
+      -p|--package)
+        PKGMK_package="$2"; shift ;;
+      -pp|--print-package)
+        PKGMK_print_pkg="yes" ;;
+      -sd|--srcdir)
+        PKGMK_print_srcdir="yes" ;;
+      -sdr|--srcdir-root)
+        PKGMK_print_srcdir="root" ;;
+      -dd|--destdir)
+        PKGMK_print_destdir="yes" ;;
+      -d|--download)
+        PKGMK_download="yes" ;;
+      -dd|--pkgmk_dump*|--debug*)
+        PKGMK_debug="yes" ;;
+      -pg|--profile*)
+        PKGMK_build_profiling="yes" ;;
+      -st|--static)
+        PKGMK_build_static="yes" ;;
+      -do|--download-only)
+        PKGMK_download="yes"
+        PKGMK_download_only="yes" ;;
+      -utd|--up-to-date)
+        PKGMK_up_to_date="yes" ;;
+      -uf|--update-footprint)
+        PKGMK_update_footprint="yes" ;;
+      -lf|--list-files)
+        PKGMK_list_files="yes" ;;
+      -if|--ignore-footprint)
+        PKGMK_ignore_footprint="yes" ;;
+      -um|--update-md5sum)
+        PKGMK_update_md5sum="yes" ;;
+      -im|--ignore-md5sum)
+        PKGMK_ignore_md5sum="yes" ;;
+      -ns|--no-strip)
+        PKGMK_no_strip="yes" ;;
+      -nb|--no-build)
+        PKGMK_no_build="yes" ;;
+      -nf|--info)
+        PKGMK_info="yes" ;;
+      -f|--force)
+        PKGMK_force="yes" ;;
+      -cl|--cleanup)
+        PKGMK_cleanup="yes" ;;
+      -kw|--keep-work)
+        PKGMK_keep_work="yes" ;;
+      -st|--strace)
+        USE_STRACE="yes" 
+        msg "Tracing script execution..."
+        ;;
+      -iw|--iwatch)
+        USE_IWATCH="yes" 
+        msg "iWatching the build tree..."
+        ;;
+      -kg|--keep-going)
+        PKGMK_keep_going="yes" ;;
+      -nu|--no-unpack)
+        PKGMK_no_unpack="yes" ;;
+      -mp*|--merge-package*)
+        PKGMK_merge="${OPT#-mp}"
+        PKGMK_merge="${PKGMK_merge#--merge-package}"
+        PKGMK_merge="${PKGMK_merge#=}"
+        ;;
+      -up|--unpack-package)
+        PKGMK_unpack="yes" ;;
+      -ps|--patch-shell)
+        shift; PKGMK_patch_shell="$*"; shift $# ;;
+      -nl|--no-log) NO_LOG="yes" ;;
+      -s|--silent) PKGMK_silent="yes" ;;
+      -tb|--trace-bin) TRACE_BIN="yes" ;;
+      -cf|--config-file)
+        if [ -z "$2" ]; then
+          echo "`basename $PKGMK_command`: option $OPT requires an argument"
+          pkgmk_terminate 1
+        fi
+        PKGMK_conffile="$2"
+        shift ;;
+
+      --build) shift; pkgmk_build=$OPT ;;
+      --build=*) pkgmk_build=${1#*=} ;;
+      --host) 
+        shift
+        test "$PKGMK_host" = "$PKGMK_target" && PKGMK_target="$OPT"
+        PKGMK_host="$OPT"
+        ;;
+      --host=*) 
+        test "$PKGMK_host" = "$PKGMK_target" && PKGMK_target="${1#*=}"
+        PKGMK_host="${1#*=}"
+        ;;
+      --target) shift; PKGMK_target=$OPT ;;
+      --target=*) PKGMK_target=${1#*=} ;;
+      --prefix) shift; PKGMK_prefix=$OPT ;;
+      --prefix=*) PKGMK_prefix=${1#*=} ;;
+
+      -v|--version)
+        echo "`basename $PKGMK_command` (pkgutils) $PKGMK_version"
+        pkgmk_terminate 0
+        ;;
+
+      -h|--help)
+        pkgmk_help
+        pkgmk_terminate 0
+        ;;
+
+      --*|--*=*)
+        echo "`basename $PKGMK_command`: invalid option $OPT"
+        pkgmk_terminate 1 
+        ;;
+
+      *=*)
+        var_set "${OPT%%=*}" "${OPT#*=}"
+        ;;
+
+      *)
+        local ports=`port_dir "$OPT" | sed -e "s:^${portsdir=prefix/ports}/::" | uniq` || exit 1
+      
+        if test `array_length ports` -gt 1; then
+          msg "ambiguous port name: ${OPT##*/}"
+          array "valid ports are:" "$ports"
+          exit 125
+        elif is_port "$OPT"; then
+          verbose "Adding port `port_id "$OPT"` to build list." 1
+
+          pushv PKGMK_list "$OPT"
+          shift
+          continue
+        elif test -d "$OPT" -a -f "$OPT/Pkgfile"; then
+          pushv PKGMK_list "$OPT"
+          shift
+          continue
+        elif test -d "$PKGMK_ports_dir/$OPT" -a -f "$PKGMK_ports_dir/$OPT/Pkgfile"; then
+          pushv PKGMK_list "$PKGMK_ports_dir/$OPT"
+          shift
+          continue
+        else
+          errormsg "invalid argument $1"
+          pkgmk_terminate 1
+        fi
+        ;;
+    esac
+    shift
+    
+    case $OPT in
+      -*) pushv PKGMK_options "$OPT" ;;
+    esac
+  done
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_dump()
+{
+  set | grep '^PKGMK_'
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_terminate()
+{ 
+  test "$1" != 0 -o "$PKGMK_debug" = yes && PKGMK_debug=no
+
+  test "$PKGMK_keep_work" = no && pkgmk_cleanup
+
+  test "${PKG#/tmp}" != "$PKG" && rm -rf "$PKG"
+  
+  exit ${1-0}
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_checkuid()
+{
+  : ${UID-`id -u`}
+
+  if [ "$UID" != 0 ]; then
+    
+    if [ "$USE_FAKEROOT" = yes ]; then
+      exec fakeroot "$0" "$@" 
+      exec sudo "$0" "$@"
+      error "missing fakeroot"
+    else
+      error "pkgmk must be run as root or under fakeroot!"
+    fi
+  fi
+}
+
+# ------------------------------------------------------------------------------
+pkgmk_main() 
+{
+  local file TARGET
+
+  PKGMK_cwd=`pwd`
+
+  source $PKGMK_conffile
+ 
+  case `uname -s` in
+    CYGWIN* | MINGW32*) ;;
+    *)
+      pkgmk_checkuid "$@"
+    ;;
+  esac
+  
+  for file in $PKGMK_confdir/*.conf; do
+    if [ -r "$file" ]; then
+      verbose "Loading extra config ${file##*/}"
+      source "$file"
+    fi
+  done
+  
+  pkgmk_parse_options "$@"
+
+  if [ -n "$PKGMK_list" ]; then
+    pkgmk_iterate "$PKGMK_list"
+    pkgmk_terminate 0
+  fi
+
+  if [ "$PKGMK_recursive" = yes ]; then
+    pkgmk_recurse "$@"
+    pkgmk_terminate 0
+  fi
+
+  if (set -- `explode "$PKGMK_host" ,` && [ "$#" -gt 1 ]); then
+    notice "Multiple host systems given, iterating..."
+    
+    for PKGMK_host in `explode "$PKGMK_host" ,`; do
+#      notice "Building for host system $PKGMK_host ..."
+      
+     (pkgmk_main "$@" --host="$PKGMK_host") || if [ "$PKGMK_keep_going" = no ]; then
+        pkgmk_terminate "$?"
+      fi
+    done
+    
+    pkgmk_terminate 0
+  fi
+  
+  if [ -n "$PKGMK_package" ]; then
+    if ! cd "$PKGMK_ports_dir/$PKGMK_package" 2>/dev/null; then
+      errormsg "No such package $PKGMK_package"
+      pkgmk_terminate 1
+    fi
+    msg "Package $PKGMK_package"
+    PKGMK_cwd=$PWD
+  fi
+  
+  for file in $PKGMK_pkgfile; do
+    if test ! -f $file; then
+      errormsg "The file $file was not found."
+      pkgmk_terminate 1
+    fi
+    source $file 2>/dev/null
+  done
+ 
+  PKGMK_category=`port_category "$PKGMK_pkgfile"`
+  
+  PKGMK_work_dir="$PKGMK_source_dir/$PKGMK_category"
+  PKGMK_source_dirs=($PKGMK_source_dir $PKGMK_work_dir $PWD)
+  PKGMK_source_dir="$PKGMK_work_dir"
+  
+  if [ -f "$PKGMK_home_conffile" ]; then
+    source "$PKGMK_home_conffile"
+  fi
+  
+  # source some libs
+  old_exec_prefix="$exec_prefix"
+  exec_prefix="@exec_prefix@"
+  libdir="@libdir@"
+  shlibdir="@shlibdir@"
+
+  exec_prefix="$old_exec_prefix"
+
+  pkgmk_check_directory "$PKGMK_source_dir"
+  pkgmk_check_directory "$PKGMK_portage"
+  pkgmk_check_directory "`dirname $PKGMK_work_dir`"
+  
+  pkgmk_check_pkgfile
+  
+  mkdir -p "$PKGMK_portage/${PKGMK_host:-$host}"
+  
+  if [ -n "$PKGMK_host" -a -e "$sysconfdir/pkgmk.d/$PKGMK_host" ]; then
+    msg "Host configuration $sysconfdir/pkgmk.d/$PKGMK_host"
+
+    . "$sysconfdir/pkgmk.d/$PKGMK_host"
+  fi
+  
+  : ${PKGMK_prefix=$prefix}
+  : ${pkgmk_build=$build}
+  PKGMK_host=$host
+  PKGMK_distrib=`distrib_canonical`
+  : ${PKGMK_target=$target}
+
+  export CC CFLAGS
+  export CXX CXXFLAGS
+ 
+   export prefix
+  
+#  umask 022
+  
+  export prefix="$PKGMK_prefix"
+  export SRC="$PKGMK_source_dir"
+
+  PKGMK_destdir="$PKG_DIR/$PKGMK_distrib/$PKGMK_category"
+  
+  if [ "$PKGMK_host" != "$PKGMK_target" ]; then
+    pkgprefix=`triplet_uncommon "$PKGMK_host" "$PKGMK_target" pc`
+
+    name="${pkgprefix:+$pkgprefix-}$name"
+
+    unset -v pkgprefix
+  fi
+
+  if [ -z "$CFLAGS" ]; then
+    CFLAGS="@CFLAGS@"
+  fi
+
+  if [ "$PKGMK_debug" = yes ]; then
+
+    CFLAGS=`filter "-g*" $CFLAGS`
+    CFLAGS=`filter "-O[s1-3]" $CFLAGS`
+    CFLAGS=`filter "-fomit-frame*" $CFLAGS`
+
+    pushv CFLAGS -g3 -ggdb -O0
+
+    CXXFLAGS=`filter "-g*" $CXXFLAGS`
+    CXXFLAGS=`filter "-O[s1-3]" $CXXFLAGS`
+    CXXFLAGS=`filter "-fomit-frame*" $CXXFLAGS`
+
+    pushv CXXFLAGS -g3 -ggdb -O0
+    
+    name="$name-dbg"
+    PKGMK_no_strip=yes
+
+    export debug=enable
+  fi
+ 
+  if [ "$PKGMK_build_profiling" = yes ]; then
+    pushv CFLAGS -pg
+    pushv CXXFLAGS -pg
+ 
+    name="$name-prof"
+    PKGMK_no_strip=yes
+  fi
+ 
+  
+  pkgmk_var_defer 'PKGMK_footprint'
+
+  if test -n "$PKGMK_host" -a "$sysconfdir/pkgmk.d/$PKGMK_host"; then
+    :
+#    msg "Host configuration $sysconfdir/pkgmk.d/$PKGMK_host"
+
+#    . "$sysconfdir/pkgmk.d/$PKGMK_host"
+  else
+    :
+    # cross compilation?
+#    if test "$pkgmk_build" != "$PKGMK_host"; then
+#      PKGMK_CC="$PKGMK_host-gcc"
+#      PKGMK_LIBS=
+#      PKGMK_CXX="$PKGMK_host-g++"
+#      PKGMK_AR="$PKGMK_host-ar"
+#      PKGMK_RANLIB="$PKGMK_host-ranlib"
+#      PKGMK_LIBTOOL="$PKGMK_host-libtool"
+#      PKGMK_STRIP="$PKGMK_host-strip"
+#    fi
+  fi  
+    
+  if [ "$PKGMK_build_static" = yes ]; then
+    CC="${CC:-gcc} -static"
+    CXX="${CXX:-g++} -static"
+    #pushv LDFLAGS -static
+ 
+    name="$name-static"
+
+    export static=enable shared=disable
+  fi
+
+  # other build system than default?
+  if [ "$pkgmk_build" != "$build" ]; then
+    msg "Cross compilation on build system $pkgmk_build ."
+  fi
+  
+  # cross compilation?
+  if test "$pkgmk_build" != "$PKGMK_host"; then
+    msg "Cross compilation for host system $PKGMK_host ."
+    PKGMK_destdir="$PKG_DIR/$PKGMK_host/$PKGMK_category"
+
+
+  fi
+
+  PKGMK_package="$PKGMK_destdir/$name#$version-$release.pkg.tar.bz2"
+
+  if [ ! -d "$PKGMK_distfiles_dir" ]; then
+    msg "Distribution files directory $PKGMK_distfiles_dir doesn't exist, trying to create it..."
+    mkdir -p "$PKGMK_distfiles_dir"
+  fi
+
+  if [ "$PKGMK_print_pkg" = yes ]; then
+    echo "$PKGMK_package"
+    pkgmk_terminate 0
+  fi
+  
+  if [ "$PKGMK_print_srcdir" != no ]; then
+    srcdir=$PKGMK_source_dir
+    if [ "$PKGMK_print_srcdir" = "root" ]; then
+      if rootdir=`port_rootdir "$PKGMK_cwd"` && [ -n "$rootdir" ]; then
+        srcdir=$srcdir/$rootdir
+      fi
+    fi
+    echo "$srcdir"
+    pkgmk_terminate 0
+  fi
+  
+  if [ "$PKGMK_print_destdir" = yes ]; then
+    echo $PKGMK_destdir
+    pkgmk_terminate 0
+  fi
+  
+  if [ "$PKGMK_info" = yes ]; then
+    pkgmk_pkginfo
+    pkgmk_terminate 0
+  fi
+  
+  if [ "$PKGMK_cleanup" = yes ]; then
+    pkgmk_cleanup
+    pkgmk_terminate 0
+  fi
+  
+  if [ "$PKGMK_clean" = yes ]; then
+    clean
+    pkgmk_terminate 0
+  fi
+  
+  if [ "$PKGMK_update_footprint" = yes ]; then
+    PKGMK_update_footprint
+    pkgmk_terminate 0
+  fi
+  
+  if [ "$PKGMK_list_files" = yes ]; then
+    pkgmk_list_files
+    pkgmk_terminate 0
+  fi
+  
+  if [ "$PKGMK_update_md5sum" = yes ]; then
+    port_download .
+    pkgmk_make_md5sum >$PKGMK_md5sum
+    msg "Md5sum updated."
+    pkgmk_terminate 0
+  fi
+  
+  if [ "$PKGMK_download_only" = yes ]; then
+    port_download .
+    pkgmk_terminate 0
+  fi
+  
+  if [ "$PKGMK_up_to_date" = yes ]; then
+    if [ "`pkgmk_build_needed`" = yes ]; then
+      msg "Package $PKGMK_package is not up to date."
+    else
+      msg "Package $PKGMK_package is up to date."
+    fi
+    pkgmk_terminate 0
+  fi
+ 
+  if [ "`pkgmk_build_needed`" = no -a "$PKGMK_force" = no ]; then
+    msg "Package $PKGMK_package is up to date."
+  else
+    if [ "$PKGMK_no_unpack" = no ]; then
+      pkgmk_cleanup
+    fi
+
+    port_download .
+
+    pkgmk_build; PKGMK_retcode=$?
+    
+    if [ "$PKGMK_retcode" != 0 ]; then
+      pkgmk_terminate $PKGMK_retcode
+    fi
+  fi
+  
+  if test "${PKGMK_merge+set}" = set -a "$PKGMK_merge" != no; then
+   (set --
+    for OPT in `str_to_list "$PKGMK_merge"`; do
+      set -- "$@" -$OPT
+    done
+    set -x
+    pkgadd "$@" "$PKGMK_package" || pkgadd.static "$@" "$PKGMK_package")
+  fi
+  
+  if [ "$PKGMK_unpack" != no ]; then
+    msg "Unpacking $PKGMK_package to /"
+
+    #files=$(
+    archive_unpack "$PKGMK_package" "/"
+    #)
+  fi
+  
+  pkgmk_terminate 0
+}
+
+trap "pkgmk_interrupted" SIGHUP SIGINT SIGQUIT SIGTERM
+
+export LC_ALL=POSIX
+
+case `type -t cd` in
+  function) unset -f cd ;;
+esac
+
+readonly PKGMK_version="@PACKAGE_VERSION@"
+readonly PKGMK_command="$0"
+
+PKGMK_conffile="@sysconfdir@/pkgmk.conf"
+PKGMK_confdir="@sysconfdir@/pkgmk.conf.d"
+PKGMK_home_conffile="$HOME/.pkgmk.conf"
+PKGMK_pkgfile="Pkgfile"
+PKGMK_footprint="\$PKGMK_host/.footprint"
+PKGMK_md5sum=".md5sum"
+PKGMK_package=""
+PKGMK_print_pkg="no"
+
+PKGMK_source_dir="$PWD"
+PKGMK_portage="$PWD"  
+PKGMK_ports_dir="@prefix@/ports"
+PKGMK_work_dir="$PWD/work"
+PKGMK_distfiles_dir="$prefix/src/distfiles"
+PKGMK_distfile_mirrors=""
+PKGMK_move_mirrors="no"
+#PKGMK_work_dir="$PKGMK_source_dir/$category/$name"
+
+PKGMK_template=""
+PKGMK_merge="no"
+PKGMK_unpack="no"
+PKGMK_patch_shell="no"
+PKGMK_patch_shell="yes"
+PKGMK_recursive="no"
+PKGMK_download="no"
+PKGMK_download_only="no"
+PKGMK_no_build="no"
+PKGMK_up_to_date="no"
+PKGMK_update_footprint="no"
+PKGMK_ignore_footprint="no"
+PKGMK_force="no"
+PKGMK_keep_work="no"
+PKGMK_no_unpack="no"
+PKGMK_update_md5sum="no"
+PKGMK_ignore_md5sum="no"
+PKGMK_no_strip="no"
+PKGMK_clean="no"
+PKGMK_minimal="no"
+PKGMK_debug="no"
+PKGMK_build_profiling="no"
+PKGMK_build_static="no"
+PKGMK_keep_going="no"
+PKGMK_cleanup="no"
+PKGMK_print_srcdir="no"
+
+lastpwd=''
+#SRC=''
+
+export PKG=`tempnam "${TEMP_DIR:-/tmp}"`
+
+trap "PKG=\"$PKG\"; pkgmk_interrupted" SIGHUP SIGINT SIGQUIT SIGTERM
+
+me=${0##*/}
+
+pkgmk_main "$@"
+
+# End of file

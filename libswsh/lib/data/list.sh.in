@@ -1,0 +1,273 @@
+# $Id: info.sh.in 610 2008-09-01 12:40:44Z enki $
+#
+# -*-mode: shell-script-*-
+#
+# data/list.sh: Processing of newline-separated lists read via stdin.
+#
+# 2008-08-05 Roman Senn <rs@adfinis.com>
+# -------------------------------------------------------------------------
+@DEBUG_FALSE@test $lib_data_list_sh || {
+
+# list [items...]
+#
+# outputs one argument per line
+# --------------------------------------------------------------------------- 
+list()
+{
+ (for ARG; do
+    echo "$ARG"
+  done)
+}
+
+# list_match <pattern> [pattern...]
+# 
+# Returns 0 if any of read list items match the provided fnmatch(3)-pattern.
+# --------------------------------------------------------------------------- 
+list_match()
+{
+ (while read -r LINE; do
+    for PATTERN; do
+      case "$LINE" in
+        $PATTERN) exit 0 ;;
+      esac
+    done
+  done
+  exit 1)
+}
+
+# list_find <string> [string...]
+#
+# Compares each incoming line against the given strings. 
+# If one of them occurs, it outputs the line and returns 0; otherwise 
+# nothing is outputted and the return value is 1.
+# --------------------------------------------------------------------------- 
+list_find()
+{
+ (while read -r LINE; do
+    for STRING; do
+      if [ "$STRING" = "$LINE" ]; then
+        echo "$LINE"
+        exit 0
+      fi
+    done
+  done
+  exit 1)
+}
+
+# list_filter <pattern> [pattern...]
+#
+# Matches each incoming line against the given patterns. If one of them 
+# occurs, the line is passed to the standard output.
+# --------------------------------------------------------------------------- 
+list_filter()
+{
+ (while read -r LINE; do
+    for PATTERN; do
+      case "$LINE" in
+        $PATTERN) 
+          echo "$LINE"
+          break
+        ;;
+      esac
+    done
+  done)
+}
+
+# list_filter_out <pattern> [arguments...]
+# 
+# Matches each incoming line against the given patterns. If none of them
+# occurs, the line is passed to the standard output.
+# --------------------------------------------------------------------------- 
+list_filter_out()
+{
+ (while read -r LINE; do
+    for PATTERN; do
+      case "$LINE" in
+        $PATTERN) 
+          continue 2
+        ;;
+      esac
+    done
+    echo "$LINE"
+  done)
+}
+
+# list_removesuffix <suffix>
+#
+# Removes the biggest substring matching the provided fnmatch(3)-pattern 
+# from the end of every incoming line.
+# --------------------------------------------------------------------------- 
+list_removesuffix()
+{
+ (while read -r LINE; do
+    echo "${LINE%%$1}"
+  done)
+}
+
+# list_addsuffix <suffix> 
+#
+# Appends the given string to the end of every incoming line.
+# --------------------------------------------------------------------------- 
+list_addsuffix()
+{
+ (while read -r LINE; do
+    echo "${LINE}$1"
+  done)
+}
+
+# list_removeprefix <pattern>
+# 
+# Removes the biggest substring matching the fnmatch(3)-pattern from the 
+# beginning of every incoming line.
+# --------------------------------------------------------------------------- 
+list_removeprefix()
+{
+ (while read -r LINE; do
+    echo "${LINE##$1}"
+  done)
+}
+
+# list_addprefix <prefix> 
+# 
+# Prepends the given string to the beginning of every incoming line.
+# --------------------------------------------------------------------------- 
+list_addprefix()
+{
+ (while read -r LINE; do
+    echo "$1${LINE}"
+  done)
+}
+
+# list_foreach <script|function> 
+#
+# Evaluates the given script or calls the given function for every incoming
+# line.
+# A properly escaped or single-quoted script can use $1 as reference to the
+# currently iterated item.
+# A function is called with the last line read as argument.
+# --------------------------------------------------------------------------- 
+list_foreach()
+{
+  __=$1
+
+  # in case its a function we call it using our argument-list
+  test "`type -t "$__"`" = function && __="$__ \"\$@\""
+  
+  # iterate through the arguments and evaluate the commands
+  while read -r __LN; do
+    set -- "$__LN"
+    unset __LN
+
+    eval "$__"
+  done
+
+  unset __ __LN
+}
+
+# list_some <script|function> 
+#
+# Evaluates the given script or calls the given function for every incoming 
+# line until an evaluation succeeds.
+# --------------------------------------------------------------------------- 
+list_some()
+{
+  __=$1
+
+  # in case its a function we call it using our argument-list
+  test "`type -t "$__"`" = function && __="$__ \"\$@\""
+
+  # iterate through the arguments and succeed as soon as the evaluated
+  # commands return true.
+  while read -r __LN; do
+    set -- "$__LN"
+    unset __LN
+
+    eval "$__" && return 0
+  done
+
+  return 1
+}
+
+# list_each <script|function> 
+#
+# Evaluates the given script or calls the given function for every line read
+# as long as the script/function returns true.
+# --------------------------------------------------------------------------- 
+list_each()
+{
+  __=$1
+
+  # in case its a function we call it using our argument-list
+  test "`type -t "$__"`" = function && __="$__ \"\$@\""
+
+  # iterate through the arguments and abort as soon as the evaluated commands
+  # return false.
+  while read -r __LN; do
+    set -- "$__LN"
+    unset __LN
+
+    eval "$__" || return $?
+  done
+
+  return 0
+}
+
+# list_map <script|function> 
+#
+# Evaluates the given script or calls the given function for every line read.
+# The output of the script/function during each iteration is represented as 
+# an item in the outputted list.
+# --------------------------------------------------------------------------- 
+list_map()
+{
+ (__=$1
+  DELIM="${IFS%${IFS#?}}"
+
+  # in case its a function we call it using our argument-list
+  case `type "$__"` in
+    *function*|*builtin*) __="$__ \$1" ;;
+  esac
+  
+  unset LIST
+  
+  while read -r LINE; do
+    set -- "$LINE"
+    LIST=${LIST+$LIST$DELIM}`eval "$__"`
+  done
+  
+  test "${LIST+set}" = set && echo "$LIST")
+}
+
+# list_accumulate [separator]
+# --------------------------------------------------------------------------- 
+list_accumulate()
+(
+  unset PREV_KEY PREV_DATA
+
+  while read THIS_KEY THIS_DATA; do
+    if [ "${PREV_KEY+set}" = set -a "$THIS_KEY" != "$PREV_KEY" ]; then
+      echo "$PREV_KEY $PREV_DATA"
+      unset PREV_DATA
+    fi
+
+    PREV_KEY="$THIS_KEY"
+    PREV_DATA="${PREV_DATA+$PREV_DATA$1}$THIS_DATA"
+  done
+)
+
+# list_implode [separator]
+# ---------------------------------------------------------------------------
+list_implode()
+{
+ (unset DATA
+  
+  while read LINE; do
+    DATA="${DATA+$DATA$1}$LINE"
+  done
+
+  echo "$DATA")
+}
+
+# ---[ EOF ]-----------------------------------------------------------------
+@DEBUG_FALSE@lib_data_list_sh=:;}
+

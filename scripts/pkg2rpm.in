@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+#
+# Converts .pkg.tar.bz2 to .rpm using alien.
+#
+# $Id: pkg2rpm.in 698 2007-04-19 19:33:44Z  $
+# ---------------------------------------------------------------------------
+
+# generic directories
+# ---------------------------------------------------------------------------
+: ${prefix="@prefix@"}
+: ${exec_prefix="@exec_prefix@"}
+: ${libdir="@libdir@"}
+: ${shlibdir="$libdir/sh"}
+: ${sysconfdir="@sysconfdir@"}
+: ${localstatedir="@localstatedir@"}
+
+source $shlibdir/pkgmgr/rpm.sh
+source $shlibdir/port.sh
+source $shlibdir/util.sh
+
+host="@host@"
+
+# do_rpm <port> <pkg>
+do_rpm()
+{
+  local dsc=$(port_description "$1")
+  local rel=$(port_get "$1" release)
+  local ver=$(port_version "$1")
+  local name=$(port_name "$1")
+  local tmpdir=$(mktempdir)
+  local pkg=${2##*/}
+  local tmp="$tmpdir/$name.tgz"
+  
+  bzip2 -dc "$2" | gzip -c >$tmp
+  
+  trap 'rm -rvf "$tmpdir"' EXIT QUIT TERM INT
+  
+  msg "Executing alien for '$2'..."
+  
+  (cd "$tmpdir" &&
+   alien --version="$(echo "$ver" | sed 's/[^0-9]\+/./g')" --bump=$((rel - 1)) --description="$dsc" --to-rpm "${tmp##*/}" >/dev/null) || exit $?
+  
+  local oldrpm=$(cd "$tmpdir" && echo *.rpm)
+  local newrpm
+  
+  newrpm=$(echo "$oldrpm" | sed -e "s,.noarch,.${host%%-*},")
+  
+  if test "$oldrpm" != "$newrpm"
+  then
+    (cd "$tmpdir" && mv -f -- "$oldrpm" "$newrpm")
+  fi
+
+  mv -f "$tmpdir/$newrpm" "$newrpm"
+  rm -rf "$tmpdir"
+  
+  msg "Sucessfully created: $newrpm"
+  
+  trap - EXIT QUIT TERM INT
+}
+
+main()
+{
+  local pkg pf pm
+
+  for pkg
+  do
+    pf=$(port_pkgfile "$pkg")
+    pm=$(port_pkgmask "$pf" "$host")
+    
+    set -- $pm
+    
+    if test ! -f "$1"
+    then
+      error "No such package $1"
+      exit 1
+    fi
+    
+    do_rpm "$pf" "$1"
+  done
+}
+
+main "$@"

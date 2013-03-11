@@ -1,0 +1,74 @@
+# $Id: ui 389 2006-06-14 13:11:25Z roman $
+
+# menu <default-item> <cancel-label> <text> [items]
+menu()
+{
+  local args default cancel text count=0 item lines max_width
+  
+  item=$(echo "$text" | head -n1)
+  max_width=${#item}
+
+  while [ "$1" ]
+  do
+    case $1 in
+      --default*)
+        default=$2 
+        shift 
+        ;;
+      --cancel*)
+        cancel=$2
+        shift
+        ;;
+      --*) 
+        args="${args} $1"
+        ;;
+      *) 
+        break 
+        ;;
+    esac
+    
+#    echo $1 1>&2
+    shift 
+  done
+
+  text=$1
+  shift
+
+  default=${default:-$1}
+  cancel=${cancel:-"Cancel"}
+
+  count=1
+  while [ ${count} -lt $# ]
+  do
+    eval item="\${${count}}-\${$((${count} + 1))}"
+  
+    if [ ${#item} -gt ${max_width} ]; then
+      max_width=${#item}
+    fi
+
+    count=$(($count + 2))
+  done
+
+  if [ -z "$cancel" ]; then
+    copt="--no-cancel"
+  else
+    copt="--cancel-label ${cancel}"
+  fi
+  
+  lines=$(echo "$text" | wc -l)
+
+  dialog --no-collapse --default-item "$default" ${copt} ${args} \
+         --backtitle "$BACKTITLE" --menu "$text" \
+         $(($# / 2 + 7 + ${lines})) \
+         $((${max_width} + 10 + ${#count})) \
+         $(($# / 2)) \
+         "$@" 2>&1 1>/dev/tty
+}
+
+progressbox()
+{
+  #dialog --no-collapse --backtitle "$BACKTITLE" --progressbox ${DIALOG_HEIGHT} ${DIALOG_WIDTH}
+  dialog --no-collapse --backtitle "$BACKTITLE" --tailbox /dev/stdin ${DIALOG_HEIGHT} ${DIALOG_WIDTH}
+}
+
+#alias progressbox='dialog --no-collapse --backtitle "$BACKTITLE" --progressbox ${DIALOG_HEIGHT} ${DIALOG_WIDTH}'

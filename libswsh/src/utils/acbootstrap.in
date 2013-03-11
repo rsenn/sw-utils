@@ -1,0 +1,58 @@
+#!@SHELL@
+#
+# Bootstraps GNU autotools source trees.
+#
+# $Id: acbootstrap.in 698 2007-04-19 19:33:44Z  $
+# ---------------------------------------------------------------------------
+
+# generic directories
+# ---------------------------------------------------------------------------
+: ${prefix="@prefix@"}
+: ${exec_prefix="@exec_prefix@"}
+: ${libdir="@libdir@"}
+: ${shlibdir="$libdir/sh"}
+: ${sysconfdir="@sysconfdir@"}
+: ${localstatedir="@localstatedir@"}
+
+. $shlibdir/buildsys/autotools.sh
+. $shlibdir/util.sh
+
+IFS="
+"
+args=
+
+usage()
+{ 
+  echo "Usage: ${0##*/} [-h] [AUTOTOOLS-ARGUMENTS]
+Options:
+    -h, --help    Show this help
+" 1>&2
+}
+
+while [ "$1" != "${1#-}" ]; do
+  case $1 in
+    -h | --help)
+      usage
+      exit 0
+    ;;
+
+    -I | --output | --warnings)
+      array_push args "$1" "$2"
+      shift 
+    ;;
+
+     *) 
+      array_push args "$1" 
+    ;;
+  esac
+  shift
+done
+
+unset -f msg
+
+msg()
+{
+  echo "$@"
+}
+
+autotools_bootstrap $args $(autotools_scan "$@") || exit $?

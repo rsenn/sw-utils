@@ -1,0 +1,390 @@
+#!/bin/sh
+#
+# config.sh: functions for setting up the config tree
+#
+# $Id: config.sh.in 770 2008-10-15 00:57:09Z enki $
+test $lib_config_sh || {
+
+: ${prefix:="@prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/std/array.sh
+
+CONFIG_stack=""           # our way down to the current branch
+CONFIG_pointer=""         # pointer to the current branch
+
+# special keys
+CONFIG_keys="DEFAULT DESCRIPTION EXTRA FUNCTION LABEL MEMBERS TITLE TYPE VALUE"
+
+# internal function
+# config_root [root]
+# -------------------------------------------------------------------------
+config_root()
+{
+  CONFIG_stack=$1
+  CONFIG_pointer=$1
+}
+
+# internal function
+# config_push <branches>
+# -------------------------------------------------------------------------
+config_push()
+{
+  array_push 'CONFIG_stack' "$@"
+  CONFIG_pointer=`array_implode 'CONFIG_stack' '_'`
+}
+
+# internal function
+# config_pop [n]
+# -------------------------------------------------------------------------
+config_pop()
+{
+  array_truncate 'CONFIG_stack' -${1-1}
+  CONFIG_pointer=`array_implode 'CONFIG_stack' '_'`
+}
+
+# internal function
+# config_var <var>
+# -------------------------------------------------------------------------
+config_var()
+{
+  echo "${CONFIG_pointer:+${CONFIG_pointer}_}$1"
+}
+
+# internal function
+# config_set <var> [value]
+# -------------------------------------------------------------------------
+config_set()
+{
+  var_set "${CONFIG_pointer:+${CONFIG_pointer}_}$1" "$2"
+}
+
+# internal function
+# config_unset <var>
+# -------------------------------------------------------------------------
+config_unset()
+{
+  var_unset "${CONFIG_pointer:+${CONFIG_pointer}_}$1"
+}
+
+# internal function
+# config_get <var>
+# -------------------------------------------------------------------------
+config_get()
+{
+  var_get "${CONFIG_pointer:+${CONFIG_pointer}_}$1"
+}
+
+# internal function
+# config_split <var> [separator]
+# -------------------------------------------------------------------------
+config_split()
+{
+  var_split "${CONFIG_pointer:+${CONFIG_pointer}_}$1" "${2-"
+"}"
+}
+
+# internal function - lists all enabled children
+# config_enabled <var>
+# -------------------------------------------------------------------------
+config_enabled()
+{
+  local member members=`config_get 'MEMBERS'` enabled='' IFS="
+"
+
+  for member in $members; do
+    config_push "${member##*_}"
+    local value=`config_getvalue`
+    if test "$value" = "yes"; then
+      enabled="${enabled:+$enabled }${member##*_}"
+    fi
+    config_pop
+  done
+  echo "$enabled"
+}
+
+# config_eval
+# -------------------------------------------------------------------------
+config_eval()
+{
+  eval "$@"
+}
+
+# config_to_source
+# -------------------------------------------------------------------------
+config_decompile()
+{
+  local indent="$1"
+  e=false
+  for key in $CONFIG_keys; do
+    config_isset "$key" || continue
+    local value=`config_get "$key"`
+    $e && echo && e=false
+    case $key in
+      MEMBERS)
+        for member in `config_get 'MEMBERS'`; do
+          config_push "$member"
+          $e && echo && e=false
+          echo "${indent}config_`config_gettype` '$member'"
+          config_decompile "  $indent"
+          echo "${indent}config_end"
+          e=true
+          config_pop
+        done
+        ;;
+      VALUE|DESCRIPTION|DEFAULT|FUNCTION|LABEL|EXTRA)
+         echo "${indent}config_`str_tolower $key`${value:+" '$value'"}" ;;
+      *) echo "${indent}config_set '$key' '`config_get $key`'" ;;
+    esac
+  done
+}
+
+# config_export
+# -------------------------------------------------------------------------
+config_export()
+{
+  local IFS=" $newline" v m
+  for key in $CONFIG_keys; do
+    v="${1:+$1_}$key"
+    case $key in
+      MEMBERS)
+        echo "$v=\"\$$v `var_get "$v"`\""
+        for m in `var_get "$v"`
+        do
+          config_export "${1:+$1_}$m"
+        done
+        ;;
+      *)
+        var_isset "$v" && var_dump "$v"
+        ;;
+    esac
+  done
+}
+
+# config_tree
+# -------------------------------------------------------------------------
+config_tree()
+{
+  local IFS=" $newline" v m
+  test -n "$1" && echo "${1//_/${2-_}}"
+  for key in $CONFIG_keys; do
+    v="${1:+$1_}$key"
+    var_isset "$v" &&
+    case $key in
+      MEMBERS)
+        for m in `var_get "$v"`; do
+          config_tree "${1:+$1_}$m" ${2+"$2"}
+        done
+        ;;
+    esac
+  done
+}
+
+# config_getvalue
+# -------------------------------------------------------------------------
+config_getvalue()
+{
+  if test -n "$1"; then
+    local backup=${CONFIG_pointer}
+    CONFIG_pointer=$1
+  fi
+  if config_isset 'VALUE'; then
+    config_get 'VALUE'
+  else
+    _config_veval 'DEFAULT'
+  fi
+  if test -n "$1"; then
+    CONFIG_pointer=${backup}
+  fi
+}
+
+# config_isset <var>
+# -------------------------------------------------------------------------
+config_isset()
+{
+  var_isset "${CONFIG_pointer:+${CONFIG_pointer}_}$1"
+}
+
+# config_gettype <var>
+# -------------------------------------------------------------------------
+config_gettype()
+{
+  local t=`config_get 'TYPE'`
+  echo ${t:-branch}
+}
+
+# internal function
+# _config_veval <var>
+# -------------------------------------------------------------------------
+_config_veval()
+{
+  local value=`config_get "$1"`
+  local IFS=" "
+  eval "echo \"${value}\""
+}
+
+# internal function
+# config_append <var> [value]...
+# -------------------------------------------------------------------------
+config_append()
+{
+  local var=${1:?"need variable name"}
+  shift
+  if ! array_isin "${CONFIG_pointer:+${CONFIG_pointer}_}${var}" "$1"; then
+    array_push "${CONFIG_pointer:+${CONFIG_pointer}_}${var}" "$1"
+  fi
+}
+
+# config_enter <branches>
+# -------------------------------------------------------------------------
+config_enter()
+{
+  local branches branch
+
+#  echo "'${CONFIG_pointer}' entering '$@'"
+
+  # push branch per branch
+  array_explode 'branches' "$*" '_ '
+
+  for branch in $branches; do
+    # append new branch to members of the parent branch
+    config_append 'MEMBERS' ${branch}
+
+    # push new branch onto stack
+    config_push ${branch}
+  done
+
+  # track the context, so we can pop everything on config_leave
+  array_unshift 'config_context' `array_implode 'branches' '_'`
+
+  # set properties
+#  config_set "LABEL" "$2"
+#  config_set "DESCRIPTION" "$3"
+#  config_set "FUNCTION" "${4-'branch ${choice}'}"
+#  config_set "EXTRA" "$5"
+}
+
+# config_leave
+# -------------------------------------------------------------------------
+config_leave()
+{
+  local context=`array_index 'config_context' 0`
+  local clist
+
+  array_explode 'clist' "$context" '_'
+  array_shift 'config_context' >/dev/null
+
+  config_pop `array_length 'clist'`
+}
+
+# config_branch <branch> [label] [description] [function] [extra]
+# -------------------------------------------------------------------------
+config_branch()
+{
+  # enter new branch
+  config_append 'MEMBERS' "$1"
+  config_push "$1"
+  array_unshift 'config_context' "$1"
+
+  # set properties
+  config_set "TYPE" "branch"
+  config_set "LABEL" "$2"
+  config_set "DESCRIPTION" "$3"
+  config_set "FUNCTION" "${4-branch}"
+  config_set "EXTRA" "$5"
+}
+
+# config_service <branch> [title]
+# -------------------------------------------------------------------------
+config_service()
+{
+  # enter new branch
+  config_enter "$1"
+
+  # set properties
+  config_set "TYPE"    "service"
+  config_set "TITLE"   "$2"
+  config_set "PID"     '$(test -f "`_config_veval PIDFILE`" && cat "`_config_veval PIDFILE`")'
+}
+
+# config_value <name> [label] [default] [description] [function] [extra]
+# -------------------------------------------------------------------------
+config_value()
+{
+  # enter new branch
+  config_enter "$1"
+
+  # set properties
+  config_set "TYPE" "value"
+  config_set "LABEL" "$2"
+  config_set "DEFAULT" "$3"
+  config_set "DESCRIPTION" "$4"
+  config_set "FUNCTION" "${5-input}"
+  config_set "EXTRA" "$6"
+  if eval test '"${'$CONFIG_pointer'+set}" = "set"'; then
+    local value="`eval "echo \"\$$CONFIG_pointer\""`"
+    config_set "VALUE" "$value"
+    unset $CONFIG_pointer
+  else
+    config_unset "VALUE"
+  fi
+}
+
+# config_end
+# -------------------------------------------------------------------------
+config_end()
+{
+  config_leave
+}
+
+# config_description
+# -------------------------------------------------------------------------
+config_description()
+{
+  local text
+  for arg
+  do
+    text="${text}${arg}
+"
+  done
+  config_set 'DESCRIPTION' "$text"
+}
+
+# config_label
+# -------------------------------------------------------------------------
+config_label()
+{
+  config_set 'LABEL' "$*"
+}
+
+# config_type
+# -------------------------------------------------------------------------
+config_type()
+{
+  config_set 'TYPE' "$*"
+}
+
+# config_default
+# -------------------------------------------------------------------------
+config_default()
+{
+  config_set 'DEFAULT' "$*"
+}
+
+# config_function
+# -------------------------------------------------------------------------
+config_function()
+{
+  config_set 'FUNCTION' "$*"
+}
+
+# config_extra
+# -------------------------------------------------------------------------
+config_extra()
+{
+  config_set 'EXTRA' "$*"
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_config_sh=:;}

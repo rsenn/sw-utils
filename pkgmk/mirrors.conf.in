@@ -1,0 +1,24 @@
+#
+# mirrors.conf: common software distribution mirrors
+#
+
+#mirror_gnu="ftp://ftp.gnu.org/gnu"
+mirror_gnu="ftp://mirror.switch.ch/mirror/gnu"
+
+# Other mirrors are: 
+#
+#            Asia : jaist,nchc
+#       Australia : transact,internode
+#          Europe : ovh,mesh,freefr,ovh,heanet,garr,surfnet,kent
+#   North America : superb-west,voxel,internap,superb-east
+#   South America : ufpr
+#
+mirror_sf="http://switch.dl.sourceforge.net/sourceforge"
+mirror_sunsite="ftp://sunsite.cnlab-switch.ch/mirror"
+mirror_gentoo="http://distfiles.gentoo.org/distfiles"
+mirror_kernel="ftp://ftp.ch.kernel.org/pub"
+mirror_gnome="http://ftp.acc.umu.se/pub/gnome"
+mirror_freebsd="ftp://mirror.switch.ch/mirror/FreeBSD"
+mirror_rubyforge="http://de.mirror.rubyforge.org"
+
+# End of mirrors.conf

@@ -1,0 +1,63 @@
+#!/bin/sh
+#
+# Builds GNU autotools source trees.
+#
+# $Id: acbootstrap.in 698 2007-04-19 19:33:44Z  $
+# ---------------------------------------------------------------------------
+
+# set default values for every directory not yet set 
+# ---------------------------------------------------------------------------
+: ${prefix="@prefix@"}
+: ${exec_prefix="@prefix@"}
+: ${libdir="${exec_prefix}/lib"}
+: ${shlibdir="$libdir/sh"}
+: ${sysconfdir="@sysconfdir@"}
+: ${localstatedir="@localstatedir@"}
+
+# source script dependencies
+# ---------------------------------------------------------------------------
+. $shlibdir/buildsys/autotools.sh
+. $shlibdir/util.sh
+
+# ---------------------------------------------------------------------------
+ARGV= IFS="
+"
+
+# ---------------------------------------------------------------------------
+usage()
+{ 
+  echo "Usage: ${0##*/} [-h] [AUTOTOOLS-ARGUMENTS]
+Options:
+    -h, --help    Show this help
+" 1>&2
+}
+
+# ---------------------------------------------------------------------------
+while test "$1" != "${1#-}"
+do
+  case $1 in
+    -h | --help)
+        usage
+        exit 0
+        ;;
+
+    -I | --output | --warnings)
+        pushv ARGV "$1" "$2"
+        shift 
+        ;;
+
+     *) 
+        pushv ARGV "$1" 
+        ;;
+  esac
+  shift
+done
+
+unset -f msg
+
+msg()
+{
+  echo "$@"
+}
+
+autotools_build $ARGV `autotools_scan "$@"` || exit $?

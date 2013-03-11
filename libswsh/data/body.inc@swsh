@@ -1,0 +1,64 @@
+%if !defined("NOSWSH")
+%if !defined("NODEFPATHS")
+# provide default values for the required path variables.
+# --------------------------------------------------------------------------- 
+: ${prefix="@prefix@"}
+: ${libdir="$prefix/lib"}
+: ${shlibdir="$libdir/sh"}
+%if !defined("NOUTILLIBRARY")
+
+# source required scripts
+# --------------------------------------------------------------------------- 
+. $shlibdir/util.sh
+%endif
+%endif
+%endif
+
+%if defined("SHFLAGS")
+%include <shflags.inc@sh>
+%endif
+
+%if defined("SAMPLEFUNCTION")
+# abs <n>
+#
+# Returns |n|
+# --------------------------------------------------------------------------- 
+abs()
+{
+  local n=$1
+
+  if test "$n" -lt 0; then
+    n=$(expr 0 - "$n")
+  fi
+
+  echo "$n"
+}
+%endif
+
+%if !defined("NOMAIN")
+# Main program
+# --------------------------------------------------------------------------- 
+main()
+{
+  # loop through arguments
+  while [ "$#" -gt 0 ]; do
+    case $1 in
+      --) 
+        shift
+        break
+      ;;
+
+      *) 
+        break 
+      ;;
+    esac
+    shift
+  done
+
+  # now here do something
+}
+
+# ---------------------------------------------------------------------------
+main "$@"
+%endif
+# ---[ EOF ]-----------------------------------------------------------------

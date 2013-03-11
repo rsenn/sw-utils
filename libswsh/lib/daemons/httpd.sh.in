@@ -1,0 +1,532 @@
+#!/bin/sh
+#
+# httpd.sh: httpd config functions
+#
+# $Id: httpd.sh.in 579 2008-08-26 22:32:53Z enki $
+test $lib_httpd_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${sysconfdir:="@sysconfdir@"}
+: ${libdir:="@libdir@"}
+: ${bindir:="@bindir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# now set the default httpd config file
+: ${httpd_config:=$sysconfdir/httpd.conf}
+: ${httpd_libdir:="@httpd_libdir@"}
+
+. $shlibdir/path.sh
+
+# httpd_conf_read [config]
+#
+# read configuration (with includes)
+# -------------------------------------------------------------------------
+httpd_conf_read()
+{
+  local line
+  while read line
+  do
+    case `echo ${line}` in
+      'include '*)
+        httpd_conf_read ${line#*'include '}
+        ;;
+      *)
+        echo ${line}
+        ;;
+    esac
+  done <${1:-$httpd_config}
+}
+
+# httpd_conf_includes <config...>
+#
+# list all conf files included by the specified one
+# -------------------------------------------------------------------------
+httpd_conf_includes()
+{
+  sed -n -e "/^[ \t]*include[ \t]\+/ {
+      s,^[ \t]*include[ \t]\+,, ; \,^/,! s,^,$prefix/, ; p
+    }" "$@"
+}
+
+# httpd_conf_files [config...]
+#
+# list all conf files
+# -------------------------------------------------------------------------
+httpd_conf_files()
+{
+  local IFS="$newline"
+  set -- ${@-$httpd_config}
+  while [ "$#" -gt 0 ]; do
+    echo "$@"
+    set -- `httpd_conf_includes "$@"`
+  done
+}
+
+# httpd_module_list <load|add> [config]
+#
+# list all modules
+# -------------------------------------------------------------------------
+httpd_module_list()
+{
+  httpd_conf_read ${2+"$2"} | sed -n -e \
+    "/\#*[ \t]*${1-LoadModule}[a-z]*[ \t]\+.*\.s\?[aco]/I {
+      s,^\(\#\?\).*dModule[ \t]\+\(.*\.s\?[aco]\)$,\2 \1,
+      p
+    }"
+}
+
+# httpd_module_isloaded <module> [config]
+#
+# is that a particular module loaded?
+# -------------------------------------------------------------------------
+httpd_module_isloaded()
+{
+  httpd_conf_read ${2+"$2"} | grep -q "LoadModule[ \t]\+${1+.*$1.*}$"
+}
+
+# httpd_module_file <module> [config...]
+#
+# find the config file containing the module
+# -------------------------------------------------------------------------
+httpd_module_file()
+{
+  local module=$1
+
+  shift
+
+  grep -H "LoadModule[ \t]\+${module+.*$module.*}$" `httpd_conf_files "$@"` | \
+    grep -v ':[ \t]*#' | \
+    sed 's,:.*,,' | sort -u | tail -n1
+}
+
+# httpd_module_dst <DSO>
+#
+# outputs full path to DSO for the specified module name if found
+# -------------------------------------------------------------------------
+httpd_module_dso()
+{
+  local dso=${1%.so}.so
+  dso=${dso%_module}
+
+  if test "$dso" = "${dso#/}"
+  then
+    if test -f $httpd_libdir/${dso}
+    then
+      dso=$httpd_libdir/${dso}
+    elif test -f $httpd_libdir/mod_${dso}
+    then
+      dso=$httpd_libdir/mod_${dso}
+    elif test -f $httpd_libdir/lib${dso}
+    then
+     dso=$httpd_libdir/lib${dso}
+    else
+      return 1
+    fi
+  fi
+
+  echo ${dso}
+}
+
+# httpd_module_ctor <module-dso>
+#
+# gets the constructor name from the dso file specified
+# -------------------------------------------------------------------------
+httpd_module_ctor()
+{
+  $bindir/objdump -T ${1+"$1"} | \
+    grep 'g.*DO.*\.data.*00000064.*Base' | \
+    sed 's,^.*Base[ \t]\+,,'
+}
+
+# httpd_module_add <DSO> [constructor] [config...]
+#
+# add a module to the specified config
+# -------------------------------------------------------------------------
+httpd_module_add()
+{
+  httpd_module_isloaded "$2.*$1" ${3+"$3"} ||
+  {
+    local dso=`httpd_module_dso "${1-$2}"`
+
+    ctor=${2:-`httpd_module_ctor ${dso+"$dso"}`}
+
+    if is_absolute "$dso"
+    then
+      dso=${dso##*"$prefix/"}
+    fi
+
+    printf "LoadModule %-22s %s\n" "$ctor" "$dso" >>"${3-`httpd_module_file`}"
+  }
+}
+
+# httpd_vhost_list [config]
+#
+# list all known vhosts
+# -------------------------------------------------------------------------
+httpd_vhost_list()
+{
+  httpd_conf_read ${1+"$1"} | \
+    grep -v '^[ \t]*#' | \
+    grep '<VirtualHost[ \t]\+' | \
+    sed 's,<VirtualHost[ \t]\+\(.*\)>,\1,'
+}
+
+# httpd_listen_list [config]
+#
+# list all known listeners
+# -------------------------------------------------------------------------
+httpd_listen_list()
+{
+  httpd_conf_read ${1+"$1"} | \
+    grep -v '^[ \t]*#' | \
+    grep 'Listen[ \t]\+' | \
+    sed 's,Listen[ \t]\+\(.*\),\1,'
+}
+
+# httpd_listener_exists <vhost> [config]
+#
+# does a particular listener exist?
+# -------------------------------------------------------------------------
+httpd_listen_exists()
+{
+  httpd_listen_list $2 | grep -q "^$1\$"
+}
+
+# httpd_listen_add <config> <listener>
+#
+# add a listener line to config
+# -------------------------------------------------------------------------
+httpd_listen_add()
+{
+  httpd_listen_exists "$2" "$1" ||
+  {
+    echo "Listen $2" >>${1:-$httpd_config}
+  }
+}
+
+# httpd_servername_list [config]
+#
+# list all known servernames
+# -------------------------------------------------------------------------
+httpd_servername_list()
+{
+  httpd_conf_read ${1+"$1"} | \
+    grep -v '^[ \t]*#' | \
+    grep 'ServerName[ \t]\+' | \
+    sed 's,ServerName[ \t]\+\(.*\),\1,'
+}
+
+# httpd_listener_exists <vhost> [config]
+#
+# does a particular servername exist?
+# -------------------------------------------------------------------------
+httpd_servername_exists()
+{
+  httpd_servername_list "$2" | grep -q "^$1\$"
+}
+
+# httpd_vhost_exists <vhost> [config]
+#
+# does a particular vhost exist?
+# -------------------------------------------------------------------------
+httpd_vhost_exists()
+{
+  httpd_vhost_list "$2" | grep -q "^$1\$"
+}
+
+# httpd_vhost_file <vhost> [config...]
+#
+# find the config file containing the vhost
+# -------------------------------------------------------------------------
+httpd_vhost_file()
+{
+  local vhost=$1
+  shift
+  grep -H "<VirtualHost[ \t]\+$1>" `httpd_conf_files "$@"` | \
+    grep -v ':[ \t]*#' | \
+    sed 's,:.*,,'
+}
+
+# httpd_vhost_add <config> <vhost> <contents>
+#
+# add a vhost section to the config
+# -------------------------------------------------------------------------
+httpd_vhost_add()
+{
+  if httpd_vhost_exists "$2" ${1+"$1"}
+  then
+    return 1
+  fi
+  local IFS="
+"
+  {
+    echo "<VirtualHost $2>"
+    for line in $3
+    do
+      IFS=" "
+      if test "$line"
+      then
+        echo "    "`echo $line`
+      else
+        echo
+      fi
+    done
+    echo "</VirtualHost>"
+  } >>${1:-$httpd_config}
+}
+
+# httpd_vhost_addline <config> <vhost> <line>
+#
+# add a line to a vhost section in the config
+# -------------------------------------------------------------------------
+httpd_vhost_addline()
+{
+  local vhost line temp=`mktemp`
+  local IFS=""
+  while read -r line; do
+    case $line in
+      *'<VirtualHost'*)
+        IFS=" 	"
+        vhost=${line#*<VirtualHost}
+        vhost=`echo ${vhost%>*}`
+        IFS=""
+        echo "$line"
+        ;;
+      *'</VirtualHost>'*)
+        case $vhost in
+          $2)
+            IFS=" 	"
+            echo "    $3"
+            IFS=""
+            ;;
+          *)
+            ;;
+        esac
+        echo "$line"
+        ;;
+      *)
+        echo "$line"
+        ;;
+    esac
+  done <"$1" >"$temp"
+  mv "$temp" "$1"
+}
+
+# httpd_vhost_replaceline <config> <vhost> <key> <new args>
+#
+# replace a line from a vhost section in the config
+# -------------------------------------------------------------------------
+httpd_vhost_replaceline()
+{
+  local vhost line temp=`mktemp` config="$1" vh="$2" key="$3" args="$4" ret=1
+  local IFS=""
+  while read -r line; do
+    case ${line} in
+      *'<VirtualHost'*)
+        IFS=" 	"
+        vhost=${line#*<VirtualHost}
+        vhost=`echo ${vhost%>*}`
+        IFS=""
+        echo ${line}
+        ;;
+      *'</VirtualHost>'*)
+        vhost=""
+        echo ${line}
+        ;;
+      *)
+        case "$vhost" in
+          ${vh})
+            IFS=" 	"
+            set -- ${line}
+            IFS=""
+            if test "$key" = "$1"
+            then
+              echo "    $key $args"
+              ret=0
+              continue
+            fi
+            ;;
+        esac
+        echo ${line}
+        ;;
+    esac
+  done <$config >$temp
+  mv $temp $config
+  return $((ret))
+}
+
+# httpd_vhost_setline <config> <vhost> <key> <new args>
+#
+# set a line from a vhost section in the config
+# -------------------------------------------------------------------------
+httpd_vhost_setline()
+{
+  httpd_vhost_replaceline ${1+"$1"} ${2+"$2"} ${3+"$3"} ${4+"$4"} ||
+  httpd_vhost_addline ${1+"$1"} ${2+"$2"} "$3${4+ $4}"
+}
+
+# httpd_servername_add <config> <listener>
+#
+# add a servername line to config
+# -------------------------------------------------------------------------
+httpd_servername_add()
+{
+  httpd_servername_exists "$2" "$1" ||
+  {
+    echo "ServerName $2" >>${1:-$httpd_config}
+  }
+}
+
+# httpd_section_new <section> <config>
+# -------------------------------------------------------------------------
+httpd_section_new()
+{
+  local name="$1"
+  shift
+  {
+    echo "<$name>"
+    echo "</$name>"
+  } >>${2:-$httpd_config}
+}
+
+# httpd_section_pattern <section>
+# -------------------------------------------------------------------------
+httpd_section_pattern()
+{
+ (set -f
+  local IFS="$ifs"
+  set -- $1
+  local section=$*; section=${section//".*"/'[^/]*'}; section=${section//"'"/'"'}; section=${section//'"'/'"\?'}
+  echo "[ \t]*<[ \t]*${section// /[ \t]\+}[ \t]*>[ \t]*")
+}
+
+# httpd_section_key <section>
+# -------------------------------------------------------------------------
+httpd_section_key()
+{
+ (set -f
+  local IFS="$ifs"
+  set -- $1
+  echo "$1")
+}
+
+# httpd_section_exists <section> [config...]
+# -------------------------------------------------------------------------
+httpd_section_exists()
+{
+  local pattern=`httpd_section_pattern "$1"`
+  shift
+  grep -q "^$pattern\$" `httpd_conf_files "$@"`
+}
+
+# httpd_section_list [config]
+# -------------------------------------------------------------------------
+httpd_section_list()
+{
+  local pattern=$(httpd_section_pattern '\(.*\)')
+  sed -n '\°^'"$pattern"'$° { s°^'"$pattern"'$°\1°; s°[ \t]\+° °; \°^/°! p; }' \
+    `httpd_conf_files "$@"`
+}
+
+# httpd_section_sed <section> <sed-script> <sed-script if not found> [config]
+#
+# perform sed commands while the whole section is in pattern space
+# -------------------------------------------------------------------------
+httpd_section_sed()
+{
+  local start=`httpd_section_pattern "$1"`
+  local end=$(httpd_section_pattern "/`httpd_section_key "$1"`")
+  local script=$2
+  local alt=$3
+  shift 3
+  sed ${1-'-n'} ${1+'-i'} -e \
+    ':st; \°^[ \t\n]*$° { N; b st }
+     \°^[ \t\n]*'"$start"'$° {
+      :lp; N; \°\n'"$end"'$°! b lp
+      '"$script"'
+      :ck; n; :ws; \°^[ \t\n]*$° { N; b ws }; \°^[ \t\n]*'"$start"'$°! b ck; b lp
+    }
+    $ { '"$alt"'
+     ; q
+    }' `httpd_conf_files "$@"`
+}
+
+# httpd_section_editline <section> <sed-script> [config]
+#
+# perform sed commands while a line of the section is in pattern space
+# -------------------------------------------------------------------------
+httpd_section_editline()
+{
+  local start=`httpd_section_pattern "$1"`
+  local end=$(httpd_section_pattern "/`httpd_section_key "$1"`")
+  local script=$2
+  shift 2
+  sed ${1-'-n'} ${1+'-i'} -e \
+    '\°^[ \t\n]*'"$start"'$° {
+      :lp; n
+      \°^'"$end"'$°! {
+        '"$script"'
+        b lp
+      }
+    }' `httpd_conf_files "$@"`
+}
+
+# httpd_section_keys <section> [config]
+# -------------------------------------------------------------------------
+httpd_section_keys()
+{
+  local section="$1"
+  httpd_section_editline "$section" "s,^[ \t]*\([a-zA-Z0-9]\+\).*$,\1," ${2:+"$2"}
+}
+
+# httpd_section_editkey <section> <key> <sed-script> <sed-script if not found> [config]
+#
+# perform sed commands while a key of the section is in pattern space
+# -------------------------------------------------------------------------
+httpd_section_editkey()
+{
+  local start=`httpd_section_pattern "$1"`
+  local end=$(httpd_section_pattern "/`httpd_section_key "$1"`")
+  local key=$2
+  local script=$3
+  local alt=$4
+  shift 4
+  sed ${1-'-n'} ${1+'-i'} -e \
+    ':st; \°^'"$start"'$° {
+      :lp; n
+      \°^'"$end"'$°! {
+        \°^[ \t]*'"$key"'[ \t]*° { '"$script"';
+        :ck; n; \°^'"$end"'$°! b ck; b st }
+        \°^'"$end"'$°! b lp
+      }
+      \°^'"$end"'$° { '"$alt"'; b st
+      }
+    }' `httpd_conf_files "$@"`
+}
+
+# httpd_section_replace <section> <content> <config>
+# -------------------------------------------------------------------------
+httpd_section_replace()
+{
+  httpd_section_sed "$1" "d; n; s°.*°${2//$newline/\n}°" \
+    "p; i\\${2//$newline/\\$newline}" "$3"
+}
+
+# httpd_section_content <section> <content> <config>
+# -------------------------------------------------------------------------
+httpd_section_content()
+{
+  httpd_section_sed "$1" "P; s°.*\(<.*\)$°${2//$newline/\n}\n\1°" \
+    "p; i\\$newline<$1>\\$newline$tabstop${2//$newline/\\$newline$tabstop}" "$3"
+}
+
+# httpd_section_set <section> <key> <value> [config]
+# -------------------------------------------------------------------------
+httpd_section_set()
+{
+  httpd_section_editkey "$1" "$2" "s°\(^[ \t]*$2[ \t]*\).*$°\1$3°" "" ${4:+"$4"}
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_httpd_sh=:;}

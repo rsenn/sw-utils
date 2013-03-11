@@ -1,0 +1,121 @@
+# $Id: strace.sh.in 507 2008-08-11 23:55:36Z enki $
+#
+# strace.sh: strace HTTP/FTP implementation
+#
+# -------------------------------------------------------------------------
+test $lib_trace_strace_sh || {
+
+# default values for required directories
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# dependencies
+# -------------------------------------------------------------------------
+. $shlibdir/std/var.sh
+. $shlibdir/std/str.sh
+. $shlibdir/compat/declare.sh
+
+# strace related global variables
+# -------------------------------------------------------------------------
+: ${STRACE_cmd:="@STRACE@"}
+
+STRACE_options=
+
+# have_strace
+# -------------------------------------------------------------------------
+have_strace()
+{
+  if $STRACE_cmd --help; test "$?" = 2; then
+    return 0
+  fi
+  return 1
+}
+
+# strace_set [option=[value]]
+# -------------------------------------------------------------------------
+strace_set()
+{
+  if [ "$#" -gt 0 ]; then
+    for STRACE_OPT; do
+     var_set "STRACE_${STRACE_OPT%%=*}" "${STRACE_OPT#*=}"
+  #    declare STRACE_${STRACE_OPT%%=*}="${STRACE_OPT#*=}"
+    done
+  else
+   (IFS=","
+    for OPTION in $STRACE_options; do
+      VALUE=`var_get "STRACE_${OPTION}"`
+      if test -n "$VALUE"; then
+        echo $OPTION=`str_quote "$VALUE"`
+      fi
+    done)
+  fi
+}
+
+# strace_options [temporary-option=[temporary-value]]
+# -------------------------------------------------------------------------
+strace_options()
+{
+ (if [ "$#" -gt 0 ]; then
+    strace_set "$@"
+  fi
+
+  IFS="
+"
+  set --
+
+  test -n "$STRACE_timeout" && set -- "$@" --connect-timeout "$STRACE_timeout" 
+  test -n "$STRACE_data" && set -- "$@" --data "$STRACE_data"
+  test -n "$STRACE_user" && set -- "$@" --user "$STRACE_user${STRACE_passwd+:$STRACE_passwd}"
+
+#  test -n "$STRACE_header" && for HEADER in $STRACE_header; do set -- "$@" --header "$HEADER"; done
+  test -n "$STRACE_dump_header" && set -- "$@" --dump-header "$STRACE_dump_header"
+
+  is_true "$STRACE_secure" || set -- "$@" --insecure
+  is_true "$STRACE_location" && set -- "$@" --location
+  is_true "$STRACE_progress" || set -- "$@" --silent
+  is_true "$STRACE_include" && set -- "$@" --include
+  
+  if test -n "$STRACE_form"; then
+    for VALUE in $STRACE_form; do
+      set -- "$@" --form "$VALUE"
+    done
+  fi
+
+  if test -n "$STRACE_header"; then
+    for VALUE in $STRACE_header; do
+      set -- "$@" --header "$VALUE"
+    done
+  fi
+
+  if test -n "$__data_urlencode"; then
+    for VALUE in $__data_urlencode; do
+      set -- "$@" --data-urlencode "$VALUE"
+    done
+  fi
+
+  echo "$*")  
+}
+
+# strace_get [options] <url>
+# -------------------------------------------------------------------------
+strace_get()
+{
+ (OPTIONS= URL= IFS="
+"
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      *=*) pushv OPTIONS "$1" ;;
+      *) URL="$1" ;;
+    esac
+    shift
+  done
+
+  is_true "$STRACE_debug" && msg strace_get $OPTIONS "$URL"
+
+  $STRACE_cmd `strace_options $OPTIONS` "$URL")
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_trace_strace_sh=:;}

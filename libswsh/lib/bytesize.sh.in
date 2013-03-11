@@ -1,0 +1,132 @@
+#!/bin/sh
+#
+# bytesize.sh: Size conversion functions
+#
+# $Id: bytesize.sh.in 575 2008-08-26 12:07:20Z enki $
+test $lib_bytesize_sh || {
+
+# Set any directory variable needed and not yet set
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# Load dependency modules
+# -------------------------------------------------------------------------
+. $shlibdir/math.sh
+
+# size_unit <size>
+# -------------------------------------------------------------------------
+size_to_unit()
+{
+  local log1024=`log1024 "$1"`
+  size_log1024_unit "$log1024"
+}
+
+# size_unit_exp <unit>
+# -------------------------------------------------------------------------
+size_unit_exp()
+{
+  local log1024=`size_unit_log1024 "$1"`
+  exp1024 "$log1024"
+}
+
+# size_unit_log1024 <unit>
+# -------------------------------------------------------------------------
+size_unit_log1024()
+{
+  case $1 in
+    KB|Kb|kB|kb) echo 1 ;;
+    MB|Mb|mB|mb) echo 2 ;;
+    GB|Gb|gB|gb) echo 3 ;;
+    TB|Tb|tB|tb) echo 4 ;;
+    *) echo 0 ;;
+  esac
+}
+
+# size_unit_log2 <unit>
+# -------------------------------------------------------------------------
+size_unit_log2()
+{
+  echo $((`size_unit_log1024 "$1"` * 10))
+}
+
+# size_unit_log10 <unit>
+# -------------------------------------------------------------------------
+size_unit_log10()
+{
+  local log2=$((`size_unit_log1024 "$1"` * 10))
+  local exp2=`exp2 "$log2"`
+  log10 "$exp2"
+}
+
+# size_log1024_unit <log1024>
+# -------------------------------------------------------------------------
+size_log1024_unit()
+{
+  local unit
+
+  case $1 in
+    0) unit='' ;;
+    1) unit='kB' ;;
+    2) unit='MB' ;;
+    3) unit='GB' ;;
+    4) unit='TB' ;;
+  esac
+
+  echo ${unit}
+}
+
+# size_log2_unit <log2>
+# -------------------------------------------------------------------------
+size_log2_unit()
+{
+  local log1024=$(($1 / 10))
+  size_log1024_unit "$log1024"
+}
+
+# size_log10_unit <log10>
+# -------------------------------------------------------------------------
+size_log10_unit()
+{
+  local exp=`exp10 $1`
+  local log1024=`log1024 "$exp"`
+  size_log1024_unit "$log1024"
+}
+
+# size_integer <size> [unit]
+# -------------------------------------------------------------------------
+size_integer()
+{
+  local bytes=$1
+  local unit=${2-`size_to_unit "$bytes"`}
+  local exp=`size_unit_exp "$unit"`
+  test -n "$2" && unset unit
+  echo $((bytes / exp))${unit}
+}
+
+# size_float <size> [unit]
+# -------------------------------------------------------------------------
+size_float()
+{
+  local bytes=$1
+  local unit=${2-`size_to_unit "$bytes"`}
+  local exp=`size_unit_exp "$unit"`
+  test -n "$2" && unset unit
+  echo `div "$bytes" "$exp"`${unit}
+}
+
+# size_round <size> [unit] [round]
+# -------------------------------------------------------------------------
+size_round()
+{
+  local bytes=$1
+  local unit=${2-`size_to_unit "$bytes"`}
+  local exp=`size_unit_exp "$unit"`
+  test -n "$2" && unset unit
+  echo $(round "`div "$bytes" "$exp"`" ${3-2})${unit}
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_bytesize_sh=:;}

@@ -1,0 +1,66 @@
+Requirements:
+
+GNU sed
+GNU grep
+GNU coreutils
+GNU wget
+GNU tar
+bzip2
+zlib
+
+Installation:
+
+The recommened way is to use the './cfg.sh' script which is a wrapper
+around a GNU autotools './configure' script. Besides that you build and
+install the package as you are used to when compiling GNU software:
+
+  ./cfg.sh
+  make
+  make install
+  
+The cfg.sh script takes the same arguments as the ./configure would but
+it will force defaults derived from the detected GNU gcc installation for
+the --prefix, --build, --host and --target arguments in order to override
+the checks from config.guess which bypass the compiler.
+
+These arguments will be shortly explained here:
+
+  --prefix=PATH      Base installation directory
+  --build=TRIPLET    The system which builds sw-utils
+  --host=TRIPLET     The system for which the sw-utils are bulit.
+  --target=TRIPLET   The system for which the sw-utils will build packages.
+
+A triplet is a hyphenated string usually consisting of the following three
+components:
+
+  ARCH-KERNEL-OS
+  
+ARCH is the hardware (processor) architecture of the system. KERNEL is the
+particular kernel running on the machine. OS is the operating system 
+respectively the development toolchain running on the system.
+
+Some possible architecture types for ARCH:
+
+   i386      Generic x86 PC hardware.
+   i486      x86 PC hardware with i486 optimizations.
+   i586      x86 PC hardware with Pentium optimizations.
+   i686      x86 PC hardware with Pentium Pro or higher optimizations.
+   x86_64    AMD 64-bit architecture.
+   
+Some possible types of KERNEL:
+
+   linux     The Linux operating system.
+   darwin    Mac OS X or other darwin OS.
+   
+Some possible types of OS:
+
+   gnu       A system using GNU glibc
+   diet      A system using dietlibc
+
+Examples of encountered triplets are Debian 4.0 or Ubuntu systems which 
+target their toolchain to 'i486-linux-gnu'. 
+RedHat and SuSE based distributions are a little odd, because their targets
+are 'i386-redhat-linux' and 'i586-suse-linux' respectively. Those add vendor
+information between the ARCH and KERNEL tokens, neglecting the OS token. 
+When the 3rd token is 'linux' we assume that the preceding token is vendor 
+information and that the system/toolchain is GNU glibc.

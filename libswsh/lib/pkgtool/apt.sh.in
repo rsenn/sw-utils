@@ -1,0 +1,285 @@
+#!/bin/sh
+#
+# pkgtool/apt.sh: apt package tool abstraction
+#
+# $Id: apt.sh.in 936 2009-03-28 07:48:41Z enki $
+# -------------------------------------------------------------------------
+test $lib_pkgtool_apt_sh || {
+
+# Set any directory variable needed and not yet set
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# Load dependency modules
+# -------------------------------------------------------------------------
+. $shlibdir/util.sh
+. $shlibdir/std/array.sh
+
+# apt_list
+#
+# List all known packages...
+# -------------------------------------------------------------------------
+apt_list()
+{
+  apt_search ".*"
+}
+
+# apt_search [-q] <search-tokens...>
+#
+# Search for a package...
+# -------------------------------------------------------------------------
+apt_search()
+{
+ (filter="cat" IFS=" "
+  case $1 in
+    -q) 
+      filter="sed s/\s.*//"
+      shift 
+    ;;
+  esac
+  apt-cache search "$@" | $filter)
+}
+
+# apt_match <search-token>
+#
+# Search for a package by name.
+# -------------------------------------------------------------------------
+apt_match()
+{
+ (unset arg
+  IFS=" ""
+";case $1 in
+    -q) arg="$1"
+        shift
+    ;;
+  esac
+    for tok
+    do
+      (apt_search ${arg+"$arg"} "$tok" | grep "$tok")
+    done
+
+ #(for pkg; do apt_search $arg "$pkg"; done) | (IFS="|"; egrep "($*)")
+ )
+}
+
+# apt_install <package-masks...>
+# -------------------------------------------------------------------------
+apt_install()
+(
+  IFS="
+"  
+  unset PACKAGES
+
+  for PATTERN; do
+    if is_pattern "$PATTERN"; then
+      PACKAGES="${PACKAGES+$PACKAGES$IFS}`apt_match -q "$PATTERN"`"
+    else
+      PACKAGES="${PACKAGES+$PACKAGES$IFS}$PATTERN"
+    fi
+  done
+
+  apt-get install $PACKAGES
+)
+
+# apt_info <package-names...>
+#
+# Search for a package by name.
+# -------------------------------------------------------------------------
+apt_info()
+{
+  apt-cache show "$@"
+}
+
+# apt_dep_cache 
+#
+# Show dependency cache
+# -------------------------------------------------------------------------
+apt_dep_cache()
+{
+  local dep=
+
+  apt-cache dump | { while read line
+  do
+    case $line in
+      "Package: "*)
+
+        if test -n "$dep"
+        then
+          echo "$dep"
+        fi
+
+        dep="${line#'Package: '}:" 
+        ;;
+
+      "Depends: "*)
+        line="${line#'Depends: '}"
+        dep="${dep} ${line%' '*}"
+        ;;
+      
+      *)
+#      echo "BLAH: $line"
+      continue ;;
+    esac
+  done
+  
+  test -n "$dep" && echo "$dep"
+  }
+}
+
+# apt_rdeps <package-names...>
+#
+# Show reverse dependencies
+# -------------------------------------------------------------------------
+apt_rdeps()
+{
+  local pkg pp='P'
+
+  if test "$#" -le 1
+  then
+    pp='s/^[^ ]*: //; s/ /\n/g; p'
+  fi
+
+  apt-cache rdepends "$@" | sed -n -e "/^[^ ]/ {
+    :st
+    N
+    /\\nReverse Depends:[^\\n]*\$/ {
+      s/\\n[^\\n]*\$/:/
+      :lp
+      N
+      s,\\n  , ,g
+      \$! { /\\n/! b lp }
+      $pp
+      b st
+    }
+  }"
+}
+
+# apt_deps <package-name>
+#
+# Show dependencies
+# -------------------------------------------------------------------------
+apt_deps()
+{
+  local info pkg
+  
+  for pkg
+  do
+    if info=`apt-cache show "$pkg" 2>/dev/null` &&
+       test -n "$info"
+    then
+      echo "$info" | sed -n "/^Depends:/ {
+        s/^Depends:\s*//
+        s/, /\n/g
+        p
+      }" | sed "s/\s.*//"
+    else
+      errormsg "Unable to locate package $pkg"
+    fi
+  done
+}
+
+# apt_deps_recursive <package-names...>
+#
+# Show dependencies
+# -------------------------------------------------------------------------
+apt_deps_recursive()
+{
+  local dep IFS="
+"" "
+  [ "${deps-unset}" = unset ] && local deps=
+#  test "${depth-unset}" = unset && local depth=0
+  local depth=$((depth + 1))
+
+  if [ "${WS-unset}" = unset ]; then
+    local WS=
+  elif [ "${WS+set}" = set ]; then
+    local WS=${indent-"  "}"$WS"
+  fi
+
+  for dep in `apt_deps "$@"`
+  do
+    if ! array_isin deps "$dep"
+    then
+      echo "$WS$dep"
+      array_push deps "$dep"
+      
+      if test "$maxdepth" && test "$maxdepth" -lt "$depth"
+      then
+        continue
+      fi
+      apt_deps_recursive "$dep"
+    fi
+  done
+
+}
+
+# apt_deps_recursive2 <package-names...>
+#
+# Show dependencies (reverse order)
+# -------------------------------------------------------------------------
+apt_deps_recursive2()
+{
+  local dep IFS="
+"" "
+  [ "${deps-unset}" = unset ] && local deps=
+#  test "${depth-unset}" = unset && local depth=0
+  local depth=$((depth + 1))
+
+  for dep in `apt_deps "$@"`; do
+    if ! array_isin deps "$dep"
+    then
+
+      array_push deps "$dep"
+      
+      if test "$maxdepth" && test "$maxdepth" -lt "$depth"
+      then
+        continue
+      fi
+
+      apt_deps_recursive2 "$dep"
+
+      echo "$dep"
+    fi
+  done
+
+}
+
+# apt_deps_tree <package-names...>
+#
+# Show dependency tree
+# -------------------------------------------------------------------------
+apt_deps_tree()
+{
+  local WS
+
+  for pkg in "$@"
+  do
+   (if apt_deps "$pkg" 
+    then
+      echo "$pkg"
+    fi
+    WS=${indent-"  "}
+    apt_deps_recursive "$pkg")
+  done
+}
+
+# apt_deps_list <package-names...>
+#
+# Show dependency tree
+# -------------------------------------------------------------------------
+apt_deps_list()
+{
+ (WS= INDENT= PKG=
+
+  for PKG in "$@"; do
+   (echo "$PKG"
+    WS=${INDENT-"  "}
+    apt_deps_recursive2 "$PKG")
+  done)
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_pkgtool_apt_sh=:;}

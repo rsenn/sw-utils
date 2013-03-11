@@ -1,0 +1,147 @@
+#!/bin/sh
+#
+# archive/tar.sh: POSIX tar archiving functions.
+#
+# $Id: tar.sh.in 780 2008-10-23 19:00:16Z enki $
+
+test $lib_archive_tar_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/util.sh
+
+# tar_cmd [options] <tar-archive> [files/directories...]
+#
+# Outputs a suitable command-line for the tar program.
+#
+#     -l, --level NUM         Compression level: 0 = store -> 9 = best.
+#     -d, --dereference       Dump the files instead of symlink pointing to.
+#     -x, --exclude PATTERN   Exclude files matching PATTERN.
+# -------------------------------------------------------------------------
+tar_cmd()
+{
+  local cmd= uncmd= un= arg= xcl= a= s=' ' c=false IFS=$nl
+  eval "set -- $(getopt --name=tar --shell=sh \
+                        --longoptions=level:,dereference,exclude:,no-recursion,create,delete,list,unpack -o 0123456789hx:Rcdlu -- "$@")"
+
+  cmd="tar$s-c$s-v"
+
+  local filter= #"|sed -e 's|^\s*[^:\s]\+:\s\+||' -e 's|\s\+([^()]\+)$||'"
+  local unfilter= #"|sed -ne 's|^\s*[0-9]\+\s\+[0-1][0-9]-[0-3][0-9]-[0-9][0-9]\s\+[0-2][0-9]:[0-5][0-9]\s\+\(.*\)$|\1|p'"
+
+  while test -n "$1"; do
+    case $1 in
+      # compression level
+      -[0-9]|--level)
+         ;;
+
+      # exclude files/dirs...
+      -x|--exclude)
+
+         xcl=${xcl:+$xcl$s}'--exclude="'"`escape_dquote "$2"`"'"'
+         shift
+         ;;
+
+      -c|--create)
+         cmd=${cmd//-[cxtv]$s/} && cmd=${cmd%$s-[cxtv]}
+         cmd=${cmd:+$cmd$s}'-c'$s'-v'
+         ;;
+         
+      -l|--list)
+         cmd=${cmd//-[cxtv]$s/} && cmd=${cmd%$s-[cxtv]}
+         cmd=${cmd:+$cmd$s}'-t'
+         ;;
+
+      -u|--unpack)
+         cmd=${cmd//-[cxtv]$s/} && cmd=${cmd%$s-[cxtv]}
+         cmd=${cmd:+$cmd$s}'-x'$s'-v'
+         ;;
+
+      -h|--dereference)  cmd=${cmd:+$cmd$s}'-h' ;;
+      -R|--no-recursion) cmd=${cmd:+$cmd$s}'--no-recursion' ;;
+
+      --) shift && break ;;
+    esac
+    shift
+  done
+  a=$1
+  shift
+  while test -n "$1"; do
+    arg="${arg:+$arg$s}\"`escape_dquote "$1"`\""
+    shift
+  done
+  echo $cmd -f"\"`escape_dquote "$a"`\"" $arg $xcl #`var_get ${un}filter`
+}
+
+# tar_create <tar-archive> [files/directories...]
+#
+# Pack the specified files and directories into a newly created tar-archive.
+# -------------------------------------------------------------------------
+tar_create()
+{
+  local IFS= a=${1:?archive name required}
+  msg "Creating tar-archive '$1'..."
+  eval `tar_cmd --create "$@"`
+}
+
+# tar_create <tar-archive> [files/directories...]
+#
+# Count the bytes in a tar
+# -------------------------------------------------------------------------
+tar_count()
+{
+  tar -tvf"$1" | tar_count_filter
+}
+
+# tar_count_filter
+#
+# Reads a verbose tar listing and adds up the file sizes...
+# -------------------------------------------------------------------------
+tar_count_filter()
+{
+  local n=0 IFS=" "
+  while read mode perm size date time path
+  do
+    n=$((n+size))
+  done
+  echo $n
+}
+
+# tar_update <tar-archive> [files/directories]
+#
+# Update the tar-archive (adding when necessary) with the specified files
+# and directories.
+# -------------------------------------------------------------------------
+tar_update()
+{ 
+  local IFS= a=${1:?archive name required}
+  msg "Creating tar-archive '$1'..."
+  eval `tar_cmd --update "$@"`  
+}
+
+# tar_unpack [tar-archive]
+# -------------------------------------------------------------------------
+tar_unpack()
+{
+  
+  set -- tar ${2+-C "$2"} -xv${1:+f"$1"} | sed "s:^:${2+${2%/}/}:"
+  verbose "$@"
+  "$@"
+}
+
+# tar_list <tar-archive> [files/directories]
+#
+# List either all or only the specified files and directories from the tar-archive.
+# -------------------------------------------------------------------------
+tar_list()
+{ 
+  local IFS= a=${1:?archive name required}
+  msg "Listing contents of tar-archive '$1'..."
+  eval `tar_cmd --list "$@"`  
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_archive_tar_sh=:;}

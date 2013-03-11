@@ -1,0 +1,285 @@
+# $Id: script.sh.in 862 2009-02-19 08:54:21Z enki $
+#
+# shell.sh: Functions for dealing with shell scripts
+#
+# -------------------------------------------------------------------------
+test -n "$lib_script_sh" || {
+
+# Provide defaults for the required directory variables
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# -------------------------------------------------------------------------
+script_newline="
+"
+script_tab="	"
+script_space=" "
+script_ifs="${script_newline}${script_tab}${script_space}"
+script_keywords="case|do|done|elif|else|esac|fi|for|if|in|then|until|while"
+
+# -------------------------------------------------------------------------
+. $shlibdir/util.sh
+. $shlibdir/std/array.sh
+
+# script_detect 
+#
+# Detects the actual shell implementation and outputs its name (like bash, 
+# zsh, ksh, ...)
+# -------------------------------------------------------------------------
+script_detect()
+{
+  if test "${BASH_VERSION+set}" = set -o "${BASH+set}" = set; then
+    echo bash
+    return 0
+  elif test "${ZSH_VERSION+set}" = set; then
+    echo zsh
+    return 0
+  elif eval 'test "${.sh.version+set}" = set 2>/dev/null'; then
+    echo ksh
+    return 0
+  elif test "${KSH_VERSION+set}" = set; then
+    case "$KSH_VERSION" in
+      *"PD KSH"*) 
+        echo pdksh
+        return 0 
+      ;;
+    esac
+  fi
+  errormsg "Could not determine shell implementation!"
+  return 1
+}
+
+# script_isname <word>
+# -------------------------------------------------------------------------
+script_isname()
+{
+  local IFS="_$alnum$space$tabstop$newline"
+
+  test "${1#[_A-Za-z]}" != "$1" && eval set -- $1 && test "$#" = 0 2>/dev/null
+}
+
+# script_keyword <word>
+# -------------------------------------------------------------------------
+script_keyword()
+{
+  echo "$1" | grep -qE "^($script_keywords)$"
+}
+
+# script_comments <script>
+#
+# strips all, except comments.
+# -------------------------------------------------------------------------
+script_comments()
+{
+  sed -n -e "/^#/ p" "$@"
+}
+
+# script_nocomments [scripts...]
+#
+# strips comments
+# -------------------------------------------------------------------------
+script_nocomments()
+{
+  sed -n -e "/^\s*#/! p" "$@"
+}
+
+# script_varparam [scripts...]
+# -------------------------------------------------------------------------
+script_varparam()
+{
+  sed -n \
+      "$@" \
+      -e '/^\s*#.*/d' \
+      -e '/\\\$/ s,\\\$,\\\£,g' \
+      -e ':slp1
+          /\$[A-Za-z_][0-9A-Za-z_]*\?/ {
+            s,.*\([\\]\?\$[A-Za-z_][0-9A-Za-z_]*\?\)\(.*\),\1\n\2,
+            /^\$/ P
+            D
+            b slp1
+          }' \
+      -e ':slp2
+          /\${/ {
+            :blp
+            /}/! {
+              N
+              b blp
+            }
+            s,.*\([\\]\?\${[^}]\+}\)\(.*\),\1\n\2,
+            /^\$/ P
+            D
+            b slp2
+          }'
+
+}
+
+# script_vars [scripts...]
+# -------------------------------------------------------------------------
+script_vars()
+{
+  sed \
+      -e 's,\${\([A-Za-z_][0-9A-Za-z_]*\?\)\([^}]*\)},${\1}\n\2,g' \
+    "$@" |
+  script_varparam \
+      -e 's,^\${\([A-Za-z_][0-9A-Za-z_]*\?\)\([^}]*\)}$,${\1}\n\2,g' \
+      -e 's,^\$\([A-Za-z_][0-9A-Za-z_]*\?\)$,$\1,' \
+    - |
+  sed \
+      -e 's,^\${\?,,' \
+      -e 's,}$,,'
+}
+
+# script_identifiers <script>
+# -------------------------------------------------------------------------
+script_identifiers()
+{
+  local IFS="${script_ifs}#%:;-=?+}()'\"\\"
+  local token
+  local shifu
+
+  # split
+  set -- `echo "$@" | sed 's,\#.*$,,'` && IFS="$script_ifs"
+
+  # iterate through tokens
+  for token in $*
+  do
+    if is_var "$token"
+    then
+      echo "$token"
+    fi
+  done | grep -vE "^($script_keywords)$"
+}
+
+# changes/sets a variable in a shell script
+#
+# script_setvar <script> <var> <value> [after-line]
+# -------------------------------------------------------------------------
+script_setvar()
+{
+  if ! script_changevar "$1" "$2" "$3" ${4+"$4"}
+  then
+    script_appendvar "$1" "$2" "$3" "$4"
+  fi
+}
+
+# changes a variable in a shell script
+#
+# script_changevar <script> <var> <value>
+# -------------------------------------------------------------------------
+script_changevar()
+{
+  (VALUE=`echo "$3" | sed "s,|,,g"`
+  if grep -q "^$2=" "$1"; then
+    sed -i "/^$2=/ { s|=.*$|=$VALUE|; :lp1; n; b lp1; q }" "$1"
+  else
+    exit 1
+  fi)
+}
+
+# appends a variable in a shell script after the line matching the pattern
+#
+# script_appendvar <script> <var> <value> <pattern>
+# -------------------------------------------------------------------------
+script_appendvar()
+{
+  if ! grep -q "^$2=" "$1"
+  then
+    if test -n "$4" && grep -q "$4" "$1"
+    then
+      sed -i "/$4/ { a\\$2=$3
+              :lp2; n; b lp2; q }" "$1"
+    else
+      sed -i "$ a\\$2=$3" "$1"
+    fi
+  else
+    return 1
+  fi
+}
+
+# gets a variable from a shell script
+#
+# script_getvar <script> <var>
+# -------------------------------------------------------------------------
+script_getvar()
+{
+
+  :
+}
+
+# script_fnlist [file]
+#
+# extracts function names from within a shell script.
+# ----------------------------------------------------------------------------
+script_fnlist()
+{
+ (expr="\\([A-Za-z_][A-Za-z0-9_]*\\)\\s*()" ob='{' cb='}'
+
+  script_nocomments "$@" | sed -n "/$expr/ {
+      s/^.*[^\$_0-9A-Za-z]$expr/\1/
+      
+      /^$expr/ {
+        :lp2
+        /^$expr\s*$ob/! { N; b lp2; }
+        s,\s*()\s*$ob,\n$ob,
+        P
+      }
+    }" "$@")
+}
+
+# script_getfn <function-name> [files...]
+#
+# get a reparseable function body from within a shell script.
+# ----------------------------------------------------------------------------
+script_getfn()
+{
+  local fn=$1
+  shift
+  sed -n \
+      -e "/$fn\s*()/ {
+            s,^, ,
+
+            /[^0-9A-Za-z]$fn\s*()/ {
+              :lp1
+              N
+              /{/! { b lp1 }
+              s,.*[^0-9A-Za-z]\($fn\s*().*\),\1,
+#              p
+
+              :lp2
+
+              N
+
+              /\n}\s*$/! { b lp2; }
+
+              p
+            }
+          }" \
+    "$@"
+}
+
+# script_readfn <function-name> [files...]
+#
+# get a reparseable function body from within a shell script.
+# ----------------------------------------------------------------------------
+script_readfn()
+{
+  script_getfn "$@" | sed -n -e '1 {
+    :lp1
+    N
+
+    $! b lp1
+
+    s,^[^{]*{\s*,,
+    s,\s*}[^}]*$,,
+
+    s,\n\s\s,\n,g
+
+    p
+  }'
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_script_sh=:;}

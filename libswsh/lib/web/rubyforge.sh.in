@@ -1,0 +1,257 @@
+# $Id: rubyforge.sh.in 660 2008-09-12 08:00:21Z enki $
+#
+# web/rubyforge.sh: rubyforge.net information retrieval
+#
+# -------------------------------------------------------------------------
+test $lib_web_rubyforge_sh || {
+
+# set path variable defaults
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+: ${localstatedir:="@localstatedir@"}
+
+# load script dependencies
+# -------------------------------------------------------------------------
+. $shlibdir/data/obj.sh
+. $shlibdir/std/str.sh
+. $shlibdir/net/http.sh
+. $shlibdir/net/www.sh
+. $shlibdir/data/xml.sh
+. $shlibdir/data/text.sh
+. $shlibdir/data/html.sh
+. $shlibdir/class/tempfile.sh
+
+# static variables
+# -------------------------------------------------------------------------
+RUBYFORGE_proto="http"
+RUBYFORGE_host="rubyforge.org"
+RUBYFORGE_project_url="$RUBYFORGE_proto://$RUBYFORGE_host/projects"
+RUBYFORGE_cachedir="$localstatedir/cache/swsh/rubyforge"
+
+# rubyforge_fetch <project-name> [output]
+# -------------------------------------------------------------------------
+rubyforge_fetch()
+(
+  [ -n "$2" ] && exec >$2
+
+  http_get "$RUBYFORGE_host/projects/$1"
+)
+
+# rubyforge_cache <project-name>
+# -------------------------------------------------------------------------
+rubyforge_cache()
+{
+  [ -w "$RUBYFORGE_cachedir" ] || mkdir -p "$RUBYFORGE_cachedir"
+
+  RUBYFORGE_file="$RUBYFORGE_cachedir/$1.xml"
+
+  rubyforge_fetch "$1" "$RUBYFORGE_file"
+
+  [ -s "$RUBYFORGE_file" ]
+}
+
+rubyforge_data()
+{
+  [ -s "$RUBYFORGE_cachedir/$1.xml" ] || rubyforge_cache "$1"
+}
+
+# rubyforge_description <project-name> [short|full] 
+# -------------------------------------------------------------------------
+rubyforge_description()
+{
+  if rubyforge_data "$1"; then
+    xml_getvalue <$RUBYFORGE_file "p style=[^>]*"
+  fi
+}
+
+# rubyforge_get <project-name> <property-names...>
+# 
+# Gets the specified properties from the rubyforge project.
+# -------------------------------------------------------------------------
+rubyforge_get()
+{
+  if rubyforge_data "$1"; then
+    shift
+    for RUBYFORGE_property; do
+      case "$RUBYFORGE_property" in
+        license)
+          xml_getvalue ".*li> License: <a[^>]*"
+        ;;
+        audience)
+          xml_getvalue ".*li> Intended Audience: <a[^>]*"
+        ;;
+        language)
+          xml_getvalue ".*li> Natural Language: <a[^>]*"
+        ;;
+        status)
+          xml_getvalue ".*li> Development Status: <a[^>]*"
+        ;;
+      esac <$RUBYFORGE_file
+    done
+  fi
+}
+
+# -------------------------------------------------------------------------
+rubyforge_url()
+{
+ (#proj=`rubyforge_project "$1"`
+  xml=`rubyforge_xml "$1"`
+  urls=
+  shift && test "$#" -gt 0 || set homepage
+  
+  while [ "$#" -gt 0 ]; do
+    rurl=`echo "$xml" | xml_getvalue "url_$1"`
+    rurl=${rurl#*://}
+
+    if test -n "$rurl"; then
+      rurl=`http_head "${rurl%%/*}" "/${rurl#*/}" |
+            sed -n -e 's,\r,,g' -e '/^Location:/ s,Location:\s*,,p'`
+      pushv urls "$rurl"
+      echo "$rurl"
+    fi
+
+    if test -z "$rurl"; then
+      #test "$1" = homepage -     
+      test -n "$urls" || urls=`rubyforge_url "$xml"`
+      for class in `cd $shlibdir/web && removesuffix '.sh*' *.sh*`; do
+        test "$class" = rubyforge && continue
+        test "`type -t ${class}_project`" = function || continue
+        for rurl in $urls; do
+          verbose "Checking for URL $rurl at service ${class}"
+          proj=`${class}_project "$rurl" 2>/dev/null`
+          if test -n "$proj"; then
+            if ${class}_url "$proj" "$1"; then
+              msg "Found URL $rurl being a project at ${class}"
+              break
+            fi
+          fi
+        done
+      done
+    fi
+    shift 
+  done)
+}
+
+# -------------------------------------------------------------------------
+rubyforge_search()
+{
+ (base="http://$RUBYFORGE_host/search/?q="
+
+  www_links "$base${*//' '/+}" | {
+    n=0 prev=
+    while read url; do
+      case $url in
+        */projects/*)
+          url=${url%/}
+          url=${url##*/}
+        ;;
+        
+        $base*=$((n+25))*)
+          test -z "$prev" && continue
+
+          n=$((n+25)) rubyforge_search "${url#$base}"
+          break
+        ;;
+        
+        *)
+          continue
+          ;;
+      esac
+      test "$url" = "$prev" && continue
+      echo "$url"
+      prev=$url
+    done
+  })
+}
+
+# rubyforge_trovecategory <trove-category-ids...>
+# -------------------------------------------------------------------------
+rubyforge_trovecategory()
+{
+  local id title
+  
+  for id
+  do
+    title=`http_get "$RUBYFORGE_host/browse/$id/" | xml_getvalue "title"`
+  
+    echo ${title#"$RUBYFORGE_host: Browse project tree - "}
+  done
+}
+
+# rubyforge_project <project-name | url | xml-data>
+#
+# Determines the project name
+# -------------------------------------------------------------------------
+rubyforge_project()
+{
+  if is_xml "$1"; then
+    xml_getvalue "$1" projectname_short
+  else
+    case $1 in
+      *rubyforge.net/projects/*)
+        set -- "${1#*rubyforge.net/projects/}"
+        echo "${1%%[/\?\&]*}"
+      ;;
+
+      *)
+        echo "$1"
+      ;;
+     esac
+  fi
+}
+
+# rubyforge_categories <project-name | xml-data>
+# -------------------------------------------------------------------------
+rubyforge_categories()
+{
+  local project category what value
+  
+  project=`rubyforge_project "$1"`
+  
+  test -n "$project" || return 1
+  
+  rubyforge_html "$project" | 
+  xml_getvalue 'tr bgcolor="#[0-9A-F]\+"><td valign="top" nowrap><small' |
+  sed -n -e "/^<b>\[/p" |
+  while read category
+  do
+    case $category in
+      '<b>['*)
+        what=`echo "$category" | xml_getvalue 'b'`
+        what=${what#"["}
+        what=${what%"]"}
+    
+        echo "$category" | xml_getvalue 'small' |
+        while read value
+        do
+          echo "$what :: ${value# }"
+        done
+      ;;
+    esac
+  done
+}
+
+# rubyforge_info <project-name>
+# -------------------------------------------------------------------------
+rubyforge_info()
+{
+ (xml=`rubyforge_xml "$1"`
+  desc_short=`rubyforge_description "$xml" "short"`
+  desc_full=`rubyforge_description "$xml" "full" | sed -e "s,^\s*\$,.," -e "s,^, ,"`
+  package=`rubyforge_url "$xml" "tgz" "bz2" "zip"`
+
+  echo "Project: $1
+Description: ${desc_short}
+${desc_full}
+Homepage: `rubyforge_url "$xml"`
+Package: ${package}
+Author: `rubyforge_get "$xml" author_name`
+License: `rubyforge_get "$xml" license`
+")
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_web_rubyforge_sh=:;}

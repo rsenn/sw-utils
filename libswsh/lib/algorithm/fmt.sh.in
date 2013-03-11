@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+# fmt.sh: format numbers and other stuff
+#
+# $Id: fmt.sh.in 557 2008-08-21 21:47:13Z enki $
+test $lib_fmt_sh || {
+
+: ${prefix:="@prefix@"}
+: ${fmtdir:="@fmtdir@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# fmt_hex <n> [pad]
+#
+# Output the number as hex
+# -------------------------------------------------------------------------
+fmt_hex()
+{
+  local n="$1" p="$2"
+
+  if ! test "$((p))" != 0 2>/dev/null
+  then
+    unset p
+  fi
+
+  printf "%${p}x\\n" $((n))
+}
+
+# fmt_oct <n> [pad]
+#
+# Output the number as octal
+# -------------------------------------------------------------------------
+fmt_oct()
+{
+  local n="$1" p="$2"
+
+  if ! test "$((p))" != 0 2>/dev/null
+  then
+    unset p
+  fi
+
+  printf "%${p}o\\n" $((n))
+}
+
+#--- eof ---------------------------------------------------------------------
+lib_fmt_sh=:;}

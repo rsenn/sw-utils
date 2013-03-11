@@ -1,0 +1,29 @@
+#
+# /etc/pkgadd.conf: pkgadd(8) configuration
+#
+
+# Default rule (implicit)
+UPGRADE    ^.*$  														YES
+
+# everything in the 'local' subtree is hand-written and -installed
+UPGRADE    ^@swrel@/[-0-9a-z_]+/local/.*$  NO
+
+# do not overwrite logs 
+UPGRADE    ^@rellocalstatedir@/log/.*$  				NO
+
+# do not overwrite package db when updating pkgtools
+UPGRADE    ^@rellocalstatedir@/lib/pkg/.*$  		NO
+
+UPGRADE    ^@relsysconfdir@/service/.*$  						YES
+UPGRADE    ^@relsysconfdir@/.*~$  						YES
+UPGRADE    ^@relsysconfdir@/.*\.conf\.in$  						YES
+UPGRADE    ^@relsysconfdir@/.*$  						NO
+
+# do update the supervise scripts
+#UPGRADE    ^@relsysconfdir@/service/.*$  	YES
+
+# do not overwrite supervise fifos, otherwise we would loose contact
+# to the corresponding supervise process
+UPGRADE    ^@relsysconfdir@/service/.*/supervise.*$  NO
+
+# End of file

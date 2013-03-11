@@ -1,0 +1,38 @@
+#!/perl/sh
+#
+# perl.sh: perl source code 
+#
+# $Id: perl.sh.in 586 2008-08-27 03:24:45Z enki $
+test $lib_perl_sh || {
+
+: ${prefix:="@prefix@"}
+: ${perldir:="@perldir@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/std/array.sh
+. $shlibdir/fs.sh
+
+default_target=''
+
+# perl_libs <path>
+# -------------------------------------------------------------------------
+perl_libs()
+{
+  sed -n -e "s/^use\\s/require /" -e "/^require\\s/ {
+    s,^require\s\+,,
+    s,[ ;].*\$,,
+
+    /^\"/d
+    /^[._0-9]\+\$/d
+
+    s,C<\([^>]\+\)>,\1,g
+    s,::,/,g
+    s,\$,.pm,
+
+    p
+  }" "$@"
+}
+
+#--- eof ---------------------------------------------------------------------
+lib_perl_sh=:;}

@@ -1,0 +1,339 @@
+# $Id: sourceforge.sh.in 977 2009-07-23 15:51:16Z enki $
+#
+# web/sourceforge.sh: sourceforge mining functions
+#
+# -------------------------------------------------------------------------
+@DEBUG_FALSE@test $lib_web_sourceforge_sh || {
+
+# Provide defaults for the required directory variables
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}          # default for prefix
+: ${sysconfdir:="@sysconfdir@"}  # default value for sysconfdir
+: ${libdir:="@libdir@"}          # default value for libdir
+: ${shlibdir:="@shlibdir@"}      # default value for shlibdir
+: ${bindir:="@bindir@"}          # default value for bindir
+
+# Load dependency modules
+# -------------------------------------------------------------------------
+. $shlibdir/data/text.sh
+. $shlibdir/data/obj.sh
+. $shlibdir/std/str.sh
+
+# -------------------------------------------------------------------------
+: ${SOURCEFORGE_proto:="http"}
+: ${SOURCEFORGE_host:="sourceforge.net"}
+: ${SOURCEFORGE_proj_url:="$SOURCEFORGE_proto://$SOURCEFORGE_host/projects"}
+: ${SOURCEFORGE_mirrors:="switch heanet belnet puzzle"}
+
+# -------------------------------------------------------------------------
+sourceforge_dump()
+{
+  local page IFS="$nl" name=$1 title=
+
+  page=`lynx -hiddenlinks=ignore -stderr -nobold -nounderline -dump -width=1024 "$SOURCEFORGE_proj_url/$1"`
+ 
+  for line in $page
+  do
+    case $line in
+      *'downloads for '*) title=${line##*'downloads for '} ;;
+
+      '['* | '+'* | '*'*) ;;
+      
+      [0-9A-Za-z]*) 
+        if test "$title" = "$line"
+        then
+          echo "ok"
+        fi
+        ;;
+    esac
+      
+    echo "$line"
+  done
+  
+  
+#  echo "$page" | text_unwrap
+}
+
+# sourceforge_rss <project>
+#
+# -------------------------------------------------------------------------
+sourceforge_rss()
+{
+  local group_id=$(
+    dlynx "http://sourceforge.net/projects/$1" |
+    sed -n 's,.*project.php.*group_id=\([0-9]\+\).*,\1,p' | 
+    head -n1
+  )
+  
+  lynx -source "http://sourceforge.net/export/rss2_projsummary.php?group_id=$group_id"
+}
+
+# sourceforge_description <project[/file]>
+#
+# -------------------------------------------------------------------------
+sourceforge_description()
+{
+  sourceforge_dump "$@" 2>&1 |
+  sed -n -e '/^     \*$/ {
+    n
+    n
+    /^     \*$/ {
+      :lp
+      N
+      /\n[^\n]*\[[0-9]\+\][^\n]*$/! b lp
+      s/\n[^\n]*$//
+      s/^\s*//
+      s/^\[[0-9]\+\]Charts example //
+      s/\[[0-9]\+\]//g
+      s/^\*//
+      s/^\s*//
+      p
+    }
+    q
+  }'
+}
+
+# sourceforge_ftp <project[/file]>
+#
+# -------------------------------------------------------------------------
+sourceforge_ftp()
+{
+  lftp `sourceforge_url "$1"`
+}
+
+# sourceforge_files <project>
+#
+# -------------------------------------------------------------------------
+sourceforge_files()
+{
+  require "www"
+ (url=`sourceforge_url "$1" download`
+  www_links "$url/" | sed \
+    -e '\,/$,d' \
+    -e "\\,^${url%/*}\$,d" \
+    -e "\\,^${url}/?,d"
+    )
+}
+
+# sourceforge_cvsroot <project> [user] [protocol]
+#
+# -------------------------------------------------------------------------
+sourceforge_cvsroot()
+{
+  echo :${3-pserver}:${2-anonymous}@$1.cvs.sourceforge.net:/cvsroot/$1
+}
+
+# sourceforge_svnroot <project> [protocol]
+#
+# -------------------------------------------------------------------------
+sourceforge_svnroot()
+{
+  echo ${2-https}://$1.svn.sourceforge.net/svnroot/$1
+}
+
+# sourceforge_gid <project/url>
+# -------------------------------------------------------------------------
+sourceforge_gid()
+{
+ (case $1 in
+    *group_id=*)
+      GROUP_ID=${1##*group_id=}
+      GROUP_ID=${GROUP_ID%%[!0-9]*}
+
+      echo "$GROUP_ID"
+    ;;
+    *)
+      PROJECT=`sourceforge_project "$1"`
+      URL=`sourceforge_url "$PROJECT" project`
+
+      curl_get "$URL" |
+      xml_get a href |
+      sed -n "\,/showfiles.php?group_id=, { s,.*group_id=\\([0-9]\+\\).*,\\1, ; p ; q }"
+    ;;
+  esac)
+}
+
+# sourceforge_prdownload <project[/file]>
+#
+# -------------------------------------------------------------------------
+sourceforge_prdownload()
+{
+  local url=$1 out= project mirror location
+  
+  local dn=${1%/*} bn=${1##*/}
+
+  if test "$bn" = "$dn" 
+  then
+    bn=
+  fi
+
+  if test -z "$bn" -a -n "$dn" 
+  then
+    local ch0=`str_index 0 "$dn"` ch1=`str_index 0 "$dn"`
+    echo "ftp://osdn.dl.sourceforge.net/pub/sourceforge/$ch0/$ch0$ch1/$dn"
+    return 0
+  fi
+
+  case $url in 
+    *://*.sourceforge.net/*) ;;
+    *://*) ;;
+    */*) ;;
+    *) echo "$url" && return 1 ;;
+  esac
+  
+  case $url in 
+    *.dl.sourceforge.net/*)
+
+      mirror=${url##*://}
+      mirror=${mirror%%.*}
+
+      location=${url##*.sourceforge.net/}
+      
+      project=${location#sourceforge/}
+      project=${project%%/*}
+      ;;
+  esac
+  
+  obj_set out url "$url"
+  obj_set out project "$project"
+  obj_set out mirror "$mirror"
+  
+  echo "$out"
+}
+
+# sourceforge_project <url>
+#
+# Prints the project name for the given URL.
+# -------------------------------------------------------------------------
+sourceforge_project()
+{
+  local url=$1 project
+
+  case $url in 
+    *.dl.sourceforge.net/*)
+      url="${url#*.dl.sourceforge.net/sourceforge/}"
+      project="${url%%/*}"
+    ;;
+    *downloads.sourceforge.net/*)
+      url="${url#*downloads.sourceforge.net/}"
+      project="${url%%/*}"
+    ;;
+
+    *sourceforge.net/projects/*)
+      url="${url##*/projects/}"
+      project="${url%%[?/&]*}"
+    ;;
+
+    *.sourceforge.net*)
+      url="${url%%.sourceforge.net*}"
+      project="${url##*[./]}"
+    ;;
+
+    *)
+      project="$url"
+      #return 1
+    ;;
+  esac
+  echo "$project"
+}
+
+# sourceforge_url <project-name> [url-types]
+# -------------------------------------------------------------------------
+sourceforge_url()
+{
+  local url out project mirror location
+  
+ (project=$1 && shift
+  
+  test -z "$1" && set homepage
+  
+  while [ "$#" -gt 0 ]; do
+    url=
+    case $1 in
+      homepage)
+        url="http://${project}.sourceforge.net"
+      ;;
+
+      project)
+        url="http://sourceforge.net/projects/$project"
+      ;;
+
+      download|ftp)
+        c0=`str_index 0 "$project"`
+        c1=`str_index 1 "$project"`
+
+        url="ftp://heanet.dl.sourceforge.net/mirrors/sourceforge/$c0/project/$c0$c1/$project/"
+#        url="http://heanet.dl.sourceforge.net/sourceforge/$project"
+      ;;
+      tgz)
+  install -d $ROOT/share/doc/squashfs-tools
+  install -d $ROOT/share/doc/squashfs-tools
+  install -m 644 INSTALL PERFORMANCE.README README COPYING CHANGES ACKNOWLEDGEMENTS $ROOT/share/doc/squashfs-tools
+  install -m 644 INSTALL PERFORMANCE.README README COPYING CHANGES ACKNOWLEDGEMENTS $ROOT/share/doc/squashfs-tools
+        url=`sourceforge_files "$project" | grep -iE '(tgz|tar\.gz)'`
+      ;;
+      showfiles)
+        gid=`sourceforge_gid "$project"`
+        url="http://sourceforge.net/project/showfiles.php?group_id=$gid"
+      ;;
+     esac
+     echo "$url"
+     shift
+  done)
+}
+
+# -------------------------------------------------------------------------
+sourceforge_search()
+{
+ (local base="http://sourceforge.net/search?words="
+
+  www_links "$base${*//' '/+}" | {
+  : ${n=0}
+  prev=
+  next=
+  while read url
+  do
+    case $url in
+      */projects/*)
+         url=${url%/}
+         url=${url##*/}
+        ;;
+      $base*offset=$((n+10))*)
+         test -z "$prev" && continue
+
+         next="${url#$base}"
+        ;;
+      *)
+        continue
+        ;;
+    esac
+    test "$url" = "$prev" && continue
+    test "$url" = "$base$next" || echo "$url"
+    prev=$url
+  done
+  test -n "$next" && n=$((n+10)) sourceforge_search "$next"
+  })
+}
+
+
+# sourceforge_info <project-name>
+# -------------------------------------------------------------------------
+sourceforge_info()
+{
+  if sourceforge_cache "$1"; then
+    cat <<EOF
+Project: $1
+Description: `sourceforge_description "$1" short`
+`sourceforge_description "$1" full |
+sed -e "s,^\s*\$,.," -e "s,^, ,"`
+Homepage: `sourceforge_url "$1"`
+Package: `sourceforge_url "$1" tgz bz2 zip`
+Author: `sourceforge_get "$1" author_name`
+License: `sourceforge_get "$1" license`
+EOF
+  fi
+}
+
+
+# --- eof ---------------------------------------------------------------------
+@DEBUG_FALSE@lib_web_sourceforge_sh=:;}

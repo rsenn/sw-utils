@@ -1,0 +1,129 @@
+# $Id: bash.sh.in 815 2008-12-05 22:23:24Z enki $
+#
+# bash.sh: bash specific functions
+# -------------------------------------------------------------------------
+test $lib_shell_bash_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# Load required scripts
+# -------------------------------------------------------------------------
+. $shlibdir/util.sh
+. $shlibdir/std/algorithm.sh
+. $shlibdir/std/escape.sh
+
+# bash_builtins [builtin_objects...]
+#
+# Lists all the bash-builtins available.
+# Outputs a list in the following format:
+#
+# PATH-TO-SHARED-OBJECT: [LIST-OF-AVAILABLE-BUILTINS...]
+#  ...
+# -------------------------------------------------------------------------
+bash_builtins()
+{
+ (IFS='
+'; test "$#" -gt 0 || set -- $libdir/bash/*.so
+for shobj; do
+    echo "$shobj:" `objdump -T "$shobj" | \
+      sed -n '\,\s\.text\s.*[^\s]\+_builtin$, {
+        s,.*\s,, ;; s,_builtin$,, ;; p
+      }'`
+  done)
+}
+
+# bash_enable [-d] [-f SHARED-OBJECT] <builtin-name...>
+#
+# Enables/disables the specified builtin.
+# -------------------------------------------------------------------------
+bash_enable()
+{
+  local args= shobj= name= builtins= IFS="
+"
+  while :; do
+    case $1 in
+      -d) pushv args "$1" ;;
+      -f) shobj="$2" && shift ;;
+      -f*) shobj="${1#-f}" ;;
+      *) break ;;
+    esac
+    shift
+  done
+
+  if test -z "$shobj"; then
+    builtins=`bash_builtins`
+    for name; do
+      for shobj in $builtins; do
+        IFS=" $IFS"
+        set -- $shobj
+        shobj=$1
+        shift
+        some 'bltin="$1" && test "$name" = "$bltin"' "$@"
+        IFS=${IFS#?}
+
+        test "$name" = "$bltin" && continue 2 
+      done
+      echo "error: no such builtin: $name" 1>&2
+      return 127
+    done
+  fi
+  
+  #if test -z "$bltin" -a -n "$1"; then
+  #  echo "error: no such builtin: $1"
+  #  return 127
+  #fi
+  
+  case $shobj in 
+    */*) 
+    ;;
+    
+    '')
+      echo "error: no builtin specified" 1>&2
+      return 126
+    ;;
+    
+    *) 
+      shobj="./$shobj" 
+    ;;
+  esac
+
+  enable $args -f "${shobj%:}" "$@"
+}
+
+# bash_disable <builtin-name..>
+#
+# Disables the specified builtins..
+# -------------------------------------------------------------------------
+bash_disable()
+{
+  enable -d "$@"
+}
+
+
+# bash_reload <builtin-name> [builtin-object]
+#
+# Reloads the specified builtin...
+# -------------------------------------------------------------------------
+bash_reload()
+{
+  local args= IFS="
+"
+  while :; do
+    case $1 in
+      -d) pushv args "$1" ;;
+      -f) pushv args "$1" "$2" && shift ;;
+      -f*) pushv args "$1" ;;
+      *) break ;;
+    esac
+    shift
+  done
+
+  bash_disable "$@" &&
+  bash_enable $args "$@"
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_shell_bash_sh=:;}

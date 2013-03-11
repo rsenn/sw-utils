@@ -1,0 +1,118 @@
+#!@SHELL@
+#
+# checks library dependencies and rpaths on binaries
+#
+# $Id: check-libs.in 565 2006-09-29 13:14:13Z roman $
+prefix="@prefix@"
+target="@target@"
+cwd="$(pwd)"
+libdir="$prefix/lib"
+bindirs="$prefix/bin $prefix/sbin $prefix/libexec $prefix/$target/bin $prefix/$target/libexec $prefix/lib/gconv $prefix/lib/php $prefix/lib/php/extensions $prefix/lib/apache $prefix/lib/ImageMagick/modules/coders $prefix/lib/ImageMagick/modules/filters $prefix/lib/security $prefix/lib/engines"
+
+if [ -z "$@" ]; then
+  set $bindirs
+#  echo "Usage: $0 PATH..."
+#  exit 2
+fi
+
+case $target in
+  *freebsd*)
+    linker="$prefix/lib/ld-elf.so.1"
+  ;;
+  *linux*)
+    linker="$prefix/lib/ld-linux.so.2"
+  ;;
+esac
+
+
+PATH="$prefix/bin"
+
+check()
+{
+  # is it a dynamically linked binary?
+  if [ ! "$(file "$*" | grep -E '(dynamically linked|shared object)')" ]; then
+    return 
+  fi
+  
+  if [ "$(file "$*" | grep 'shared object')" ]; then
+    type="dso"
+  else
+    type="bin"
+  fi
+
+  # get linked runtime libraries
+  libs="$(ldd "$*" | grep -v ld-linux)"
+  
+  # list of missing libraries
+  not_found=$(echo "$libs" | grep 'not found' | sed 's/ =>.*//' | sort -u)
+  
+  # list of found libraries
+  found=$(echo "$libs" | grep -vE '(not found|linux-gate)' | sed 's/.*=> //;;s/^[ \t]*//;;s/ (.*)//')
+  
+  # extract the libs not in prefix from the found ones
+  misplaced=$(echo "$found" | grep -v "^$prefix")
+  
+  # get linker rpath
+  rpath=$(readelf -a "$*" | sed -n '/Library rpath/ { s,.*Library rpath: \[\(.*\)\],\1,; p }')
+
+  # get interpreter
+  ldso=$(readelf -a "$*" | sed -n '/program interpreter/ { s,.*program interpreter: \(.*\)\],\1,; p }')
+
+  if [ ! "$not_found" ] && [ ! "$misplaced" ] && [ "$rpath" = "$libdir" ] && [ "$ldso" = "$linker" ]; then
+    continue
+  fi
+  
+  # get package
+  pkg=$(frompkg "$*")
+  
+  if [ "$not_found" ]; then
+    echo "error: $* from $pkg is missing these libraries:" $not_found
+  fi
+  
+  if [ "$misplaced" ]; then
+    echo "warning: $* from $pkg links these libraries from outside the prefix:" $misplaced
+  fi
+  
+  if [ "$type" = "dso" ]; then
+    return 0
+  fi
+  
+  if [ "${rpath%/}" != "$libdir" ]; then
+    if [ -z "$rpath" ]; then
+      echo "warning: $* from $pkg has no rpath set!" $rpath
+    else
+      echo "warning: $* from $pkg has rpath set to:" $rpath
+    fi
+  fi
+  
+  if [ "$ldso" != "$linker" ]; then
+    echo "warning: $* from $pkg has interpreter set to:" $ldso
+  fi
+}
+
+for arg in "$@"
+do
+  if [ "$arg" != "${arg#/}" ]; then    
+    # absolute path
+    param=$(echo "$arg" | sed 's,/[/]*,/,g;;s,/*$,,')
+    path="$param"
+  else
+    # relative path
+    param=$(echo "$arg" | sed 's,/[/]*,/,g;;s,^\.*/*,,;;s,/*$,,')
+    path="$cwd/$param"
+  fi
+
+  if [ -d "$path" ]; then
+    # check whole directory
+    for bin in "$path"/*
+    do
+      check "$bin"
+    done
+  elif [ -f "$path" ]; then
+    # check a single file
+    check "$path"
+  else
+    echo "$path is not a valid file or directory"
+#    exit 1
+  fi
+done

@@ -1,0 +1,1029 @@
+1: Intended Audience
+2: Intended Audience :: End Users/Desktop
+3: Intended Audience :: Developers
+4: Intended Audience :: System Administrators
+5: Intended Audience :: Other Audience
+6: Development Status
+7: Development Status :: 1 - Planning (disabled category)
+8: Development Status :: 2 - Pre-Alpha
+9: Development Status :: 3 - Alpha
+10: Development Status :: 4 - Beta
+11: Development Status :: 5 - Production/Stable
+12: Development Status :: 6 - Mature
+13: License
+14: License :: OSI Approved
+15: License :: OSI Approved :: GNU General Public License (GPL)
+16: License :: OSI Approved :: GNU Lesser General Public License (LGPL)
+17: License :: OSI Approved :: Artistic License
+18: Topic
+19: Topic :: System :: Archiving
+20: Topic :: Communications
+21: Topic :: Communications :: BBS
+22: Topic :: Communications :: Chat
+23: Topic :: Communications :: Chat :: ICQ
+24: Topic :: Communications :: Chat :: Internet Relay Chat
+25: Topic :: Communications :: Chat :: Unix Talk
+26: Topic :: Communications :: Chat :: AOL Instant Messenger
+27: Topic :: Communications :: Conferencing
+28: Topic :: Communications :: Email
+29: Topic :: Communications :: Email :: Filters
+30: Topic :: Communications :: Email :: Mailing List Servers
+31: Topic :: Communications :: Email :: Email Clients (MUA)
+32: Topic :: Communications :: Email :: Mail Transport Agents
+33: Topic :: Communications :: Email :: Post-Office
+34: Topic :: Communications :: Email :: Post-Office :: POP3
+35: Topic :: Communications :: Email :: Post-Office :: IMAP
+36: Topic :: Communications :: Fax
+37: Topic :: Communications :: FIDO
+38: Topic :: Communications :: Ham Radio
+39: Topic :: Communications :: Usenet News
+40: Topic :: Communications :: Internet Phone
+41: Topic :: System :: Archiving :: Packaging
+42: Topic :: System :: Archiving :: Compression
+43: Topic :: Security
+44: Topic :: Security :: Cryptography
+45: Topic :: Software Development
+46: Topic :: Software Development :: Build Tools
+47: Topic :: Software Development :: Debuggers
+48: Topic :: Software Development :: Compilers
+49: Topic :: Software Development :: Interpreters
+50: Topic :: Software Development :: Object Brokering
+51: Topic :: Software Development :: Object Brokering :: CORBA
+52: Topic :: Software Development :: Version Control
+53: Topic :: Software Development :: Version Control :: CVS
+54: Topic :: Software Development :: Version Control :: RCS
+55: Topic :: Desktop Environment
+56: Topic :: Desktop Environment :: Window Managers
+57: Topic :: Desktop Environment :: K Desktop Environment (KDE)
+58: Topic :: Desktop Environment :: Gnome
+59: Topic :: Desktop Environment :: Window Managers :: Enlightenment
+60: Topic :: Desktop Environment :: Window Managers :: Enlightenment :: Themes DR16
+61: Topic :: Desktop Environment :: K Desktop Environment (KDE) :: Themes KDE 1.x
+62: Topic :: Desktop Environment :: Screen Savers
+63: Topic :: Text Editors
+64: Topic :: Text Editors :: Emacs
+65: Topic :: Text Editors :: Integrated Development Environments (IDE)
+66: Topic :: Database
+67: Topic :: Database :: Database Engines/Servers
+68: Topic :: Database :: Front-Ends
+69: Topic :: Text Editors :: Documentation
+70: Topic :: Text Editors :: Word Processors
+71: Topic :: Education
+72: Topic :: Education :: Computer Aided Instruction (CAI)
+73: Topic :: Education :: Testing
+74: Topic :: System :: Emulators
+75: Topic :: Office/Business :: Financial
+76: Topic :: Office/Business :: Financial :: Accounting
+77: Topic :: Office/Business :: Financial :: Investment
+78: Topic :: Office/Business :: Financial :: Spreadsheet
+79: Topic :: Office/Business :: Financial :: Point-Of-Sale
+80: Topic :: Games/Entertainment
+81: Topic :: Games/Entertainment :: Real Time Strategy
+82: Topic :: Games/Entertainment :: First Person Shooters
+83: Topic :: Games/Entertainment :: Turn Based Strategy
+84: Topic :: Games/Entertainment :: Role-Playing
+85: Topic :: Games/Entertainment :: Simulation
+86: Topic :: Games/Entertainment :: Multi-User Dungeons (MUD)
+87: Topic :: Internet
+88: Topic :: Internet :: Finger
+89: Topic :: Internet :: File Transfer Protocol (FTP)
+90: Topic :: Internet :: WWW/HTTP
+91: Topic :: Internet :: WWW/HTTP :: Browsers
+92: Topic :: Internet :: WWW/HTTP :: Dynamic Content
+93: Topic :: Internet :: WWW/HTTP :: Indexing/Search
+94: Topic :: Internet :: WWW/HTTP :: Dynamic Content :: Page Counters
+95: Topic :: Internet :: WWW/HTTP :: Dynamic Content :: Message Boards
+96: Topic :: Internet :: WWW/HTTP :: Dynamic Content :: CGI Tools/Libraries
+97: Topic :: Scientific/Engineering
+98: Topic :: Scientific/Engineering :: Mathematics
+99: Topic :: Multimedia
+100: Topic :: Multimedia :: Graphics
+101: Topic :: Multimedia :: Graphics :: Capture
+102: Topic :: Multimedia :: Graphics :: Capture :: Scanners
+103: Topic :: Multimedia :: Graphics :: Capture :: Digital Camera
+104: Topic :: Multimedia :: Graphics :: Capture :: Screen Capture
+105: Topic :: Multimedia :: Graphics :: Graphics Conversion
+106: Topic :: Multimedia :: Graphics :: Editors
+107: Topic :: Multimedia :: Graphics :: Editors :: Vector-Based
+108: Topic :: Multimedia :: Graphics :: Editors :: Raster-Based
+109: Topic :: Multimedia :: Graphics :: 3D Modeling
+110: Topic :: Multimedia :: Graphics :: 3D Rendering
+111: Topic :: Multimedia :: Graphics :: Presentation
+112: Topic :: Multimedia :: Graphics :: Viewers
+113: Topic :: Multimedia :: Sound/Audio
+114: Topic :: Multimedia :: Sound/Audio :: Analysis
+115: Topic :: Multimedia :: Sound/Audio :: Capture/Recording
+116: Topic :: Multimedia :: Sound/Audio :: CD Audio
+117: Topic :: Multimedia :: Sound/Audio :: CD Audio :: CD Playing
+118: Topic :: Multimedia :: Sound/Audio :: CD Audio :: CD Ripping
+119: Topic :: Multimedia :: Sound/Audio :: Conversion
+120: Topic :: Multimedia :: Sound/Audio :: Editors
+121: Topic :: Multimedia :: Sound/Audio :: Mixers
+122: Topic :: Multimedia :: Sound/Audio :: Players
+123: Topic :: Multimedia :: Sound/Audio :: Players :: MP3
+124: Topic :: Multimedia :: Sound/Audio :: Speech
+125: Topic :: Multimedia :: Video
+126: Topic :: Multimedia :: Video :: Capture
+127: Topic :: Multimedia :: Video :: Conversion
+128: Topic :: Multimedia :: Video :: Display
+129: Topic :: Office/Business
+130: Topic :: Office/Business :: Scheduling
+131: Topic :: Office/Business :: Office Suites
+132: Topic :: Religion
+133: Topic :: Scientific/Engineering :: Artificial Intelligence
+134: Topic :: Scientific/Engineering :: Astronomy
+135: Topic :: Scientific/Engineering :: Visualization
+136: Topic :: System
+137: Topic :: System :: Archiving :: Backup
+138: Topic :: System :: Benchmark
+139: Topic :: System :: Boot
+140: Topic :: System :: Boot :: Init
+141: Topic :: System :: Clustering/Distributed Networks
+142: Topic :: System :: Filesystems
+143: Topic :: System :: Operating System Kernels :: Linux
+144: Topic :: System :: Operating System Kernels
+145: Topic :: System :: Operating System Kernels :: BSD
+146: Topic :: System :: Hardware
+147: Topic :: System :: Installation/Setup
+148: Topic :: System :: Logging
+149: Topic :: Internet :: Name Service (DNS)
+150: Topic :: System :: Networking
+151: Topic :: System :: Networking :: Firewalls
+152: Topic :: System :: Networking :: Monitoring
+153: Topic :: System :: Power (UPS)
+154: Topic :: Printing
+155: Topic :: System :: Networking :: Monitoring :: Hardware Watchdog
+156: Topic :: Terminals
+157: Topic :: Terminals :: Serial
+158: Topic :: Terminals :: Terminal Emulators/X Terminals
+159: Topic :: Terminals :: Telnet
+160: Programming Language
+161: Programming Language :: APL
+162: Programming Language :: Assembly
+163: Programming Language :: Ada
+164: Programming Language :: C
+165: Programming Language :: C++
+166: Programming Language :: Eiffel
+167: Programming Language :: Euler
+168: Programming Language :: Forth
+169: Programming Language :: Fortran
+170: Programming Language :: Lisp
+171: Programming Language :: Logo
+172: Programming Language :: ML
+173: Programming Language :: Modula
+174: Programming Language :: Objective C
+175: Programming Language :: Pascal
+176: Programming Language :: Perl
+177: Programming Language :: Prolog
+178: Programming Language :: Python
+179: Programming Language :: Rexx
+180: Programming Language :: Simula
+181: Programming Language :: Smalltalk
+182: Programming Language :: Tcl
+183: Programming Language :: PHP
+184: Programming Language :: ASP
+185: Programming Language :: Unix Shell
+186: Programming Language :: Visual Basic
+187: License :: OSI Approved :: BSD License (original)
+188: License :: OSI Approved :: MIT/X Consortium License
+189: License :: OSI Approved :: Mozilla Public License (MPL)
+190: License :: OSI Approved :: Q Public License (QPL)
+191: License :: OSI Approved :: IBM Public License
+192: License :: OSI Approved :: MITRE Collaborative Virtual Workspace License (CVW)
+193: License :: OSI Approved :: Ricoh Source Code Public License
+194: License :: OSI Approved :: Python License
+195: License :: OSI Approved :: zlib/libpng License
+196: License :: Other/Proprietary License
+197: License :: Public Domain
+198: Programming Language :: Java
+199: Operating System
+200: Operating System :: POSIX
+201: Operating System :: POSIX :: Linux
+202: Operating System :: POSIX :: BSD
+203: Operating System :: POSIX :: BSD :: FreeBSD
+204: Operating System :: POSIX :: BSD :: NetBSD
+205: Operating System :: POSIX :: BSD :: OpenBSD
+206: Operating System :: POSIX :: BSD :: BSD/OS
+207: Operating System :: POSIX :: SunOS/Solaris
+208: Operating System :: POSIX :: SCO
+209: Operating System :: POSIX :: HP-UX
+210: Operating System :: POSIX :: AIX
+211: Operating System :: POSIX :: IRIX
+212: Operating System :: POSIX :: Other
+213: Programming Language :: Other
+214: Operating System :: Microsoft
+215: Operating System :: Microsoft :: MS-DOS
+216: Operating System :: Microsoft :: Windows
+217: Operating System :: Microsoft :: Windows :: Windows 3.1 or Earlier
+218: Operating System :: Microsoft :: Windows :: Windows 95/98/ME
+219: Operating System :: Microsoft :: Windows :: Windows NT/2000/XP
+220: Operating System :: OS/2
+221: Operating System :: MacOS
+222: Operating System :: Microsoft :: Windows :: Windows CE
+223: Operating System :: PalmOS
+224: Operating System :: BeOS
+225: Environment
+226: Environment :: Console (Text Based)
+227: Environment :: Console (Text Based) :: Curses
+228: Environment :: Console (Text Based) :: Newt
+229: Environment :: X11 Applications
+230: Environment :: Win32 (MS Windows)
+231: Environment :: X11 Applications :: Gnome
+232: Environment :: X11 Applications :: KDE
+233: Environment :: Other Environment
+234: Topic :: Other/Nonlisted Topic
+235: Operating System :: OS Independent
+236: Operating System :: Other OS
+237: Environment :: Web Environment
+238: Environment :: No Input/Output (Daemon)
+239: Topic :: System :: Operating System Kernels :: GNU Hurd
+240: Operating System :: POSIX :: GNU/Hurd
+241: Topic :: Communications :: File Sharing :: Napster
+242: Programming Language :: Scheme
+243: Topic :: Internet :: WWW/HTTP :: Site Management
+244: Topic :: Internet :: WWW/HTTP :: Site Management :: Link Checking
+245: Topic :: Internet :: Log Analysis
+246: Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)
+247: Topic :: Communications :: Telephony
+248: Topic :: Multimedia :: Sound/Audio :: MIDI
+249: Topic :: Multimedia :: Sound/Audio :: Sound Synthesis
+250: Topic :: Internet :: WWW/HTTP :: HTTP Servers
+251: Topic :: Communications :: File Sharing
+252: Topic :: Scientific/Engineering :: Bioinformatics
+253: Topic :: System :: Systems Administration
+254: Programming Language :: PL/SQL
+255: Programming Language :: PROGRESS
+256: Topic :: Multimedia :: Video :: Non-Linear Editor
+257: Topic :: System :: Software Distribution
+258: Programming Language :: Object Pascal
+259: Topic :: Software Development :: Code Generators
+260: Topic :: Software Development :: Version Control :: SCCS
+261: Programming Language :: XBasic
+262: Programming Language :: Cold Fusion
+263: Programming Language :: Euphoria
+264: Programming Language :: Erlang
+265: Programming Language :: Delphi
+266: Topic :: Scientific/Engineering :: Medical Science Apps.
+267: Programming Language :: Zope
+268: Topic :: Games/Entertainment :: Puzzle Games
+269: 
+270: 
+271: 
+272: 
+273: 
+274: 
+275: 
+276: 
+277: 
+278: 
+279: 
+280: 
+281: 
+282: 
+283: 
+284: 
+285: 
+286: 
+287: 
+288: 
+289: 
+290: 
+291: 
+292: 
+293: 
+294: 
+295: 
+296: 
+297: 
+298: 
+299: 
+300: 
+301: 
+302: 
+303: 
+304: 
+305: 
+306: 
+307: 
+308: 
+309: 
+310: 
+311: 
+312: 
+313: 
+314: 
+315: 
+316: 
+317: 
+318: 
+319: 
+320: 
+321: 
+322: 
+323: 
+324: 
+325: 
+326: 
+327: 
+328: 
+329: 
+330: 
+331: 
+332: 
+333: 
+334: 
+335: 
+336: 
+337: 
+338: 
+339: 
+340: 
+341: 
+342: 
+343: 
+344: 
+345: 
+346: 
+347: 
+348: 
+349: 
+350: 
+351: 
+352: 
+353: 
+354: 
+355: 
+356: 
+357: 
+358: 
+359: 
+360: 
+361: 
+362: 
+363: 
+364: 
+365: 
+366: 
+367: 
+368: 
+369: 
+370: 
+371: 
+372: 
+373: 
+374: 
+375: 
+376: 
+377: 
+378: 
+379: 
+380: 
+381: 
+382: 
+383: 
+384: 
+385: 
+386: 
+387: 
+388: 
+389: 
+390: 
+391: 
+392: 
+393: 
+394: 
+395: 
+396: 
+397: 
+398: 
+399: 
+400: 
+401: 
+402: 
+403: 
+404: 
+405: 
+406: 
+407: 
+408: 
+409: 
+410: 
+411: 
+412: 
+413: 
+414: 
+415: 
+416: 
+417: 
+418: 
+419: 
+420: 
+421: 
+422: 
+423: 
+424: 
+425: 
+426: 
+427: 
+428: 
+429: 
+430: 
+431: 
+432: 
+433: 
+434: 
+435: 
+436: 
+437: 
+438: 
+439: 
+440: 
+441: 
+442: 
+443: 
+444: 
+445: 
+446: 
+447: 
+448: 
+449: 
+450: 
+451: 
+452: 
+453: 
+454: 
+455: 
+456: 
+457: 
+458: 
+459: 
+460: 
+461: 
+462: 
+463: 
+464: 
+465: 
+466: 
+467: 
+468: 
+469: 
+470: 
+471: 
+472: 
+473: 
+474: 
+475: 
+476: 
+477: 
+478: 
+479: 
+480: 
+481: 
+482: 
+483: 
+484: 
+485: 
+486: 
+487: 
+488: 
+489: 
+490: 
+491: 
+492: 
+493: 
+494: 
+495: 
+496: 
+497: 
+498: 
+499: 
+500: 
+501: 
+502: 
+503: 
+504: 
+505: 
+506: 
+507: 
+508: 
+509: 
+510: 
+511: 
+512: 
+513: 
+514: 
+515: 
+516: 
+517: 
+518: 
+519: 
+520: 
+521: 
+522: 
+523: 
+524: 
+525: 
+526: 
+527: 
+528: 
+529: 
+530: 
+531: 
+532: 
+533: 
+534: 
+535: 
+536: 
+537: 
+538: 
+539: 
+540: 
+541: 
+542: 
+543: 
+544: 
+545: 
+546: 
+547: 
+548: 
+549: 
+550: 
+551: 
+552: 
+553: 
+554: 
+555: 
+556: 
+557: 
+558: 
+559: 
+560: 
+561: 
+562: 
+563: 
+564: 
+565: 
+566: 
+567: 
+568: 
+569: 
+570: 
+571: 
+572: 
+573: 
+574: 
+575: 
+576: 
+577: 
+578: 
+579: 
+580: 
+581: 
+582: 
+583: 
+584: 
+585: 
+586: 
+587: 
+588: 
+589: 
+590: 
+591: 
+592: 
+593: 
+594: 
+595: 
+596: 
+597: 
+598: 
+599: 
+600: 
+601: 
+602: 
+603: 
+604: 
+605: 
+606: 
+607: 
+608: 
+609: 
+610: 
+611: 
+612: 
+613: 
+614: 
+615: 
+616: 
+617: 
+618: 
+619: 
+620: 
+621: 
+622: 
+623: 
+624: 
+625: 
+626: 
+627: 
+628: 
+629: 
+630: 
+631: 
+632: 
+633: 
+634: 
+635: 
+636: 
+637: 
+638: 
+639: 
+640: 
+641: 
+642: 
+643: 
+644: 
+645: 
+646: 
+647: 
+648: 
+649: 
+650: 
+651: 
+652: 
+653: 
+654: 
+655: 
+656: 
+657: 
+658: 
+659: 
+660: 
+661: 
+662: 
+663: 
+664: 
+665: 
+666: 
+667: 
+668: 
+669: 
+670: 
+671: 
+672: 
+673: 
+674: 
+675: 
+676: 
+677: 
+678: 
+679: 
+680: 
+681: 
+682: 
+683: 
+684: 
+685: 
+686: 
+687: 
+688: 
+689: 
+690: 
+691: 
+692: 
+693: 
+694: 
+695: 
+696: 
+697: 
+698: 
+699: 
+700: 
+701: 
+702: 
+703: 
+704: 
+705: 
+706: 
+707: 
+708: 
+709: 
+710: 
+711: 
+712: 
+713: 
+714: 
+715: 
+716: 
+717: 
+718: 
+719: 
+720: 
+721: 
+722: 
+723: 
+724: 
+725: 
+726: 
+727: 
+728: 
+729: 
+730: 
+731: 
+732: 
+733: 
+734: 
+735: 
+736: 
+737: 
+738: 
+739: 
+740: 
+741: 
+742: 
+743: 
+744: 
+745: 
+746: 
+747: 
+748: 
+749: 
+750: 
+751: 
+752: 
+753: 
+754: 
+755: 
+756: 
+757: 
+758: 
+759: 
+760: 
+761: 
+762: 
+763: 
+764: 
+765: 
+766: 
+767: 
+768: 
+769: 
+770: 
+771: 
+772: 
+773: 
+774: 
+775: 
+776: 
+777: 
+778: 
+779: 
+780: 
+781: 
+782: 
+783: 
+784: 
+785: 
+786: 
+787: 
+788: 
+789: 
+790: 
+791: 
+792: 
+793: 
+794: 
+795: 
+796: 
+797: 
+798: 
+799: 
+800: 
+801: 
+802: 
+803: 
+804: 
+805: 
+806: Topic :: Desktop Environment :: GNUstep
+807: License :: OSI Approved :: GNU Free Documentation License (FDL)
+808: License :: Free for non-commercial use
+809: Topic :: Software Development :: Libraries
+810: Topic :: Software Development :: Libraries :: Application Frameworks
+811: Environment :: Plugins
+812: License :: Shareware
+813: Topic :: Scientific/Engineering :: Chemistry
+814: License :: The PHP License
+815: License :: Voxel Public License (VPL)
+816: Programming Language :: JavaScript
+817: Programming Language :: Other Scripting Engines
+818: License :: Other/Proprietary License with Free Trial
+819: License :: Eiffel Forum License (EFL)
+820: License :: Nokia Open Source License (NOKOS)
+821: Intended Audience :: Quality Engineers
+822: Topic :: Software Development :: Quality Assurance
+823: Programming Language :: SQL
+824: License :: Freeware
+825: Programming Language :: Dylan
+826: License :: Aladdin Free Public License (AFPL)
+827: License :: Freely Distributable
+828: License :: Free To Use But Restricted
+829: License :: Other/Proprietary License with Source
+830: License :: SUN Binary Code License
+831: License :: SUN Community Source License
+832: License :: Netscape Public License (NPL)
+833: License :: The Apache License
+834: Programming Language :: Haskell
+835: Programming Language :: Ruby
+836: Topic :: Software Development :: Testing
+837: License :: Zope Public License (ZPL)
+838: License :: The Clarified Artistic License
+839: Operating System :: MacOS X
+840: Environment :: MacOS X
+841: Environment :: MacOS X :: Aqua
+842: Environment :: MacOS X :: Carbon
+843: Environment :: MacOS X :: Cocoa
+844: License :: Free For Educational Use
+845: Topic :: Multimedia :: Sound/Audio :: CD Audio :: CD Writing
+846: Topic :: Software Development :: Bug Tracking
+847: Topic :: Software Development :: Documentation
+848: Programming Language :: Awk
+849: Topic :: Text Processing
+850: Topic :: Desktop Environment :: Fonts
+851: Topic :: Software Development :: Widget Sets
+852: Topic :: Text Processing :: General
+853: Topic :: Text Processing :: Markup
+854: Topic :: Text Processing :: Markup :: TeX/LaTeX
+855: Topic :: Text Processing :: Markup :: SGML
+856: Topic :: Text Processing :: Indexing
+857: Topic :: Text Processing :: Filters
+858: Topic :: Text Processing :: Linguistic
+859: Topic :: Text Processing :: Fonts
+860: Topic :: Desktop Environment :: File Managers
+861: Topic :: Utilities
+862: Topic :: System :: Monitoring
+863: Topic :: Software Development :: Testing :: Traffic Generation
+864: Topic :: System :: Operating System
+865: Topic :: System :: Software Distribution Tools
+866: Topic :: System :: Recovery Tools
+867: Topic :: Text Processing :: Markup :: HTML/XHTML
+868: Topic :: Text Processing :: Markup :: XML
+869: Programming Language :: Emacs-Lisp
+870: Environment :: X11 Applications :: GTK
+871: Environment :: X11 Applications :: Qt
+872: Topic :: Software Development :: Assemblers
+873: Topic :: Software Development :: Disassemblers
+874: Topic :: Games/Entertainment :: Arcade
+875: Topic :: Desktop Environment :: Window Managers :: Window Maker
+876: Topic :: Desktop Environment :: Window Managers :: Window Maker :: Applets
+877: Topic :: Desktop Environment :: Window Managers :: Enlightenment :: Epplets
+878: Programming Language :: Basic
+879: Topic :: System :: Console Fonts
+880: Environment :: Console (Framebuffer Based)
+881: Environment :: Console (svgalib Based)
+882: License :: The Open Content License
+883: License :: The Latex Project Public License (LPPL)
+884: Topic :: System :: Shells
+885: License :: OSI Approved :: GNAT Modified GPL (GMGPL)
+886: Topic :: System :: Archiving :: Mirroring
+887: Topic :: Adaptive Technologies
+888: License :: OSI Approved :: Common Public License
+889: Topic :: Communications :: Email :: Address Book
+890: Topic :: Desktop Environment :: Window Managers :: Applets
+891: License :: OSI Approved :: W3C License
+892: Programming Language :: C#
+893: Topic :: Scientific/Engineering :: Image Recognition
+894: Topic :: Internet :: Z39.50
+895: Topic :: Games/Entertainment :: Fortune Cookies
+896: Programming Language :: Pliant
+897: Topic :: Internet :: WWW/HTTP :: Dynamic Content :: News/Diary
+898: Topic :: Office/Business :: News/Diary
+899: License :: OSI Approved :: SUN Public License
+900: Operating System :: Unix
+901: Topic :: Artistic Software
+902: License :: OSI Approved :: Perl License
+903: Topic :: System :: Networking :: Time Synchronization
+904: Topic :: Home Automation
+905: Topic :: Documentation
+906: Topic :: Software Development :: Embedded Systems
+907: Topic :: Internet :: Proxy Servers
+908: Topic :: Text Processing :: Markup :: VRML
+909: Topic :: Software Development :: User Interfaces
+910: Topic :: Software Development :: Libraries :: Perl Modules
+911: Topic :: Software Development :: Libraries :: Tcl Extensions
+912: Topic :: Software Development :: Libraries :: Python Modules
+913: Topic :: Software Development :: Libraries :: Java Libraries
+914: Topic :: Software Development :: Libraries :: PHP Classes
+915: Topic :: Software Development :: Libraries :: Pike Modules
+916: Topic :: Software Development :: Pre-processors
+917: Topic :: Office/Business :: Groupware
+918: Topic :: Desktop Environment :: Window Managers :: Window Maker :: Themes
+919: Topic :: Desktop Environment :: Window Managers :: Blackbox
+920: Topic :: Desktop Environment :: Window Managers :: Blackbox :: Themes pre-0.70
+921: Topic :: Desktop Environment :: Window Managers :: Afterstep
+922: Topic :: Desktop Environment :: Window Managers :: Afterstep :: Themes
+923: Topic :: Desktop Environment :: Gnome :: GTK 1.x Themes
+924: Topic :: Desktop Environment :: Window Managers :: IceWM
+925: Topic :: Desktop Environment :: Window Managers :: IceWM :: Themes
+926: Topic :: Desktop Environment :: Window Managers :: Sawfish
+927: Topic :: Desktop Environment :: Window Managers :: Sawfish :: Themes pre-0.30
+928: Topic :: Desktop Environment :: Window Managers :: FVWM
+929: Topic :: Desktop Environment :: Window Managers :: FVWM :: Themes
+930: Topic :: Desktop Environment :: Theme
+931: Topic :: Desktop Environment :: Theme :: Adult
+932: Topic :: Desktop Environment :: Theme :: Animals
+933: Topic :: Desktop Environment :: Theme :: Anime
+934: Topic :: Desktop Environment :: Theme :: Art
+935: Topic :: Desktop Environment :: Theme :: Music
+936: Topic :: Desktop Environment :: Theme :: People
+937: Topic :: Desktop Environment :: Theme :: Science Fiction
+938: Topic :: Desktop Environment :: Theme :: Computers
+939: Topic :: Desktop Environment :: Theme :: Nature
+940: Topic :: Desktop Environment :: Theme :: Movies
+941: Topic :: Desktop Environment :: Theme :: Web
+942: Topic :: Desktop Environment :: Theme :: Cartoons
+943: Topic :: Desktop Environment :: Theme :: Fantasy
+944: Topic :: Desktop Environment :: Theme :: Places
+945: Topic :: Desktop Environment :: Theme :: Sports
+946: Topic :: Desktop Environment :: Theme :: Video Games
+947: Topic :: Desktop Environment :: Theme :: Holiday
+948: Topic :: Desktop Environment :: Theme :: Vehicles
+949: Topic :: Desktop Environment :: Theme :: Products
+950: Topic :: Desktop Environment :: Theme :: Misc
+951: Topic :: Desktop Environment :: Theme :: Pixmap
+952: Topic :: Desktop Environment :: Theme :: Operating Systems
+953: Topic :: Desktop Environment :: Theme :: Plain
+954: Topic :: Desktop Environment :: Theme :: Engine
+955: Topic :: Software Development :: Libraries :: Ruby Modules
+956: Topic :: Desktop Environment :: K Desktop Environment (KDE) :: Themes KDE 2.x
+957: Topic :: Desktop Environment :: K Desktop Environment (KDE) :: Themes KDE 3.x
+958: Topic :: Desktop Environment :: Gnome :: GTK 2.x Themes
+959: Topic :: Desktop Environment :: Window Managers :: Enlightenment :: Themes DR15
+960: Topic :: Desktop Environment :: Window Managers :: Sawfish :: Themes 0.30
+961: Topic :: Desktop Environment :: Window Managers :: Fluxbox
+962: Topic :: Desktop Environment :: Window Managers :: Fluxbox :: Themes
+963: Topic :: Desktop Environment :: Window Managers :: XFCE
+964: Topic :: Desktop Environment :: Window Managers :: XFCE :: Themes
+965: Topic :: Desktop Environment :: Application Themes
+966: Topic :: Desktop Environment :: Application Themes :: XMMS
+967: Topic :: Desktop Environment :: Application Themes :: Galeon
+968: Topic :: Desktop Environment :: Application Themes :: Mozilla
+969: Topic :: Desktop Environment :: Application Themes :: GKrellM
+970: Topic :: Desktop Environment :: PicoGUI
+971: Topic :: Desktop Environment :: PicoGUI :: Applications
+972: Topic :: Desktop Environment :: PicoGUI :: Themes
+973: Topic :: Desktop Environment :: Theme Resources
+974: Topic :: Desktop Environment :: Theme Resources :: Backgrounds
+975: Topic :: Desktop Environment :: Theme Resources :: Fonts
+976: Topic :: Desktop Environment :: Theme Resources :: Icons
+977: Topic :: Desktop Environment :: Application Themes :: Nautilus
+978: Topic :: Desktop Environment :: Window Managers :: Enlightenment :: Themes DR17
+979: Topic :: Desktop Environment :: Application Themes :: Shells
+980: Topic :: Desktop Environment :: Application Themes :: Login Managers :: XDM
+981: 
+982: Topic :: Desktop Environment :: Theme Resources :: Cursors
+983: Programming Language :: OCaml
+984: License :: OSI Approved :: Guile license
+985: Programming Language :: Pike
+986: Topic :: Desktop Environment :: Window Managers :: MetaCity
+987: Topic :: Desktop Environment :: Window Managers :: MetaCity :: Themes
+988: Topic :: Desktop Environment :: Gnome :: Metathemes
+989: Topic :: Desktop Environment :: Window Managers :: Oroborus
+990: Topic :: Desktop Environment :: Window Managers :: Oroborus :: Themes
+991: Topic :: Desktop Environment :: Application Themes :: Login Managers :: GDM
+992: Topic :: Desktop Environment :: Application Themes :: Login Managers
+993: Topic :: Desktop Environment :: Application Themes :: Login Managers :: KDM
+994: Topic :: Desktop Environment :: Application Themes :: Login Managers :: WDM
+995: License :: Free For Home Use
+996: License :: DFSG approved
+997: 
+998: Topic :: Desktop Environment :: Window Managers :: CTWM
+999: Topic :: Desktop Environment :: Window Managers :: CTWM :: Themes
+1000: Programming Language :: YACC
+1001: Topic :: Software Development :: Internationalization
+1002: Topic :: Software Development :: Localization
+1003: Environment :: Web Environment :: Mozilla
+1004: License :: OSI Approved :: Open Software License
+1005: Topic :: Desktop Environment :: Window Managers :: Waimea
+1006: Topic :: Desktop Environment :: Window Managers :: Waimea :: Themes
+1007: Topic :: Desktop Environment :: Theme Resources :: Sounds
+1008: License :: WTFPL
+1009: 
+1010: 
+1011: Topic :: System :: Operating System :: Linux Distributions
+1012: Topic :: System :: Operating System :: Linux Distributions :: CD-Based
+1013: Topic :: System :: Operating System :: Linux Distributions :: Floppy-Based
+1014: License :: OSI Approved :: Academic Free License (AFL)
+1015: Topic :: Information Management
+1016: Topic :: Information Management :: Records Management
+1017: Topic :: Information Management :: Issue Tracking
+1018: Topic :: Information Management :: Document Repositories
+1019: Topic :: Information Management :: Workflow Frameworks
+1020: Topic :: Information Management :: Metadata/Semantic Models
+1021: License :: Affero General Public License
+1022: Topic :: Scientific/Engineering :: Neuroscience
+1023: License :: OSI Approved :: BSD License (revised)
+1024: Topic :: Desktop Environment :: Application Themes :: MPlayer
+1025: Topic :: Text Processing :: Markup :: XSL/XSLT
+1026: Topic :: Text Processing :: Markup :: DSSSL
+1027: Topic :: Text Processing :: Markup :: DocBook
+1028: Programming Language :: Common Lisp
+1029: Topic :: Communications :: File Sharing :: Direct Connect

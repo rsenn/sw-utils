@@ -1,0 +1,9 @@
+#!/bin/sh
+prefix="@prefix@"
+ports="$prefix/ports"
+
+pkg=$(pkginfo -o $1 2>&1 | sed '/^Package/ d; /^[0-9]\+ packages/ d; s,[ \t].*,,' | head -1)
+
+(cd $ports; echo */$pkg) | sed 's,[ \t].*,,'
+
+exit 0

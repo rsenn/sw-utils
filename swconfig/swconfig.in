@@ -1,0 +1,588 @@
+#!@SHELL@
+#
+# $Id: swconfig.in 671 2007-02-27 16:07:11Z roman $
+
+#set -e
+
+# directories
+# ---------------------------------------------------------------------------
+: ${prefix=@prefix@}
+: ${exec_prefix=@exec_prefix@}
+: ${bindir=@bindir@}
+: ${libdir=@libdir@}
+: ${sysconfdir=@sysconfdir@}
+: ${shlibdir=${libdir}/sh}
+
+# load the libraries
+# ---------------------------------------------------------------------------
+source $shlibdir/var
+source $shlibdir/array
+source $shlibdir/ui
+source $shlibdir/util
+source $shlibdir/inet
+source $shlibdir/config
+source $shlibdir/bytesize
+
+# set pkginstall path and root dir
+# ---------------------------------------------------------------------------
+: ${pkgroot=$(dirname $(scriptdir))}
+: ${swconf=$sysconfdir/epiphyte.conf}
+: ${swload=$swconf}
+: ${swlog=swconfig.log}
+
+# open the logfile
+# ---------------------------------------------------------------------------
+exec 8>${swlog}
+
+# configure terminal
+# ---------------------------------------------------------------------------
+: ${TERMINFO_DIRS:=$pkgroot/lib/terminfo}
+: ${TERM:="linux-vt"}
+  
+export TERMINFO_DIRS TERM
+  
+# set to pkginstall mode
+# ---------------------------------------------------------------------------
+if test -d "$pkgroot/lib/swconfig"
+then
+  pkginstall="true"
+fi
+
+# defaults
+# ---------------------------------------------------------------------------
+swconfig_interactive='yes'
+swconfig_update='no'
+swconfig_template='epiphyte.conf'
+
+# show pkgrelease usage
+# ---------------------------------------------------------------------------
+usage()
+{
+  echo "Usage: $me [OPTIONS] 
+options:
+  --no-interactive  Don't ask any question and don't display any dialogs.
+  --update          Merge existing and new configs.
+  --help            Print help and exit"
+}
+
+# initializes the configuration tree with the current values
+# ---------------------------------------------------------------------------
+load()
+  {  
+  if test "$(config_gettype)" = 'value'
+  then
+    if var_isset "$config_pointer"
+    then
+      local value=$(var_get "$config_pointer")
+      config_set 'VALUE' "$value"
+#    else
+#      local value=$(source ${swload} && var_get "$config_pointer")
+#      config_set 'VALUE' "$value"
+    fi
+
+  else
+    set -- $(config_get 'MEMBERS')
+    config_set 'POSITION' ${config_pointer:+${config_pointer}_}$1
+      
+    # descend into members
+    for item 
+    do
+      config_push ${item}
+      load
+      config_pop
+    done
+  fi
+  
+  log "$config_pointer:
+  LABEL='"$(config_get LABEL)"'
+  DESCRIPTION='"$(config_get DESCRIPTION)"'
+  VALUE='"$(config_get VALUE)"'
+  DEFAULT='"$(config_get DEFAULT)"'
+  POSITION='"$(config_get POSITION)"'
+  FUNCTION='"$(config_get FUNCTION)"'
+  EXTRA='"$(config_get EXTRA)"'
+  MEMBERS='"$(config_get MEMBERS)"'
+"
+  }
+
+# traverses the tree and writes all config values
+# ---------------------------------------------------------------------------
+write()
+{
+  if test "$(config_gettype)" = 'value'
+  then
+    local label=$(config_get 'LABEL')
+    local value=$(config_getvalue)
+  
+    echo "$label" | sed 's,^,# ,'
+    echo "${config_pointer}=\"${value}\""
+    echo
+  else
+    local members=$(config_get 'MEMBERS')
+
+    # descend into members
+    for item in $members
+    do
+      config_push $item
+      write
+      config_pop
+    done
+  fi
+}
+
+save()
+{
+  local tmp=$(mktemp) ret=0
+
+  if test $swconfig_interactive = yes
+  then
+    ui_info 'Saving the configuration...'
+  else
+    msg 'Saving the configuration...'
+  fi
+
+  config_root
+
+  log "Writing configuration to $swconf ..."
+
+  (write >${swconf} && chmod 600 "$swconf") 2>${tmp} || 
+  {
+    echo "$(basename $0): failed writing $swconf ($(sed 's,.*: ,,' < ${tmp}))"
+    ret=1
+  }
+  
+  rm -f ${tmp}
+  return $ret
+}
+
+# ---------------------------------------------------------------------------
+quit()
+{
+  save
+  exit $?
+}
+
+log()
+{
+  echo "$@" 1>&8
+}
+
+get_release_number()
+{
+  (source $pkgroot/RELEASE 2>/dev/null && echo $number)
+}
+
+# configure the user-interface
+# ---------------------------------------------------------------------------
+ui_width=64
+ui_backtitle="swconfig v@PACKAGE_VERSION@ - configuration manager"
+
+RELEASE=$(get_release_number)
+
+LABEL="Welcome to swconfig!
+
+${RELEASE:+"Release is: ${RELEASE}
+"}Config file is: ${swconf}"
+
+# load the modules and the config
+# ---------------------------------------------------------------------------
+initialize()
+{
+  if test $swconfig_interactive = yes
+  then
+    ui_info 'Initializing...'
+  else
+    msg 'Initializing...'
+  fi
+
+  if ${pkginstall:-false}
+  then
+    pkglibdir=$pkgroot/lib/swconfig
+    log 'Initializing swconfig in standalone mode...' "(pkglibdir = $pkglibdir)"
+  else
+    pkglibdir=$libdir/swconfig
+    export PATH="$prefix/bin:$prefix/sbin"
+    log 'Initializing swconfig in pkginstall mode...' "(pkglibdir = $pkglibdir, pkgroot = $pkgroot)"
+  fi
+
+  if test $swconfig_update = yes
+  then
+    modules=$(array $prefix/lib/swconfig/* $pkglibdir/*)
+  else
+    modules=$(array $pkglibdir/*)
+  fi
+
+  log "Unsorted modules:
+$modules"
+
+  array_sort 'modules'
+  array_order 'modules' "$pkglibdir/global" "$pkglibdir/daemontools"
+
+  log "Sorted modules:
+$modules"
+
+  for module in $modules
+  do
+    log "loading module $module"
+    source $module
+
+    if test -n "$config_pointer"
+    then
+      log "warning: not at config root ($config_pointer) after module $module"
+    fi
+  done
+
+  if test $swconfig_interactive = yes
+  then
+    ui_info 'Parsing the config tree...'
+  else
+    msg 'Parsing the config tree...'
+  fi
+
+  if test -f "$swconf"
+  then
+    log "Loading initial config from $swconf"
+    source "$swconf"
+  fi
+
+  if test "$swconf" != "$swload" && test -f "$swload"
+  then
+    log "Loading initial config from $swload"
+    source "$swload"
+  fi
+
+  if test -f "$pkgroot/swconfig.tmpl"
+  then
+    log "Loading config template from $pkgroot/swconfig.tmpl"
+    source "${pkgroot}/swconfig.tmpl"
+  fi
+
+  load  
+  write >&8
+}
+
+# display a menu
+#
+# menu [cancel button]
+# ---------------------------------------------------------------------------
+menu()
+{
+  local cancel=$1
+  local entry 
+  local choice
+
+  # get menu title, items and the currently selected item
+  local title=$(config_get 'LABEL')
+  local items=$(config_get 'MEMBERS')
+  local default=$(config_get 'POSITION')
+
+  # empty parameters
+  set --
+
+  # loop through items
+  for entry in $items
+  do
+    # descend into tree
+    config_push $entry
+
+    # get label and the value
+    local label=$(config_get 'LABEL')
+    local value=$(config_getvalue)
+
+    set -- "$@" $config_pointer "$label${value:+: $value}"
+
+    config_pop
+  done
+
+  # now launch the dialog wrapper
+  choice=$(ui_menu --cancel-label "${cancel:-Back}" \
+                   --default-item "${default}" \
+                   "$title" "$@")
+
+  # remember the exit status
+  local ret=$?                   
+
+  echo ${choice##*_}
+  
+  return $ret
+}
+
+# display an inputbox
+#
+# input [cancel button]
+# ---------------------------------------------------------------------------
+input()
+{
+  local text=$(config_get 'DESCRIPTION')
+  local value=$(config_getvalue)
+ 
+  # call the dialog wrapper
+  local choice=$(ui_input --cancel-label "Back" "$text" "$value")
+  
+  # remember the exit status
+  local ret=$?
+  
+  config_set 'VALUE' "$choice"
+
+  return $ret
+}
+
+# choose [options] <items...>
+# ---------------------------------------------------------------------------
+choose()
+{
+  local args
+  local choice
+  
+  while test -n "$1" 
+  do
+    case "$1" in
+      --*-button)
+        array_push 'args' "$1"
+        ;;
+      --*-label)
+        array_push 'args' "$1" "$2"
+        shift
+        ;;
+      --*)
+        array_push 'args' "$1"
+        ;;
+      *)
+        break
+        ;;
+    esac
+    shift
+  done
+  
+  local text=$(config_get 'DESCRIPTION')
+  local value=$(config_getvalue)
+
+  choice=$(ui_choose ${args} --default-item "$value" \
+                             --cancel-label "Back" \
+                             "$text" "$@")
+  ret=$?
+
+  case $ret in
+    2) eval $(config_eval 'EXTRA')
+       ret=$?
+       ;;
+    0) config_set 'VALUE' "$choice"
+       ;;
+  esac
+  
+  return $ret
+}
+
+# inputbox for directories
+# ---------------------------------------------------------------------------
+directory()
+{
+  local text=$(config_eval 'DESCRIPTION')
+  local value=$(config_getvalue)
+ 
+  # call the dialog wrapper
+  local choice=$(ui_input --cancel-label "Back" "$text" "$value")
+  
+  # remember the exit status
+  local ret=$?
+  
+  # collapse path separators
+  choice=$(echo "$choice" | sed -e 's,//,/,g' -e 's,//,/,g' -e 's,//,/,g')
+  
+  if test "$choice" != "/"
+  then
+    choice=${choice%/}
+  fi
+
+  config_set 'VALUE' "$choice"
+
+  return $ret
+}
+
+# ---------------------------------------------------------------------------
+checklist()
+{
+  local text=$(config_eval 'DESCRIPTION')
+
+  items="$@"
+  set --
+
+  for item in $items
+  do
+    config_push "$item"
+    
+    local value=$(config_getvalue)
+    local label=$(config_get 'LABEL')
+    
+    if test "$value" = "yes"
+    then
+      local status='on'
+    else
+      local status='off'
+    fi
+  
+    config_pop
+
+    set -- "$@" "$item" "$label" "$status"
+  done
+
+  # call the dialog wrapper
+  local choice=$(ui_checklist --cancel-label "Back" "$text" "$@")
+  
+  # remember the exit status
+  local ret=$?
+  
+  # set them all to "no"
+  for item in $items
+  do
+    config_push "$item"
+    config_set 'VALUE' "no"
+    config_pop
+  done
+  
+  for item in $choice
+  do
+    config_push "$item"
+    config_set 'VALUE' "yes"
+    config_pop
+  done
+  
+  config_set 'VALUE' "$choice"
+  
+  return $ret
+}
+
+# yes/no choice
+# ---------------------------------------------------------------------------
+yesno()
+{
+  local text=$(config_get 'DESCRIPTION')
+  local value=$(config_getvalue)
+ 
+  # call the dialog wrapper
+  local choice=$(ui_yesno "$text" "$value")
+  
+  # remember the exit status
+  local ret=$?
+  
+  config_set 'VALUE' "$choice"
+
+  return $ret
+}
+
+# branch [cancel button (passed to menu())]
+# ---------------------------------------------------------------------------
+branch()
+{
+  local fn choice
+  local indent="$indent  "
+
+  while true
+  do
+    if choice=$(menu "$@")
+    then
+      # set the default item for the next time we show a menu of that branch
+      config_set 'POSITION' $(config_var "$choice")
+
+      config_push $choice
+      fn=$(eval echo $(config_get 'FUNCTION'))
+
+      echo "$fn" >&8
+      eval "$fn"
+
+      config_pop
+    else 
+      return 1
+    fi
+  done
+}
+
+# parse options using getopt
+# ---------------------------------------------------------------------------
+parse_options()
+{
+  swconfig_shift=0
+
+  while test "$1"
+  do
+    case $1 in
+      -h|--help)
+        usage
+        exit 2
+        ;;
+      -I|--no-interactive)
+        swconfig_interactive=no
+        ;;
+      -u|--update)
+        swconfig_update=yes
+        ;;
+      --)
+        shift; : $((swconfig_shift++))
+        break
+        ;;
+      *)
+        error "no such option: $1"
+        ;;
+    esac
+    shift
+    : $((swconfig_shift++))
+  done
+}
+
+# ---------------------------------------------------------------------------
+edit()
+{
+  if ${pkginstall:-false}
+  then
+
+    # add 'install' menuitem to main menu
+    config_enter 'install'
+  
+      config_label    'Start installation'
+      config_function 'quit'
+  
+    config_leave
+  
+    # execute the main menu
+    branch "Exit" || exit 1
+    quit
+  else
+    # add 'exit' menuitem to main menu
+    config_enter 'exit'
+
+      config_label    'Exit'
+      config_function 'quit'
+  
+    config_leave
+
+    branch "Exit" #|| exit 1
+  fi
+}
+
+# ---------------------------------------------------------------------------
+main()
+{
+  me="${0##*/}: "
+  
+  # parse command line options
+  eval "set -- $(getopt -n "$me" -l 'help,no-interactive,update' 'hIu' "$@")"
+
+  parse_options "$@"
+  shift $((swconfig_shift))
+
+  initialize
+
+  log "pkgroot is $pkgroot"
+
+  # start at the root of the config tree
+  config_root
+
+  if test $swconfig_interactive = 'yes'
+  then
+    edit
+  else
+    quit
+  fi
+}
+
+main "$@"

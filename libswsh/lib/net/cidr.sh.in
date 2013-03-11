@@ -1,0 +1,84 @@
+# -*-mode: shell-script-*-
+#
+# net/cidr.sh
+#
+# cidr address and interface functions
+#
+# $Id: cidr.sh.in 615 2008-09-02 09:04:35Z enki $
+# ---------------------------------------------------------------------------
+@DEBUG_FALSE@test $lib_net_cidr_sh || {
+
+# directories
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# include library modules
+# -------------------------------------------------------------------------
+. $shlibdir/util.sh
+. $shlibdir/net/ip4.sh
+
+# cidr_mask <address/netmask>
+#
+# Get the mask part of a CIDR address specification
+# -------------------------------------------------------------------------
+cidr_mask()
+{
+  local n w=32 mask=0 IFS=/
+  
+  set -- $1
+  
+  n=${2:-$1}
+  
+  while test "$n" -gt 0
+  do
+    mask=$((mask << 1))
+    mask=$((mask + 1))
+    
+    : $((--n))
+    : $((--w))
+  done
+  
+  while test "$w" -gt 0
+  do
+    mask=$((mask << 1))
+    
+    : $((--w))
+  done
+  
+  ip4_from_dec "$mask"
+}
+ 
+# cidr_broadcast <address/netmask> [netmask]
+#
+# Derive the broadcast address from a CIDR address specification
+# -------------------------------------------------------------------------
+cidr_broadcast()
+{
+  local mask IFS=/
+  
+  mask=${2:-`cidr_mask "$1"`}
+
+  set -- $1
+
+  ip4_broadcast "$1" "$mask"
+}
+
+# cidr_network <address/netmask> [netmask]
+#
+# Get the masked (network) address part of a CIDR address specification
+# -------------------------------------------------------------------------
+cidr_network()
+{
+  local mask IFS=/
+  
+  mask=${2:-`cidr_mask "$1"`}
+
+  set -- $1
+
+  ip4_mask "$1" "$mask"
+}
+
+# --- eof ---------------------------------------------------------------------
+@DEBUG_FALSE@lib_net_cidr_sh=:;}

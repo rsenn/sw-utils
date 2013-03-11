@@ -1,0 +1,145 @@
+# $Id: util.sh.in 507 2008-08-11 23:55:36Z enki $
+#
+# data/xml.sh: XML processing
+#
+# -------------------------------------------------------------------------
+@DEBUG_FALSE@test $lib_data_xml_sh || {
+
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# XML matching expressions
+# -------------------------------------------------------------------------
+xml_xtagname="[^\s/>]\+"
+#xml_xattrlist="\s\+[^>]*"
+xml_xattrlist="[^\s>][^>]*"       
+
+xml_xtag()
+{
+  echo "<\\(${1-$xml_xtagname}\\)\\s*\\?\\($xml_xattrlist\\)\\?\s*\\(/\\)\?>"
+}
+
+xml_xtag_noclose()
+{
+  echo "<\\(${1-$xml_xtagname}\\)\\s*\\?\\($xml_xattrlist\\)\\?\\s*>"
+}
+
+xml_xattr()
+{
+  echo "\\(${1-[^\\s\"\'>]\\+}\\)=[\"']\\([^\"']*\\)[\"']"
+}
+
+# is_xml [data]
+# ---------------------------------------------------------------------------
+is_xml()
+{
+ (cmd="grep -q '^<?xml'"
+  
+  if test "${1+set}" = set; then
+    cmd="echo \"$1\" | $cmd"
+  fi
+  
+  eval "$cmd")
+}
+
+# xml_get <tag> [attribute]
+# ---------------------------------------------------------------------------
+xml_get()
+{
+  if [ "$2" ]; then
+    xml_getattribute "$@"
+  else
+    xml_getvalue "$1"
+  fi
+}
+
+# xml_tag <tag>
+#
+# Gets the the specified tag. XML is read from stdin.
+# ---------------------------------------------------------------------------
+xml_tag()
+{
+  sed -n "s|`xml_xtag`|\n&|g; p" | 
+  sed -n ":st; 
+   # \\|`xml_xtag_noclose "$1"`| {
+   #   s|`xml_xtag_noclose "$1"`|&\n|
+   #   P; D
+   #   b st
+   # }
+    \\|`xml_xtag "$1"`| { 
+      :lp; \,</${1%%[ >]*}>,! { N; b lp; }
+      s,\n,,g
+      s,\(</${1%%[ >]*}>\)\(.\+\),\1\n\2,
+      p; d; b st
+    }
+  "
+}
+
+# xml_getvalue <tag>
+#
+# Gets the content within the specified tag. XML is read from stdin.
+# ---------------------------------------------------------------------------
+xml_getvalue()
+{
+  sed "s,\(<$1>\),\n\1,g" | sed -n ":st; \,<$1>, {
+    s,<$1>,,
+    :lp; \,</${1%%[ >]*}>,! { p; n; b lp; }
+    s,\(</${1%%[ >]*}>\)\(.\+\),\1\n\2,
+    s,</${1%%[ >]*}>,,
+    P; b st
+  }"
+}
+
+# xml_attrs <tag> 
+#
+# Show all the tag attributes of the specified tag
+# ---------------------------------------------------------------------------
+xml_attrs()
+{
+  sed -n "s|`xml_xtag`|\n&|g; p" | 
+  sed -n ":st; 
+    \\|`xml_xtag_noclose "$1"`| {
+      s|.*`xml_xtag_noclose "$1"`|\2\n|; s|^\s*||
+      P; D
+      b st
+    }
+    \\|`xml_xtag "$1"`| {
+      s|.*`xml_xtag "$1"`|\2\n|; s|^\s*||
+      :lp; \\|`xml_xtag "/$1"`|! { N; b lp; }
+      s|^\([^\n]*\)\n.*\?`xml_xtag "/$1"`|\1\n|
+      P
+      b st
+    }
+  "
+}
+
+# xml_attribute <tag> <attr> 
+#
+# Show the specified tag attribute of the specified tag
+# ---------------------------------------------------------------------------
+xml_attribute()
+{
+  xml_attrs "$1" | sed -n ":st; 
+    \\|`xml_xattr "$2"`| {
+      s|.*`xml_xattr "$2"`.*|\1=\"\2\"\n|
+      P; D
+      b st
+    }
+  "
+}
+
+
+# xml_getattribute <tag> <attr> 
+#
+# Show the value of the specified tag attribute of the specified tag
+# ---------------------------------------------------------------------------
+xml_getattribute()
+{
+  xml_attribute "$@" | sed "s|^[^=]*=[\"']\([^\"]*\)[\"']|\1|"
+}
+
+# --- eof ---------------------------------------------------------------------
+@DEBUG_FALSE@lib_data_xml_sh=:;}

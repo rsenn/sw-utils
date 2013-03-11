@@ -1,0 +1,19 @@
+#
+# toolchain.conf: Default compiler toolchain configuration
+#
+
+#CC="gcc"
+#CXX="g++"
+
+#CFLAGS="@CFLAGS_DEBUG@ @CFLAGS_OPT@"
+#CXXFLAGS="@CXXFLAGS_DEBUG@ @CXXFLAGS_OPT@"
+
+#AR="ar"
+#ARFLAGS="cru"
+
+#STRIP="strip"
+#RM="rm -f"
+
+#export CC CXX CFLAGS CXXFLAGS AR ARFLAGS STRIP RM
+
+# End of toolchain.conf

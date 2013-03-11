@@ -1,0 +1,225 @@
+#!
+#
+# pkg.sh: pkg functions
+#
+# $Id: pkg.sh.in 761 2008-10-09 06:23:35Z enki $
+# -------------------------------------------------------------------------
+test $lib_pkg_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+: ${portsdir:="@portsdir@"}
+: ${pkgdir:="@pkgdir@"}
+#: ${targetpkgdir:="@targetpkgdir@"}
+
+. $shlibdir/std/array.sh
+. $shlibdir/path.sh
+. $shlibdir/fs/dir.sh
+. $shlibdir/port.sh
+
+pkg_subdirs=`array etc bin include lib share`
+
+# pkg_dir [mask] [target]
+# -------------------------------------------------------------------------
+pkg_dir()
+{
+  local mask=$1 dir
+
+  test -z "$mask" && mask=*
+
+  for dir in $pkgdir/${2:-*}/${1%%/*}
+  do
+    echo "$dir"
+  done
+}
+
+# pkg_categories [mask] [target]
+#
+# list all available categories
+# -------------------------------------------------------------------------
+pkg_categories()
+{
+  local IFS=$nl c list=
+
+  for c in `pkg_dir "${1-"*"}" ${2+"$2"}`/*/
+  do
+    c=${c##*/} &&
+    test -n "$c" && array_push_unique 'list' "$c"
+  done
+  echo "$list"
+}
+
+
+# pkg_hosts
+#
+# list all available target hosts.
+# -------------------------------------------------------------------------
+pkg_hosts()
+{
+ (cd "$pkgdir" &&
+  array */*/ | sed -e 's,/.*,,')
+}
+
+# pkg_packages [category] [mask]
+#
+# list all available packages in the specified category or all categories
+# -------------------------------------------------------------------------
+pkg_packages()
+{
+ (cd "$pkgdir"
+  find "${@-$pkgdir}" \
+       -follow \
+       -type f \
+       -name "${2-*}#*.pkg.tar.*" -and \
+       -not -wholename "*/CVS/*" -and \
+       -not -wholename "*/.svn/*")
+}
+
+# pkg_names [categories]
+#
+# list all package names in the specified category or all categories
+# -------------------------------------------------------------------------
+pkg_names()
+{
+ (cd "$pkgdir"
+  if test "$#" = 0; then
+    set -- `pkg_categories`
+  fi
+  for cat
+  do
+   (cd "$cat"
+    find * -follow -maxdepth 0 -type f -not -wholename CVS)
+  done)
+}
+
+# pkg_path [category/package...]
+#
+# lists the package paths for the specified packages
+# -------------------------------------------------------------------------
+pkg_path()
+{
+  local category=${1-*} expr=""
+
+  shift
+
+  for pkg
+  do
+    expr="$expr -name $PKG#* -or"
+  done
+
+ (cd "$pkgdir"
+  set -x
+  find "$category" -follow -maxdepth 1 -mindepth 1 -type f -not -name CVS ${expr%-or})
+}
+
+# pkg_archive <category/package>
+#
+# lists the archive which is built from the specified port
+# -------------------------------------------------------------------------
+pkg_archive()
+{
+  local pkgpaths=`pkg_path "$@"`
+
+  for pkgpath in $pkgpaths
+  do
+    case $pkgpath in
+      *%*) ;;
+      *.pkg.tar.*) echo $pkgdir/$pkgpath ;;
+      *) ;;
+    esac
+  done
+}
+
+# pkg_files <category/package>
+#
+# lists the source files for the specified package
+# -------------------------------------------------------------------------
+pkg_files()
+{
+  local pkgfull=`port_archive "$@"`
+
+  test -f $pkgfull || return 1
+
+  tar -tjf $pkgfull | sed 's,^/,,'
+  return 0
+}
+
+# pkg_guesspfx <package>
+# -------------------------------------------------------------------------
+pkg_guesspfx()
+{
+  local r IFS="
+"
+  r=$(archive_list "$1" | sed -n \
+      -e 's:/bin/.*::p' \
+      -e 's:/etc/.*::p' \
+      -e 's:/include/.*::p' \
+      -e 's:/lib/.*::p' \
+      -e 's:/share/.*::p' \
+      -e 's:/var/.*::p' \
+      | uniq)
+
+  (test -n "$r" || test -n "`archive_list "$1"`") && echo "${r:-/}"
+}
+
+# pkg_unpackto <package> <destination-prefix>
+# -------------------------------------------------------------------------
+pkg_unpackto()
+{
+  is_dir "$2" || return 2
+
+  local prefix=`pkg_guesspfx "$1" | head -n1` || return 1
+  local n=`path_length "$prefix"`
+
+  tar -C "$2" -xvf "$1" | sed "s:^$prefix/::"
+}
+
+# pkg_split <path>
+#
+# splits up the full path to a package into package information
+#
+# output is in the following format:
+# <directory> <category> <name> <version> <release> <strip flags>
+# -------------------------------------------------------------------------
+pkg_split()
+{
+  local dir=${1%/*}
+  local cat=${dir##*/}
+  local file=${1##*/}
+  local pkg=${file%.pkg.tar.*}
+  local name=${pkg%%"#"*}
+  local rel=${pkg##*-}
+  local strip=${rel##*"%"}
+  local ver=${pkg#"$name#"}
+
+  if [ "$strip" = "$rel" ]; then
+    strip=''
+  fi
+
+  dir=${dir%/$cat}
+
+  echo "${dir:-./}" "${cat:-'-'}" "$name" "${ver%-$rel}" "${rel%%"%"*}" "$strip"
+}
+
+# pkg_obj <path>
+# -------------------------------------------------------------------------
+pkg_obj()
+{
+  set -- `pkg_split "$@"`
+
+  obj dir="$1" category="$2" name="$3" version="$4" release="$5" strip="$6"
+}
+
+# pkg_assemble <directory> <category> <name> <version> <release> <strip flags> [format]
+#
+# assembles package information into a full package path
+# -------------------------------------------------------------------------
+pkg_assemble()
+{
+  echo "$1/$2/$3#$4-$5${6:+%$6}.pkg.tar.${7:-bz2}"
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_pkg_sh=:;}

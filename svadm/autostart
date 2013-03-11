@@ -1,0 +1,47 @@
+# $Id: autostart 389 2006-06-14 13:11:25Z roman $
+
+# show service selection
+autostart_menu()
+{
+  local service title default info 
+
+  while :
+  do
+    # prepare services
+    shift $#
+    
+    for service in ${SERVICES}
+    do
+      eval title="\$${service}_TITLE"
+
+      default=${default-${service}}
+      
+      if service_enabled ${service}; then
+        info="enabled "
+      else
+        info="disabled"
+      fi
+
+      set "$@" "$service" "$info"
+    done
+  
+    # show the selection
+    choice=$(menu --default "${choice-${default}}" --cancel "Back" "Select a service to enable/disable" "$@") || break
+    
+    # perform
+    autostart_service ${choice}
+  done
+
+}
+
+# enable/disable the service that has been selected
+autostart_service()
+{
+  local status service=$1
+  
+  if service_enabled ${service}; then
+    service_disable ${service}
+  else
+    service_enable ${service}
+  fi
+}

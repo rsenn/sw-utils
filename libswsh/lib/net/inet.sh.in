@@ -1,0 +1,462 @@
+# $Id: inet.sh.in 940 2009-03-31 16:37:35Z enki $
+#
+# inet.sh: misc network/address functions
+# ---------------------------------------------------------------------------
+test $lib_net_inet_sh || {
+
+# directories
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${sbindir:="@sbindir@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# static ip4 related variables
+# -------------------------------------------------------------------------
+INET_protocols='inet'              # protocols to list (IPv4, IPv6)
+INET_timeout=10000                 # timeout while waiting for a binding (msecs)
+INET_interval=250                  # poll interval in milliseconds
+INET_hosts="/etc/hosts"
+INET_proc="/proc/net"
+INET_getip_hosts="checkip.dyndns.org www.getip.com whatismyip.com www.ip-adress.com www.ipchicken.com ip.ubergizmo.com www.formyip.com/iplookup.php"
+
+# -------------------------------------------------------------------------
+. $shlibdir/util.sh
+. $shlibdir/net/ip4.sh
+
+# get a list of network interfaces
+# -------------------------------------------------------------------------
+inet_interfaces()
+{
+  if test -f $INET_proc/dev; then
+    sed -e \
+    '1d
+     2d
+     s,^[ \t]\+\(.*\):.*,\1,' $INET_proc/dev
+  else
+    ifconfig -a | sed -n \
+      -e '/^$/d' \
+      -e '/^[ \t]\+/! {
+            s,[ \t:]\+.*,,
+            p
+          }' | sort -u
+  fi
+}
+
+# get hardware address for the specified interface
+# -------------------------------------------------------------------------
+_inet_ifacelist()
+{
+  ifconfig ${1:-'-a'} | 
+  sed -n -e '/inet addr:/ {
+    s,^[ \t]\+inet addr:\([.0-9]\+\),\1,
+    s,[ \t]\+Bcast:[.0-9]\+[ \t]\+,,
+    s,[ \t]*Mask:\([.0-9]\+\), \1,
+    p
+  }'
+}
+
+# inet_netmask <iface>
+# -------------------------------------------------------------------------
+inet_netmask()
+{
+  ifconfig ${1:-'-a'} | sed -n -e '/inet addr:/ {
+    s,^[ \t]\+inet addr:\([.0-9]\+\),,
+    s,[ \t]\+Bcast:[.0-9]\+[ \t]\+,,
+    s,[ \t]*Mask:\([.0-9]\+\),\1,
+    p
+  }'
+}
+
+# inet_address <iface>
+# -------------------------------------------------------------------------
+inet_address()
+{
+  ifconfig ${1:-'-a'} | sed -n \
+  '/inet addr:/ {
+    s,^[ \t]\+inet addr:\([.0-9]\+\),\1,
+    s,[ \t]\+Bcast:[.0-9]\+[ \t]\+,,
+    s,[ \t]*Mask:\([.0-9]\+\),,
+    p
+  }'
+}
+
+# -------------------------------------------------------------------------
+inet_extip()
+{
+  local IFS="$space" e_ip="[0-9]\\+\\.[0-9]\\+\\.[0-9]\\+\\.[0-9]\\+" \
+        e_nn="[^0-9]*" host myip
+
+  for host in ${@:-$INET_getip_hosts}; do
+    msg "Checking $host..."
+
+    myip=$(lynx -dump "$host" |
+           sed -n -e "/${e_nn}127.0.0.1${e_nn}/ d" \
+                  -e "/${e_nn}192.168\./ d" \
+                  -e "/${e_nn}10\./ d" \
+                  -e "/$e_ip/ {
+                        s|^${e_nn}\\($e_ip\\)${e_nn}\$|\\1|
+                        p
+                        q
+                      }")
+
+    if ip4_valid "$myip"; then
+      echo "$myip"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# inet_cidr <iface>
+# -------------------------------------------------------------------------
+inet_networks()
+{
+  local IFS="$space$newline"
+
+  _inet_ifacelist "$@" |
+  while read ip mask; do
+    test "$ip" = 127.0.0.1 && continue
+    echo `inet_mask "$ip" "$mask"`/`inet_to_cidr "$mask"`
+  done
+}
+
+# inet_scan_tcp <port-range> <networks...>
+# -------------------------------------------------------------------------
+inet_scan_tcp()
+{
+  local ports=$1
+  shift
+  nmap --open -oG - -sS -P0 -p"$ports" "$@" |
+  sed -n -e '\|^Host:| {
+    s|^Host:\s\+||
+    s|\s*([^)]*)\s*[A-Z][a-z]\+:||
+    s|/open||g
+    s|//[^/]*///||g
+    s|, | |g
+    / Up$/! p
+  }'
+}
+
+# inet_scan_udp <port-range> <networks...>
+# -------------------------------------------------------------------------
+inet_scan_udp()
+{
+  local ports=$1
+  shift
+  nmap --open -oG - -sU -P0 -p"$ports" "$@" |
+  sed -n -e '\|Ports:.*/open| {
+    s,^Host: \([0-9.]\+\).*,\1,
+    p
+  }'
+}
+
+# get hardware address for the specified interface
+# -------------------------------------------------------------------------
+inet_hwaddr()
+{
+  ifconfig ${1:--a} | {
+    sed -n -e '/HWaddr/ {
+      s,^.*\([0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]\).*$,\1,i
+      p
+    }' | \
+    uniq
+  }
+}
+
+# get interface by ip address
+# -------------------------------------------------------------------------
+inet_iface_by_ip()
+{
+  ifconfig -a | sed -n '{
+    :lp
+    /\\n\$/! N
+    /\\n\$/ { d; b lp; }
+
+    /[ \t]inet addr:$1[ \t]/ {
+      s,[ \t].*,,; p; q
+    }
+
+    b lp
+  }'
+}
+
+# get a list of bound addresses
+#
+# output format:
+#
+# <protocol> <address>:<port> <pid>/<program name>
+# -------------------------------------------------------------------------
+inet_binds()
+{
+  local proto recvq sendq laddr raddr state process
+
+  for af in $INET_protocols; do
+    netstat -nl -A "$af"
+  done | while read proto recvq sendq laddr raddr state process; do
+    # skip first two lines
+    test "$proto" = Active || test "$proto" = Proto && continue
+
+    proc=${process:-$state}
+
+    test "$proc" = "-" && continue
+
+    if test "$proc" = LISTEN || test "$proc" = ESTABLISHED; then
+      proc=""
+    fi
+
+    # the field "state" may be empty
+    laddr=${laddr/'*'/0.0.0.0}
+
+    echo ${proto%[0-9]} ${laddr/'*'/0.0.0.0} $proc
+  done
+}
+
+# -------------------------------------------------------------------------
+inet_arpa()
+{
+  local IFS='.' out='' n=$#
+  set -- $1
+  while test $((n)) -gt 0; do
+    eval out='${out:+$out.}${'$n'}'
+    n=$((n - 1))
+  done
+  echo "$out.in-addr.arpa"
+}
+
+# inet_bound <proto> <address>:<port>
+#
+# is the specified address already bound? quick and dirty test, no pid.
+# -------------------------------------------------------------------------
+inet_bound()
+{
+  for af in $INET_protocols; do
+    netstat -nl -A "$af"
+  done | grep -q "^$1[ \t]\+[0-9]\+[ \t]\+[0-9]\+[ \t]\+$2[ \t]"
+}
+
+# check if the specified address is conflicts with addresses which are bound
+#
+# returns exit status 0 if the address is already bound. in this case it'll also
+# print the pid/program name of the process which is binding the address
+#
+# the difference to inet_bound:
+#
+# if you're querying for a specific <ip>:<port> and 0.0.0.0:<port> is already bound
+# it will return true (0)
+# if you're querying 0.0.0.0:<port> and <some ip>:<port> is already bound
+# it will return true (0)
+#
+# inet_conflict <proto> <address>:<port> [output from inet_binds]
+#
+# use it like this:
+#
+# if proc=`inet_conflict tcp $mysqld_host:$mysqld_port`; then
+#   echo "${proc} is already binding $mysqld_host:$mysqld_port"
+# fi
+# -------------------------------------------------------------------------
+inet_conflict()
+{
+  local binds=${3-`inet_binds`} proto addr proc ip=${2%:*} port=${2#*:}
+  while read proto addr proc; do
+    local l_ip=${addr%:*} l_port=${addr#*:}
+    # protocol and port must match
+    if test "$proto" = "$1" && test $((port)) = $((l_port)); then
+      # game over if one of the addresses is 0.0.0.0
+      if test "$ip" = 0.0.0.0 || test "$ip" = "$l_ip" || test "$l_ip" = 0.0.0.0; then
+        echo $proc
+        return 0
+      fi
+    fi
+  done <<__BINDS__
+$binds
+__BINDS__
+  return 1
+}
+
+# wait for a specific address/port pair to be bound
+#
+# inet_wait_bind <proto> <addr:port> [timeout]
+# -------------------------------------------------------------------------
+inet_wait_bind()
+{
+  local time=0
+  while test $((time)) -lt ${3-$((INET_timeout))}; do
+    # when the address is bound, return success immediately
+    inet_bound "$@" && return 0
+    # sleep
+    msleep $((INET_interval))
+    # increment timeout timer
+    time=$((time + INET_interval))
+  done
+  return 1
+}
+
+# an alias for inet_wait_bind
+# -------------------------------------------------------------------------
+inet_wait()
+{
+  inet_wait_bind "$@"
+  return $?
+}
+
+# wait for a specific address/port pair to be unbound
+#
+# inet_wait_unbind <proto> <addr:port> [timeout]
+# -------------------------------------------------------------------------
+inet_wait_unbind()
+{
+  local time=0
+  while test $((time)) -lt ${3-$((INET_timeout))}; do
+    # when the address is not bound anymore, return success immediately
+    inet_bound "$@" || return 0
+    # sleep
+    msleep $((INET_interval))
+    # increment timeout timer
+    time=$((time + INET_interval))
+  done
+  return 1
+}
+
+# inet_any2local <addr[:port]>
+# -------------------------------------------------------------------------
+inet_any2local()
+{
+  test "$1" != "${1#0.0.0.0}" &&
+  echo "127.0.0.1${1#0.0.0.0}" ||
+  echo "$1"
+}
+
+# inet_list
+# -------------------------------------------------------------------------
+inet_list()
+{
+  ifconfig -a | grep 'inet addr:' | sed 's,.*inet addr:\([0-9\.]\+\) .*,\1,'
+}
+
+# inet_hostname
+#
+# try to determine the hostname
+# -------------------------------------------------------------------------
+inet_hostname()
+{
+  local name=`hostname 2>/dev/null || echo localhost` IFS="$space$newline"
+  if test -z "$name" || test "$name" = localhost; then
+    local addr
+    for addr in `inet_list`; do
+      name=$(sed -n "/^[ \t]*${addr}/ s,.*${addr}[ \t]\+\([-_0-9a-z]\+\).*,\1,i p" $INET_hosts)
+      test "$name" && test "$name" != localhost && break
+    done
+  fi
+  set -- ${name%%.*}
+  echo ${1:-localhost}
+}
+
+# inet_domainname
+#
+# try to determine the domainname
+# -------------------------------------------------------------------------
+inet_domainname()
+{
+  local name=`domainname 2>/dev/null || echo localhost` IFS="$space$newline"
+  if test -z "$name" || test "$name" = '(none)' || test "$name" = localhost; then
+    name=`hostname -d 2>/dev/null || echo localhost`
+  fi
+  if test -z "$name" || test "$name" = localhost; then
+    local addr
+    for addr in `inet_list`; do
+      name=$(sed -n "/^[ \t]*$addr/ s,.*$addr[ \t]\+[-_0-9a-z]\+\.\([-_0-9a-z\.]\+\).*,\1,i p" $INET_hosts)
+      test "$name" && test "$name" != localhost && break
+    done
+  fi
+  set -- $name
+  echo ${1:-localdomain}
+}
+
+# inet_whois <domain>
+# -------------------------------------------------------------------------
+inet_whois()
+{
+  local text out xholder xtech xdns
+
+  require obj
+  require str
+
+  text=`whois "$1" 2>&1` || return $?
+
+  case $1 in
+    *.ch | *.li)
+      xholder='/^Holder of domain name:/ { :lp; n; p; /^\s*$/! b lp; }'
+      xtech='/^Technical contact:/ { :lp; n; p; /^\s*$/! b lp; }'
+      xdns='/^Name servers:/ { :lp; n; p; /^\s*$/! b lp; }'
+      ;;
+
+    *.eu)
+      # no holder information
+      xholder=''
+      xtech=''
+      xdns='/^\s*Nameservers:$/ { :lp; n; s/^\s*//; p; /^\s*$/!b lp; }'
+      ;;
+
+    *.cx)
+      # no holder information
+      xholder=''
+      xtech=''
+      xdns='/^\s*Name [Ss]ervers:$/ { :lp; n; s/^\s*//; p; /^\s*$/!b lp; }'
+      ;;
+
+    *.org)
+      xholder='/^Registrant / { / ID:/d; s/^[^:]*://p; }'
+#      xtech='/^Admin / { / ID:/d; s/^[^:]*://p; }'
+      xtech='/^Tech / { / ID:/d; s/^[^:]*://p; }'
+      xdns='/^Name Server:/ { s/^[^:]*://p; }'
+      ;;
+
+    *.uk)
+      xholder='/^\s*Registrant.*:$/ { :lp; n; s/^\s*//; /^[A-Z].*:$/ { /^Registrant/! q; b lp; }; p; b lp; }'
+      xtech=''
+      xdns='/^\s*Name servers:$/ { :lp; n; s/^\s*//; p; /^\s*$/!b lp; }'
+      ;;
+
+    *.de)
+      xholder='/^\[Holder\]$/ { :lp; n; /^Changed:/q; /^Type:/b lp; /^Remarks:/b lp; s,^[^:]*:\s*,,; p; /^\s*$/!b lp; }'
+      xtech='/^\[Tech-C\]$/ { :lp; n; /^Changed:/q; /^Type:/b lp; /^Remarks:/b lp; s,^[^:]*:\s*,,; p; /^\s*$/!b lp; }'
+      xdns='s/^Nserver:\s*//p'
+      ;;
+
+    *.net | *.com | *.cc)
+      xholder='
+        /^owner-/ { s/^[^:]*:\s*//; p; }
+        /^Registrant[^:]*:/ { :lp; n; s/^\s*//; /^[A-Z].*:/q; p; b lp; }
+        /^ Administrative Contact:$/ { :lp; n; s/^\s*//; /^[A-Z].*:/q; p; b lp; }
+      '
+
+      xtech='
+        /^\s*Administrative Contact:$/ { :lp; n; s/^\s*//; /^[A-Z].*:/q; p; b lp; }
+        /Technical Contact:$/ { :lp; n; s/^\s*//; /^[A-Z].*:/q; p; b lp; }
+      '
+
+      xdns='
+        /^nserver:/ { s/^[^:]*:\s*//; s/\s.*//; p; }
+        /^ \+Domain servers in listed order:$/ { :lp; n; s/^\s*//; s/\s*$//; /^[A-Z].*:/q; p; b lp; }
+        /^Name Servers:$/ { :lp; n; s/^\s*//; s/\s*$//; /^[A-Z].*:/q; p; b lp; }
+      '
+
+      ;;
+  esac
+
+  local holder tech dns
+
+  holder=`echo "$text" | sed -n -e "$xholder" | sed -e '/^\s*$/d' -e 's/\r//g'`
+  tech=`echo "$text" | sed -n -e "$xtech" | sed -e '/^\s*$/d' -e 's/\r//g'`
+  dns=`echo "$text" | sed -n -e "$xdns" | sed -e '/^\s*$/d' -e 's/\r//g'`
+
+  obj_set out holder "$holder"
+  obj_set out tech "$tech"
+  obj_set out dns "`str_tolower "$dns"`"
+
+  echo "$out"
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_net_inet_sh=:;}

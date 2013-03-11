@@ -1,0 +1,66 @@
+# require.sh: load external shell script libraries
+#
+# This file is part of the libswsh package, the software shell library.
+# It provides integration of the "require" command into a bash shell 
+# configuration.
+
+: ${prefix="@prefix@"}
+: ${exec_prefix="@exec_prefix@"}
+: ${libdir="@libdir@"}
+: ${shlibdir="$libdir/sh"}
+: ${portsdir="@portsdir@"}
+
+# _ports
+# ---------------------------------------------------------------------------
+_ports()
+{
+  local oldifs="$IFS" file ports IFS=/ cur=${COMP_WORDS[COMP_CWORD]} i=0
+
+#  set -- $cur
+  
+  IFS="
+$oldifs "
+
+  while :
+  do
+    local ports=$(
+#      cd "$portsdir" && find * -name Pkgfile | sed 's,[^/]*/Pkgfile$,,'
+      cd "$portsdir" && set -- */*/Pkgfile && echo "${@%/Pkgfile}"
+    )
+
+#    echo ports: $ports
+#
+#    if test -n "$cur" && test "$cur" = "${cur%/*}"
+#    then
+#      ports=$ports'
+#'$(cd "$portsdir" && find */ -name Pkgfile | sed -e 's,/Pkgfile$,,' -e 's,.*/,,')
+#    fi
+#
+    COMPREPLY=( $( compgen -W "$ports" -- $cur ) )
+
+    if test ${#COMPREPLY[@]} = 1
+    then
+      case ${COMPREPLY[0]} in
+        */) 
+          cur="${COMPREPLY[0]}"
+          continue 
+        ;;
+      esac
+      
+      if ! test -f "$portsdir/${COMPREPLY[0]}/Pkgfile"
+      then
+        COMPREPLY=( $(cd "$portsdir" && find */ -wholename "${COMPREPLY[0]}/Pkgfile" | sed 's,/Pkgfile$,,') )
+      fi
+    fi
+
+    break
+  done
+
+  return 0
+}
+
+# Activate the completion
+# ---------------------------------------------------------------------------
+complete -F _ports pkgmk
+
+# End of pkgmk.comp

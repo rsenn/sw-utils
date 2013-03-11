@@ -1,0 +1,32 @@
+#!/bin/sh
+#
+# scan.sh: parse numbers and other stuff
+#
+# $Id: scan.sh.in 579 2008-08-26 22:32:53Z enki $
+test $lib_scan_sh || {
+
+: ${prefix:="@prefix@"}
+: ${scandir:="@scandir@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# scan_hex <hex-number>
+#
+# Parse a hexadecimal number and output it
+# -------------------------------------------------------------------------
+scan_hex()
+{
+  eval "echo \"\$((0x${1#0[Xx]}))\"" 2>/dev/null
+}
+
+# scan_oct <hex-number>
+#
+# Parse an octal number and output it
+# -------------------------------------------------------------------------
+scan_oct()
+{
+  eval "echo \"\$((0${1#0}))\"" 2>/dev/null
+}
+
+#--- eof ---------------------------------------------------------------------
+lib_scan_sh=:;}

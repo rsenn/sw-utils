@@ -1,0 +1,159 @@
+#!/bin/sh
+#
+# text.sh: Functions for manipulating (line based) text [files]
+#
+# $Id: text.sh.in 576 2008-08-26 12:53:44Z enki $
+# -------------------------------------------------------------------------
+test $lib_text_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/util.sh
+. $shlibdir/std/str.sh
+
+# text_append <append> [file]
+# -------------------------------------------------------------------------
+text_append()
+{
+  local multiline=`echo "$1" | sed 's,$,\\,'`
+  sed ${2+'-i'} "$ a \\${multiline%\\}" ${2+"$2"}
+}
+
+# text_replace <text> <pattern> [file]
+# -------------------------------------------------------------------------
+text_replace()
+{
+  local multiline=`echo "$1" | sed 's,$,\\,'`
+  if grep -q "$2" ${3+"$3"}; then
+    sed ${3+'-i'} "\\\\$2\\ { a \\${multiline%\\}
+    d; :lp; n; b lp; q }" ${3+"$3"}
+    return 0
+  fi
+  return 1
+}
+
+# text_insert_before <text> <pattern> [file]
+# -------------------------------------------------------------------------
+text_insert_before()
+{
+  local multiline=`echo "$1" | sed 's,$,\\,'`
+  if grep -q "$2" ${3+"$3"}; then
+    sed ${3+'-i'} "\\\\$2\\ { i \\${multiline%\\}
+  :lp; n; b lp; q }" ${3+"$3"}
+    return 0
+  fi
+  return 1
+}
+
+# text_insert_after <text> <pattern> [file]
+# -------------------------------------------------------------------------
+text_insert_after()
+{
+  local multiline=`echo "$1" | sed 's,$,\\,'`
+  if grep -q "$2" ${3+"$3"}; then
+    sed ${3+'-i'} "\\\\$2\\ { a \\\\${multiline%\\}
+    :lp; n; b lp; q }" ${3+"$3"}
+    return 0
+  fi
+  return 1
+}
+
+# text_add <text> <pattern> [file]
+#
+# adds text once, after a matching pattern or if no match at the end
+# -------------------------------------------------------------------------
+text_add()
+{
+  local multiline=`echo "$1" | sed 's,$,\\,'`
+  if grep -q "$2" ${3+"$3"}; then
+    sed ${3+'-i'} "\\\\$2\\ { a \\\\${multiline%\\}
+    :lp; n; b lp; q }; $ a\\\\${multiline%\\}
+    " ${3+"$3"}
+    return 0
+  fi
+  return 1
+}
+
+# text_remove <pattern> [file]
+# -------------------------------------------------------------------------
+text_remove()
+{
+  sed ${2+'-i'} "\\\\$1\\ { d
+  :lp; n; b lp; q }" ${2+"$2"}
+}
+
+# text_unwrap [file]
+# -------------------------------------------------------------------------
+text_unwrap()
+{
+  sed -e "/[^ \t]/ {
+    :lp
+    s,\s\+, ,g
+    s,^\s\+,,
+    N
+#    /\n[^\n]*[^ \t][^\n]*$/ b lp
+    /\n[^ \t][^\n]*$/ b lp
+    s/\n$//
+  }" "$@"
+}
+
+# text_html [html-file]
+# -------------------------------------------------------------------------
+text_html()
+{
+  lynx -width=16384 -nolist -dump "$1" | sed -e 's,^\s\+_\+\s*$,\n-,'
+}
+
+# is_word <word>
+# -------------------------------------------------------------------------
+is_word()
+{
+  case $1 in
+    *' '*) return 1 ;;
+
+    # well, not really a word in the sense of natural language
+    *_*) return 1 ;;
+
+    # filenames?
+    *.[a-z] | *.[a-z][a-z] | *.[a-z][a-z][a-z]) return 1 ;;
+  esac
+  case $1 in
+    [A-Za-z][A-Za-z]*) ;;
+    *) return 1 ;;
+  esac
+}
+
+# text_wordcount <text>
+# -------------------------------------------------------------------------
+text_wordcount()
+{
+  local IFS="$space$tabstop$newline" w i=0
+
+  for w in $*; do
+    is_word "$w" && : $((++i))
+  done
+
+  echo $((i))
+}
+
+# text_wrap <text> [75]
+#
+# Wraps text, paragraphs separated by newlines...
+# -------------------------------------------------------------------------
+text_wrap()
+{
+#  require "str"
+  local text=$1
+  
+  if test "$text" = -; then
+    text=`cat`
+  fi
+  
+  str_wrap "$text" ${2+"$2"}
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_text_sh=:;}

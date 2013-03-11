@@ -1,0 +1,177 @@
+#!/bin/sh
+#
+# gcc.sh: GCC command line parser/wrapper.
+#
+test $lib_devel_toolchain_gcc_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/util.sh
+
+# ---------------------------------------------------------------------------
+# gcc_clear
+#
+# Clears gcc state information.
+# ---------------------------------------------------------------------------
+gcc_clear()
+{
+  gcc_mode=      # one or more of preproc,compile,assemble,link
+  gcc_defines=   # preprocessor definitions
+  gcc_includes=  # include directories
+  gcc_cflags=    # compiler flags
+  gcc_ldflags=   # linker flags
+  gcc_libs=      # libraries to link
+  gcc_args=      # name of the source/object files
+  gcc_output=    # name of the output file
+  gcc_driver=    # name of the command line driver
+}
+
+# gcc_parse <command-line>
+#
+# Parse a gcc command line.
+# ---------------------------------------------------------------------------
+gcc_parse()
+{
+  gcc_clear
+  gcc_mode="preproc,compile,assemble,link"
+
+  case "$1" in
+    gcc | *-gcc | g++ | *-g++)
+      gcc_driver="$1"
+      shift
+      ;;
+
+    ar | *-ar | ranlib | *-ranlib)
+      gcc_driver="$1"
+      gcc_mode="lib"
+      shift
+      ;;
+  esac
+
+  while test "$#" -gt 0
+  do
+    case "$1" in
+      # Compilation mode
+      -E) gcc_mode="preproc" ;;
+      -S) gcc_mode="preproc,compile" ;;
+      -c) gcc_mode="preproc,compile,assemble" ;;
+
+      # Output file
+      -o) gcc_output="$2" && shift ;;
+      -o*) gcc_output="${1#-o}" ;;
+
+      # Preprocessor flags
+      -D) pushv gcc_defines "$2" && shift ;;
+      -D*) pushv gcc_defines "${1#-D}" ;;
+
+      -I) pushv gcc_includes "$2" && shift ;;
+      -I*) pushv gcc_includes "${1#-I}" ;;
+
+      # Library dependencies
+      -l) pushv gcc_libs "$2" && shift ;;
+      -l*) pushv gcc_libs "${1#-l}" ;;
+      
+      # Strip and static flags
+      -s|-static|-shared) pushv gcc_ldflags "$1" ;;
+
+      # Runtime path linker flag
+      -rdynamic) pushv gcc_ldflags "$1" ;;
+      -rpath) pushv gcc_ldflags "$1=$2" && shift ;;
+      -rpath=*) pushv gcc_ldflags "$1" ;;
+
+      # Linker flags
+      -L) pushv gcc_ldflags "$1$2" && shift ;;
+      -L*) pushv gcc_ldflags "$1" ;;
+
+      # The remaining flags should be CFLAGS
+      -M[FQ]) pushv gcc_cflags "$1" "$2" && shift ;;
+      -M[FQ]*) pushv gcc_cflags "$1" ;;
+      -[MOWfgm]*) pushv gcc_cflags "$1" ;;
+      
+      # Finished
+      --) shift && gcc_args="$*" && break ;;
+      
+      # W00t?
+      -*) errormsg "Unknown flag: ${1#-}" && return 1 ;;
+      
+      # Some kinda non-option argument.
+      *) pushv gcc_args "$1" ;;
+    esac
+    shift
+  done
+}
+
+# gcc_serialize 
+#
+# Serialize the saved gcc command line.
+# ---------------------------------------------------------------------------
+gcc_serialize()
+{
+  local out= flag inc lib def
+ 
+  pushv out ${gcc_driver:-gcc}
+  
+  for flag in $gcc_cflags
+  do
+    pushv out "$flag"
+  done
+  
+  for def in $gcc_defines
+  do
+    pushv out -D"$def"
+  done
+  
+  for inc in $gcc_include
+  do
+    pushv out -I"$inc"
+  done
+  
+  case $gcc_mode in
+    preproc,compile,assemble) pushv out -c ;;
+    preproc,compile) pushv out -S ;;
+    preproc) pushv out -E ;;
+  esac
+  
+  if test -n "$gcc_output"
+  then
+    pushv out -o $gcc_output
+  fi
+  
+  if test -n "$gcc_args"
+  then
+    pushv out $gcc_args
+  fi
+  
+  for lib in $gcc_lib
+  do
+    pushv out -l"$lib"
+  done
+  
+  echo $out
+}
+
+# gcc_obj
+#
+# Dumps gcc state information as object.
+# ---------------------------------------------------------------------------
+gcc_obj()
+{
+  obj \
+      mode="$gcc_mode" \
+      driver="$gcc_driver" \
+      defines="$gcc_defines" \
+      includes="$gcc_includes" \
+      cflags="$gcc_cflags" \
+      ldflags="$gcc_ldflags" \
+      libs="$gcc_libs" \
+      args="$gcc_args" \
+      output="$gcc_output"
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_devel_toolchain_gcc_sh=:;}
+                                                                                                                                                      
+                                                                                                                                                      

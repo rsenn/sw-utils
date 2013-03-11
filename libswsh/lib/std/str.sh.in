@@ -1,0 +1,377 @@
+#!/bin/sh
+#
+# str.sh: functions for dealing with strings
+#
+# $Id: str.sh.in 970 2009-06-27 09:27:17Z enki $
+# -------------------------------------------------------------------------
+@DEBUG_FALSE@test $lib_std_str_sh || {
+
+# directory setup
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+
+# -------------------------------------------------------------------------
+STR_digit="0123456789"
+STR_xdigit="${STR_digit}abcdef"
+STR_upper="ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+STR_lower="abcdefghijklmnopqrstuvwxyz"
+
+# outputs length of the specified string
+#
+# str_length <str>
+# -------------------------------------------------------------------------
+str_length()
+{
+  echo ${#1}
+}
+
+# indexes a character of a string
+#
+# str_index <index> <string>
+# -------------------------------------------------------------------------
+str_index()
+{
+ (INDEX=`expr ${1:-0} + 1`
+  shift
+  echo "$*" | cut -b"$INDEX")
+}
+
+# str_tolower <str>
+# -------------------------------------------------------------------------
+str_tolower()
+{
+  echo "$@" | tr [:upper:] [:lower:]
+}
+
+# str_toupper <str>
+# -------------------------------------------------------------------------
+str_toupper()
+{
+  echo "$@" | tr [:lower:] [:upper:]
+}
+
+# str_ucfirst <str>
+# -------------------------------------------------------------------------
+str_ucfirst()
+{
+  local r=${1#?}
+  local f=${1%$r}
+  echo "`str_toupper "$f"`$r"
+}
+
+# str_camelize <string> [separator]
+# -------------------------------------------------------------------------
+str_camelize()
+{
+  local IFS out tok
+  
+  IFS="${2-_}"
+  
+  for tok in $1
+  do 
+    out="$out"`str_ucfirst "$tok"`
+  done
+  
+  echo "$out"
+}
+
+# str_decamelize <string> [separator]
+# -------------------------------------------------------------------------
+str_decamelize()
+{
+  local str sep=${2-"_"}
+  
+  str=$(echo "$1" | sed ":st
+    s/\([^${sep}]\)\([A-Z][a-z]\)/\1${sep}\2/g
+    s/\([^${sep}]\)\([A-Z]\+\)\$/\1${sep}\2/g
+    
+    /[^${sep}][A-Z][a-z]/ b st")
+  
+  str_tolower "$str"
+}
+
+# str_match <str> <pattern>
+# -------------------------------------------------------------------------
+str_match()
+{
+  case $1 in
+    $2) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# indexes a character of a string
+#
+# str_random <length> [alphabet]
+# -------------------------------------------------------------------------
+str_random()
+{
+  local alphabet=${2:-${STR_digit}${STR_upper}${STR_lower}}
+  local alen=`str_length "$alphabet"`
+  local count=${1:-0}
+  local out=""
+
+  while [ ${count} -gt 0 ]
+  do
+    local rand=$((RANDOM % alen))
+    out="${out}`str_index "$alphabet" ${rand}`"
+    count=$((count - 1))
+  done
+
+  echo "$out"
+}
+
+# -------------------------------------------------------------------------
+str_to_list()
+{
+  echo "$@" | sed "s/./&\\n/g ;; s,\",\\\",g" | sed -n -e "/.\\+/ p"
+}
+
+# str_quote <str>
+#
+# Quote string appropriately.
+# -------------------------------------------------------------------------
+str_quote()
+{
+  case "$1" in
+    *["$cr$lf$ht$vt"]*) echo "\$'`str_escape "$1"`'" ;;
+    *"$squote"*) echo "\"`str_escape "$1"`\"" ;;
+    *) echo "'$1'" ;;
+  esac
+}
+
+# str_escape <str>
+#
+# Escape string appropriately.
+# -------------------------------------------------------------------------
+str_escape()
+{
+  local s=$1
+  case $s in
+    *[$cr$lf$ht$vt$'\200']*)
+      s=${s//$'\\'/'\\'}
+      s=${s//$'\r'/'\r'}
+      s=${s//$'\n'/'\n'}
+      s=${s//$'\t'/'\t'}
+      s=${s//$'\v'/'\v'}
+      s=${s//$'\047'/'\047'}
+      s=${s//$'\001'/'\001'}
+      s=${s//$'\200'/'\200'}
+#      case "$IFS" in
+#        ' '*) s=${s//$space/'\040'}
+#      esac
+      ;;
+    *$sq*)
+      s=${s//$"\\"/'\\'}
+      s=${s//$"\""/'\"'}
+      s=${s//$"\$"/'\$'}
+      s=${s//$"\`"/'\`'}
+      ;;
+  esac
+  echo "$s"
+}
+
+# str_unescape <str>
+#
+# Unescape string.
+# -------------------------------------------------------------------------
+str_unescape()
+{
+  echo -e "$*"
+}
+
+# is_url <url/path>
+# ---------------------------------------------------------------------------
+is_url()
+{
+  case $1 in
+    *://*) return 0 ;;
+    *) return 1 ;;
+  esac
+#  test "${1#*://}" != "$1"
+}
+
+# str_replace <string> <from> <to>
+# ---------------------------------------------------------------------------
+str_replace()
+{
+#  eval 'echo $'{1//"$2"/"$3"}
+  echo ${1//$2/$3}
+}
+
+# str_sed <string> [sed-arguments]
+# ---------------------------------------------------------------------------
+str_sed()
+{
+  local S="$1"
+  shift
+  echo "$S" | sed "$@"
+}
+
+# str_rate <string> [pattern...]
+# ---------------------------------------------------------------------------
+str_rate()
+{
+  local p s=$1 n=${#1}
+  shift
+  for p
+  do
+    s=`str_replace "$s" "$p" ""`
+  done
+  echo $(( 100 - (${#s} * 100 / $n) ))
+}
+
+# str_reduce <string> [variables...]
+# ---------------------------------------------------------------------------
+str_reduce()
+{
+  local str=$1 IFS=$nl var subst
+  shift
+  for var in `IFS=$obj_s && obj_members "$*"`
+  do
+    #msg "var is '$var'"
+    case $var in
+      *"%"*|*"#"*) subst="{$var}" ;;
+      *) subst="$var" ;;
+    esac
+
+    str=${str//"`IFS=$obj_s && obj_get "$*" $var`"/"\$$subst"}
+  done
+  echo "$str"
+}
+
+# str_expand <string> [variables...]
+# ---------------------------------------------------------------------------
+str_expand()
+{
+  local S=$1 IFS="$obj_s"
+
+  shift
+  eval local "$@"
+  eval "echo \"$S\""
+}
+
+# str_triml <string> [charset...]
+# ---------------------------------------------------------------------------
+str_triml()
+{
+  local s=$1 t x=${2-${IFS:-$space$nl$tabstop}}
+
+  while t="${s#[$x]}" && test "$t" != "$s"
+  do
+    s="$t"
+  done
+  echo "$s"
+}
+
+# str_trimr <string> [charset...]
+# ---------------------------------------------------------------------------
+str_trimr()
+{
+  local s=$1 t x=${2-${IFS:-$space$nl$tabstop}}
+
+  while t="${s%[$x]}" && test "$t" != "$s"
+  do
+    s="$t"
+  done
+  echo "$s"
+}
+
+# str_trim <string> [charset...]
+# ---------------------------------------------------------------------------
+str_trim()
+{
+  str_trimr "`str_triml "$1" ${2+"$2"}`" ${2+"$2"}
+}
+
+# str_asc <string> [format]
+#
+# Outputs ASCII codes of the character sequence.
+# ---------------------------------------------------------------------------
+str_asc()
+{
+  local fmt=${2-" %d"}
+  local IFS="${fmt%%"%"*}"
+
+  echo `echo -n "$1" | hexdump -e "${#1}/1 \"$fmt\""`
+}
+
+# str_repeat <n> [string]
+#
+# Repeats the string n times.
+# ---------------------------------------------------------------------------
+str_repeat()
+{
+  local n=${1:-0} o=
+
+  shift
+
+  while test $((n--)) -gt 0
+  do
+    o="$o$*"
+  done
+
+  test -n "$o" && echo "$o"
+}
+
+# str_diff <str1> <str2>
+#
+# Repeats the string n times.
+# ---------------------------------------------------------------------------
+str_diff()
+{
+  local args="-U-1" tf=`tempnam` IFS="
+"
+  while test -n "$1" && test "$1" != "${1#-}"
+  do
+    args="${args:+$args$IFS}$1"
+    shift
+  done
+
+  rm -f "$tf"
+
+  if test -n "$1"
+  then
+    echo "$1" >$tf
+  else
+    echo -n >$tf
+  fi || return $?
+
+  echo "$2" | diff $args "$tf" -
+
+  rm -f "$tf"
+}
+
+# str_wrap <str> [75]
+#
+# Wraps a string, paragraphs separated by newlines...
+# -------------------------------------------------------------------------
+str_wrap()
+{
+  local IFS=$nl p
+
+  set -- $1
+
+  while [ "$#" -gt 0 ]; do
+    (set -f && IFS=$nl$space$tabstop && echo $1 && echo) | fmt; shift
+  done
+}
+
+# str_split <string> [variable-names...]
+#
+# Splits a string according to $IFS and puts the resulting tokens into the
+# specified variables.
+# -------------------------------------------------------------------------
+str_split()
+{
+  local _a__ _s__="$1"
+  for _a__ in $_s__; do
+    shift
+    eval "$1='`echo "$_a__" | sed "s,','\\\\'',g"`'"
+  done
+}
+
+# --- EOF -----------------------------------------------------------------
+@DEBUG_FALSE@lib_std_str_sh=:;}

@@ -1,0 +1,28 @@
+#!/bin/sh
+#
+# utils/rcat.sh: Common utility functions
+#
+# $Id: rcat.sh.in 538 2008-08-18 19:20:49Z enki $
+# -------------------------------------------------------------------------
+@DEBUG_FALSE@test $lib_utils_rcat_sh || {
+
+# rcat [options] [files...]
+#
+# A recursive 'cat' through grep .*
+# ---------------------------------------------------------------------------
+rcat()
+{
+  local opts= args=
+  
+  while [ -n "$1" ]; do
+    case $1 in
+      *) pushv args "$1" ;;
+      -*) pushv opts "$1" ;;
+    esac
+    shift
+  done
+  grep --color=no $opts '^' $args
+}
+
+# --- eof ---------------------------------------------------------------------
+@DEBUG_FALSE@lib_utils_rcat_sh=:;}

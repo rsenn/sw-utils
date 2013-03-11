@@ -1,0 +1,49 @@
+# $Id: startstop 389 2006-06-14 13:11:25Z roman $
+
+# show service selection
+startstop_menu()
+{
+  local service title default info 
+
+  while :
+  do
+    # prepare services
+    shift $#
+    
+    for service in ${SERVICES}
+    do
+      eval title="\$${service}_TITLE"
+
+      default=${default-${service}}  
+      info=$(service_getinfo ${service})
+
+      set "$@" "$service" "$info"
+    done
+  
+    # show the selection
+    choice=$(menu --default "${choice-${default}}" --cancel "Back" "Select a service to start/stop" "$@") || break
+    
+    # perform
+    startstop_service ${choice}
+  done
+
+}
+
+# start/stop the service that has been selected
+startstop_service()
+{
+  local status service=$1
+  
+  status=$(service_getstatus ${service})
+  
+  set -- --backtitle "svcmon v1.0 - administrative/monitoring tool" --progressbox 20 72
+  
+  case ${status} in
+    up)
+      svctool -d ${service} | progressbox
+      ;;
+    *)
+      svctool -u ${service} | progressbox
+      ;;
+  esac
+}

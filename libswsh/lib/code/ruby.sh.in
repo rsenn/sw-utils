@@ -1,0 +1,37 @@
+#!/ruby/sh
+#
+# ruby.sh: ruby source code 
+#
+# $Id: ruby.sh.in 586 2008-08-27 03:24:45Z enki $
+test $lib_ruby_sh || {
+
+: ${prefix:="@prefix@"}
+: ${rubydir:="@rubydir@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/std/array.sh
+. $shlibdir/fs.sh
+
+default_target=''
+
+# ruby_libs <path>
+# -------------------------------------------------------------------------
+ruby_libs()
+{
+  sed -n -e "/^require\\s/ {
+    s,^require\s\+,,
+    s,[ ;].*\$,,
+
+    /^\'/d
+    /^[._0-9]\+\$/d
+#    s,C<\([^>]\+\)>,\1,g
+    s,::,/,g
+    s,\$,.rb,
+
+    p
+  }" "$@"
+}
+
+#--- eof ---------------------------------------------------------------------
+lib_ruby_sh=:;}

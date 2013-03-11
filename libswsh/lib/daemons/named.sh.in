@@ -1,0 +1,531 @@
+#!/bin/sh
+#
+# named.sh: named config functions
+#
+# $Id: named.sh.in 579 2008-08-26 22:32:53Z enki $
+test $lib_named_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${sysconfdir:="@sysconfdir@"}
+: ${libdir:="@libdir@"}
+: ${bindir:="@bindir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# now set the default named config file
+: ${named_conf:="$sysconfdir/bind/named.conf"}
+
+. $shlibdir/path.sh
+
+# named_conf_read [config]
+#
+# read configuration (with includes)
+# -------------------------------------------------------------------------
+named_conf_read()
+{
+  local line
+  while read line
+  do
+    case `echo ${line}` in
+      'include '*)
+        named_conf_read ${line#*'include '}
+        ;;
+      *)
+        echo ${line}
+        ;;
+    esac
+  done <${1:-$named_config}
+}
+
+# named_conf_includes <config...>
+#
+# list all conf files included by the specified one
+# -------------------------------------------------------------------------
+named_conf_includes()
+{
+  sed -n -e "/^[ \t]*include[ \t]\+/ {
+      s,^[ \t]*include[ \t]\+,, ; \,^/,! s,^,$prefix/, ; p
+    }" "$@"
+}
+
+# named_conf_files [config...]
+#
+# list all conf files
+# -------------------------------------------------------------------------
+named_conf_files()
+{
+  local IFS="$newline"
+  set -- ${@-$named_config}
+  while [ "$#" -gt 0 ]; do
+    echo "$@"
+    set -- `named_conf_includes "$@"`
+  done
+}
+
+# named_module_list <load|add> [config]
+#
+# list all modules
+# -------------------------------------------------------------------------
+named_module_list()
+{
+  named_conf_read ${2+"$2"} | sed -n -e \
+    "/\#*[ \t]*${1-LoadModule}[a-z]*[ \t]\+.*\.s\?[aco]/I {
+      s,^\(\#\?\).*dModule[ \t]\+\(.*\.s\?[aco]\)$,\2 \1,
+      p
+    }"
+}
+
+# named_module_isloaded <module> [config]
+#
+# is that a particular module loaded?
+# -------------------------------------------------------------------------
+named_module_isloaded()
+{
+  named_conf_read ${2+"$2"} | grep -q "LoadModule[ \t]\+${1+.*$1.*}$"
+}
+
+# named_module_file <module> [config...]
+#
+# find the config file containing the module
+# -------------------------------------------------------------------------
+named_module_file()
+{
+  local module=$1
+
+  shift
+
+  grep -H "LoadModule[ \t]\+${module+.*$module.*}$" `named_conf_files "$@"` | \
+    grep -v ':[ \t]*#' | \
+    sed 's,:.*,,' | sort -u | tail -n1
+}
+
+# named_module_dst <DSO>
+#
+# outputs full path to DSO for the specified module name if found
+# -------------------------------------------------------------------------
+named_module_dso()
+{
+  local dso=${1%.so}.so
+  dso=${dso%_module}
+
+  if test "$dso" = "${dso#/}"
+  then
+    if test -f $named_libdir/${dso}
+    then
+      dso=$named_libdir/${dso}
+    elif test -f $named_libdir/mod_${dso}
+    then
+      dso=$named_libdir/mod_${dso}
+    elif test -f $named_libdir/lib${dso}
+    then
+     dso=$named_libdir/lib${dso}
+    else
+      return 1
+    fi
+  fi
+
+  echo ${dso}
+}
+
+# named_module_ctor <module-dso>
+#
+# gets the constructor name from the dso file specified
+# -------------------------------------------------------------------------
+named_module_ctor()
+{
+  $bindir/objdump -T ${1+"$1"} | \
+    grep 'g.*DO.*\.data.*00000064.*Base' | \
+    sed 's,^.*Base[ \t]\+,,'
+}
+
+# named_module_add <DSO> [constructor] [config...]
+#
+# add a module to the specified config
+# -------------------------------------------------------------------------
+named_module_add()
+{
+  named_module_isloaded "$2.*$1" ${3+"$3"} ||
+  {
+    local dso=`named_module_dso "${1-$2}"`
+
+    ctor=${2:-`named_module_ctor ${dso+"$dso"}`}
+
+    if is_absolute "$dso"
+    then
+      dso=${dso##*"$prefix/"}
+    fi
+
+    printf "LoadModule %-22s %s\n" "$ctor" "$dso" >>"${3-`named_module_file`}"
+  }
+}
+
+# named_vhost_list [config]
+#
+# list all known vhosts
+# -------------------------------------------------------------------------
+named_vhost_list()
+{
+  named_conf_read ${1+"$1"} | \
+    grep -v '^[ \t]*#' | \
+    grep '<VirtualHost[ \t]\+' | \
+    sed 's,<VirtualHost[ \t]\+\(.*\)>,\1,'
+}
+
+# named_listen_list [config]
+#
+# list all known listeners
+# -------------------------------------------------------------------------
+named_listen_list()
+{
+  named_conf_read ${1+"$1"} | \
+    grep -v '^[ \t]*#' | \
+    grep 'Listen[ \t]\+' | \
+    sed 's,Listen[ \t]\+\(.*\),\1,'
+}
+
+# named_listener_exists <vhost> [config]
+#
+# does a particular listener exist?
+# -------------------------------------------------------------------------
+named_listen_exists()
+{
+  named_listen_list $2 | grep -q "^$1\$"
+}
+
+# named_listen_add <config> <listener>
+#
+# add a listener line to config
+# -------------------------------------------------------------------------
+named_listen_add()
+{
+  named_listen_exists "$2" "$1" ||
+  {
+    echo "Listen $2" >>${1:-$named_config}
+  }
+}
+
+# named_servername_list [config]
+#
+# list all known servernames
+# -------------------------------------------------------------------------
+named_servername_list()
+{
+  named_conf_read ${1+"$1"} | \
+    grep -v '^[ \t]*#' | \
+    grep 'ServerName[ \t]\+' | \
+    sed 's,ServerName[ \t]\+\(.*\),\1,'
+}
+
+# named_listener_exists <vhost> [config]
+#
+# does a particular servername exist?
+# -------------------------------------------------------------------------
+named_servername_exists()
+{
+  named_servername_list "$2" | grep -q "^$1\$"
+}
+
+# named_vhost_exists <vhost> [config]
+#
+# does a particular vhost exist?
+# -------------------------------------------------------------------------
+named_vhost_exists()
+{
+  named_vhost_list "$2" | grep -q "^$1\$"
+}
+
+# named_vhost_file <vhost> [config...]
+#
+# find the config file containing the vhost
+# -------------------------------------------------------------------------
+named_vhost_file()
+{
+  local vhost=$1
+  shift
+  grep -H "<VirtualHost[ \t]\+$1>" `named_conf_files "$@"` | \
+    grep -v ':[ \t]*#' | \
+    sed 's,:.*,,'
+}
+
+# named_vhost_add <config> <vhost> <contents>
+#
+# add a vhost section to the config
+# -------------------------------------------------------------------------
+named_vhost_add()
+{
+  if named_vhost_exists "$2" ${1+"$1"}
+  then
+    return 1
+  fi
+  local IFS="
+"
+  {
+    echo "<VirtualHost $2>"
+    for line in $3
+    do
+      IFS=" "
+      if test "$line"
+      then
+        echo "    "`echo $line`
+      else
+        echo
+      fi
+    done
+    echo "</VirtualHost>"
+  } >>${1:-$named_config}
+}
+
+# named_vhost_addline <config> <vhost> <line>
+#
+# add a line to a vhost section in the config
+# -------------------------------------------------------------------------
+named_vhost_addline()
+{
+  local vhost line temp=`mktemp`
+  local IFS=""
+  while read -r line; do
+    case $line in
+      *'<VirtualHost'*)
+        IFS=" 	"
+        vhost=${line#*<VirtualHost}
+        vhost=`echo ${vhost%>*}`
+        IFS=""
+        echo "$line"
+        ;;
+      *'</VirtualHost>'*)
+        case $vhost in
+          $2)
+            IFS=" 	"
+            echo "    $3"
+            IFS=""
+            ;;
+          *)
+            ;;
+        esac
+        echo "$line"
+        ;;
+      *)
+        echo "$line"
+        ;;
+    esac
+  done <"$1" >"$temp"
+  mv "$temp" "$1"
+}
+
+# named_vhost_replaceline <config> <vhost> <key> <new args>
+#
+# replace a line from a vhost section in the config
+# -------------------------------------------------------------------------
+named_vhost_replaceline()
+{
+  local vhost line temp=`mktemp` config="$1" vh="$2" key="$3" args="$4" ret=1
+  local IFS=""
+  while read -r line; do
+    case ${line} in
+      *'<VirtualHost'*)
+        IFS=" 	"
+        vhost=${line#*<VirtualHost}
+        vhost=`echo ${vhost%>*}`
+        IFS=""
+        echo ${line}
+        ;;
+      *'</VirtualHost>'*)
+        vhost=""
+        echo ${line}
+        ;;
+      *)
+        case "$vhost" in
+          ${vh})
+            IFS=" 	"
+            set -- ${line}
+            IFS=""
+            if test "$key" = "$1"
+            then
+              echo "    $key $args"
+              ret=0
+              continue
+            fi
+            ;;
+        esac
+        echo ${line}
+        ;;
+    esac
+  done <$config >$temp
+  mv $temp $config
+  return $((ret))
+}
+
+# named_vhost_setline <config> <vhost> <key> <new args>
+#
+# set a line from a vhost section in the config
+# -------------------------------------------------------------------------
+named_vhost_setline()
+{
+  named_vhost_replaceline ${1+"$1"} ${2+"$2"} ${3+"$3"} ${4+"$4"} ||
+  named_vhost_addline ${1+"$1"} ${2+"$2"} "$3${4+ $4}"
+}
+
+# named_servername_add <config> <listener>
+#
+# add a servername line to config
+# -------------------------------------------------------------------------
+named_servername_add()
+{
+  named_servername_exists "$2" "$1" ||
+  {
+    echo "ServerName $2" >>${1:-$named_config}
+  }
+}
+
+# named_section_new <section> <config>
+# -------------------------------------------------------------------------
+named_section_new()
+{
+  local name="$1"
+  shift
+  {
+    echo "<$name>"
+    echo "</$name>"
+  } >>${2:-$named_config}
+}
+
+# named_section_pattern <section>
+# -------------------------------------------------------------------------
+named_section_pattern()
+{
+ (set -f
+  local IFS="$ifs"
+  set -- $1
+  local section=$*; section=${section//".*"/'[^/]*'}; section=${section//"'"/'"'}; section=${section//'"'/'"\?'}
+  echo "[ \t]*<[ \t]*${section// /[ \t]\+}[ \t]*>[ \t]*")
+}
+
+# named_section_key <section>
+# -------------------------------------------------------------------------
+named_section_key()
+{
+ (set -f
+  local IFS="$ifs"
+  set -- $1
+  echo "$1")
+}
+
+# named_section_exists <section> [config...]
+# -------------------------------------------------------------------------
+named_section_exists()
+{
+  local pattern=`named_section_pattern "$1"`
+  shift
+  grep -q "^$pattern\$" `named_conf_files "$@"`
+}
+
+# named_section_list [config]
+# -------------------------------------------------------------------------
+named_section_list()
+{
+  local pattern=$(named_section_pattern '\(.*\)')
+  sed -n '\°^'"$pattern"'$° { s°^'"$pattern"'$°\1°; s°[ \t]\+° °; \°^/°! p; }' \
+    `named_conf_files "$@"`
+}
+
+# named_section_sed <section> <sed-script> <sed-script if not found> [config]
+#
+# perform sed commands while the whole section is in pattern space
+# -------------------------------------------------------------------------
+named_section_sed()
+{
+  local start=`named_section_pattern "$1"`
+  local end=$(named_section_pattern "/`named_section_key "$1"`")
+  local script=$2
+  local alt=$3
+  shift 3
+  sed ${1-'-n'} ${1+'-i'} -e \
+    ':st; \°^[ \t\n]*$° { N; b st }
+     \°^[ \t\n]*'"$start"'$° {
+      :lp; N; \°\n'"$end"'$°! b lp
+      '"$script"'
+      :ck; n; :ws; \°^[ \t\n]*$° { N; b ws }; \°^[ \t\n]*'"$start"'$°! b ck; b lp
+    }
+    $ { '"$alt"'
+     ; q
+    }' `named_conf_files "$@"`
+}
+
+# named_section_editline <section> <sed-script> [config]
+#
+# perform sed commands while a line of the section is in pattern space
+# -------------------------------------------------------------------------
+named_section_editline()
+{
+  local start=`named_section_pattern "$1"`
+  local end=$(named_section_pattern "/`named_section_key "$1"`")
+  local script=$2
+  shift 2
+  sed ${1-'-n'} ${1+'-i'} -e \
+    '\°^[ \t\n]*'"$start"'$° {
+      :lp; n
+      \°^'"$end"'$°! {
+        '"$script"'
+        b lp
+      }
+    }' `named_conf_files "$@"`
+}
+
+# named_section_keys <section> [config]
+# -------------------------------------------------------------------------
+named_section_keys()
+{
+  local section="$1"
+  named_section_editline "$section" "s,^[ \t]*\([a-zA-Z0-9]\+\).*$,\1," ${2:+"$2"}
+}
+
+# named_section_editkey <section> <key> <sed-script> <sed-script if not found> [config]
+#
+# perform sed commands while a key of the section is in pattern space
+# -------------------------------------------------------------------------
+named_section_editkey()
+{
+  local start=`named_section_pattern "$1"`
+  local end=$(named_section_pattern "/`named_section_key "$1"`")
+  local key=$2
+  local script=$3
+  local alt=$4
+  shift 4
+  sed ${1-'-n'} ${1+'-i'} -e \
+    ':st; \°^'"$start"'$° {
+      :lp; n
+      \°^'"$end"'$°! {
+        \°^[ \t]*'"$key"'[ \t]*° { '"$script"';
+        :ck; n; \°^'"$end"'$°! b ck; b st }
+        \°^'"$end"'$°! b lp
+      }
+      \°^'"$end"'$° { '"$alt"'; b st
+      }
+    }' `named_conf_files "$@"`
+}
+
+# named_section_replace <section> <content> <config>
+# -------------------------------------------------------------------------
+named_section_replace()
+{
+  named_section_sed "$1" "d; n; s°.*°${2//$newline/\n}°" \
+    "p; i\\${2//$newline/\\$newline}" "$3"
+}
+
+# named_section_content <section> <content> <config>
+# -------------------------------------------------------------------------
+named_section_content()
+{
+  named_section_sed "$1" "P; s°.*\(<.*\)$°${2//$newline/\n}\n\1°" \
+    "p; i\\$newline<$1>\\$newline$tabstop${2//$newline/\\$newline$tabstop}" "$3"
+}
+
+# named_section_set <section> <key> <value> [config]
+# -------------------------------------------------------------------------
+named_section_set()
+{
+  named_section_editkey "$1" "$2" "s°\(^[ \t]*$2[ \t]*\).*$°\1$3°" "" ${4:+"$4"}
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_named_sh=:;}

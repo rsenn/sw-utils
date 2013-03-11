@@ -1,0 +1,125 @@
+# $Id: if.sh.in 957 2009-04-26 19:57:09Z enki $
+#
+# net/if.sh: interface address and interface functions
+#
+# ---------------------------------------------------------------------------
+@DEBUG_FALSE@test $lib_net_if_sh || {
+
+# directories
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# modules
+# -------------------------------------------------------------------------
+. $shlibdir/util.sh
+. $shlibdir/std/str.sh
+. $shlibdir/net/cidr.sh
+
+# if_list [pattern]
+#
+# List all known network interfaces
+# -------------------------------------------------------------------------
+if_list()
+{
+  ifconfig 2>&1 | sed -n "s/^\(${1-[^ ]\+}${1+[^ ]*}\) \+.*/\1/p"
+}
+
+# if_get_addr <iface> [addr|mask|bcast...]
+#
+# Get the address(es) of the specified interface.
+# -------------------------------------------------------------------------
+if_get_addr()
+{
+ (DEV=$1; shift
+  case $1 in
+    all) WHAT="addr mask bcast" ;;
+    addr|mask|bcast) WHAT="$1" ;;
+    *) WHAT="addr" ;;
+  esac
+  set --
+  for WHAT in $WHAT; do
+    set -- "$@" `
+      ifconfig "$DEV" | 
+      sed -n -e "s/.*${WHAT}:\([.0-9]\+\).*/\1/ip"
+    `
+  done
+  echo "$*")
+}
+
+# if_set_addr <iface> <addr> [mask] [bcast]
+#
+# Set the address(es) of the specified interface.
+# -------------------------------------------------------------------------
+if_set_addr()
+{
+ (DEV="$1" ADDR="$2" MASK="$3" BCAST="$4" IFS="
+ "
+  if [ -z "$MASK" ]; then
+    case $ADDR in
+      192.168.*) MASK="255.255.255.0" ;;
+      172.16.*) MASK="255.255.0.0" ;;
+      10.*) MASK="255.0.0.0" ;;
+    esac
+  fi
+
+  #ip addr add $ADDR/`ip4_cidr "$MASK"` ${3:+broadcast "$3"} dev "$DEV"
+  ifconfig "$DEV" $ADDR netmask "$MASK" ${3:+broadcast "$3"}
+  )
+}
+
+# if_get_routes <iface>
+#
+# Get the routes for the specified interface.
+# -------------------------------------------------------------------------
+if_get_routes()
+{
+  ip route list dev "$1" | sed \
+    -e "s,\s*proto\s*.*,," \
+    -e "s,\s*metric\s*.*,," \
+    -e "s, via , ," | 
+  {
+    IFS="$IFS "
+    DEV=$1
+    
+    while read dest via
+    do
+      test "$dest" = default && dest=0.0.0.0/0
+  
+      mask=`cidr_mask "$dest"`
+      dest=`cidr_network "$dest" "$mask"`
+
+      set -- "$dest" "${via:-0.0.0.0}" "$mask" "$DEV"
+
+      echo "$*"
+    done
+  }
+}
+
+# if_set_routes <iface> <routes...>
+#
+# Set the routes for the specified interface.
+# -------------------------------------------------------------------------
+if_set_routes()
+{
+  local DEV=$1 route gw IFS='
+'
+  shift
+  
+  for route in $*
+  do
+    IFS=' '
+
+    set -- $route
+    
+    gw="$2"
+
+    test `ip4_to_dec "$gw"` = 0 && gw=
+
+    ip route add "$1"/`ip4_cidr "$3"` ${gw:+via "$gw"} dev "$DEV"
+  done
+}
+
+# --- eof ---------------------------------------------------------------------
+@DEBUG_FALSE@lib_net_if_sh=:;}
