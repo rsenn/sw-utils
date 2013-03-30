@@ -230,11 +230,12 @@ archive_unpack()
 {
   local args strip=''
 
-  local opts=`getopt --name="${0##*/}" --longoptions="strip,exclude" -o "s:x:" -- "$@"`
+  local opts=`getopt --name="${0##*/}" --longoptions="strip,exclude,dir" -o "d:s:x:" -- "$@"`
   eval "set -- $opts"
 
   while [ -n "$1" -a "$1" != "--" ]; do
     case $1 in
+      -d | --destdir) destdir=$2; shift;;
       -s | --strip) strip=$2; shift;;
       -x | --exclude) exclude="${exclude+:$exclude } -x \"$2\""; shift;;
       *) array_push args "$1";;
@@ -264,7 +265,11 @@ archive_unpack()
        exit 1
      fi
   }
-
+  if [ -n "$destdir" ]; then
+	   a=`realpath "$a"`
+	   mkdir -p "$destdir"
+	   cd "$destdir"
+   fi
 
   archive_decompress "$a" |
   {
@@ -282,7 +287,9 @@ archive_unpack()
       ;;
       *) errormsg "No such container type $cont." ;;
     esac
-  })
+  }
+  
+  )
 }
 
 # archive_list <archive>

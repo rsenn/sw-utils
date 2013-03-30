@@ -1,0 +1,149 @@
+#!/bin/sh
+#
+# archive/cpio.sh: POSIX cpio archiving functions.
+#
+# $Id: cpio.sh.in 780 2008-10-23 19:00:16Z enki $
+
+test $lib_archive_cpio_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/util.sh
+
+# cpio_cmd [options] <cpio-archive> [files/directories...]
+#
+# Outputs a suitable command-line for the cpio program.
+#
+#     -l, --level NUM         Compression level: 0 = store -> 9 = best.
+#     -d, --dereference       Dump the files instead of symlink pointing to.
+#     -x, --exclude PATTERN   Exclude files matching PATTERN.
+# -------------------------------------------------------------------------
+cpio_cmd()
+{
+  local cmd= uncmd= un= arg= xcl= a= s=' ' c=false IFS=$nl
+  eval "set -- $(getopt --name=cpio --shell=sh \
+                        --longoptions=level:,dereference,exclude:,no-recursion,create,delete,list,unpack -o 0123456789hx:Rcdlu -- "$@")"
+
+  cmd="cpio"
+
+  local filter= #"|sed -e 's|^\s*[^:\s]\+:\s\+||' -e 's|\s\+([^()]\+)$||'"
+  local unfilter= #"|sed -ne 's|^\s*[0-9]\+\s\+[0-1][0-9]-[0-3][0-9]-[0-9][0-9]\s\+[0-2][0-9]:[0-5][0-9]\s\+\(.*\)$|\1|p'"
+
+  while test -n "$1"; do
+    case $1 in
+      # verbose
+      -v|--verbose)
+
+         cmd=${cmd}' '-v
+         shift
+         ;;
+      # exclude files/dirs...
+      -x|--exclude)
+
+         xcl=${xcl:+$xcl$s}'"'"`escape_dquote "$2"`"'"'
+         shift
+         ;;
+
+      -c|--create)
+         cmd=${cmd//-[oti]$s/} && cmd=${cmd%$s-[oti]}
+         cmd=${cmd:+$cmd$s}'-o'$s
+         ;;
+         
+      -l|--list)
+         cmd=${cmd//-[oti]$s/} && cmd=${cmd%$s-[oti]}
+         cmd=${cmd:+$cmd$s}'-t'
+         ;;
+
+      -u|--unpack)
+         cmd=${cmd//-[oti]$s/} && cmd=${cmd%$s-[oti]}
+         cmd=${cmd:+$cmd$s}'-i' <$s' -d'
+         ;;
+
+      -h|--dereference)  cmd=${cmd:+$cmd$s}'-L' ;;
+      -R|--no-recursion) cmd=${cmd:+$cmd$s}'--no-recursion' ;;
+
+      --) shift && break ;;
+    esac
+    shift
+  done
+  a=$1
+  shift
+  while test -n "$1"; do
+    arg="${arg:+$arg$s}\"`escape_dquote "$1"`\""
+    shift
+  done
+  echo $cmd `escape_dquote "${a:+<$a}"` $arg ${xcl:+-f $xcl}
+}
+
+# cpio_create <cpio-archive> [files/directories...]
+#
+# Pack the specified files and directories into a newly created cpio-archive.
+# -------------------------------------------------------------------------
+cpio_create()
+{
+  local IFS= a=${1:?archive name required}
+  msg "Creating cpio-archive '$1'..."
+  eval `cpio_cmd --create "$@"`
+}
+
+# cpio_create <cpio-archive> [files/directories...]
+#
+# Count the bytes in a cpio
+# -------------------------------------------------------------------------
+cpio_count()
+{
+  cpio -tvf"$1" | cpio_count_filter
+}
+
+# cpio_count_filter
+#
+# Reads a verbose cpio listing and adds up the file sizes...
+# -------------------------------------------------------------------------
+cpio_count_filter()
+{
+  local n=0 IFS=" "
+  while read mode perm size date time path
+  do
+    n=$((n+size))
+  done
+  echo $n
+}
+
+# cpio_update <cpio-archive> [files/directories]
+#
+# Update the cpio-archive (adding when necessary) with the specified files
+# and directories.
+# -------------------------------------------------------------------------
+cpio_update()
+{ 
+  local IFS= a=${1:?archive name required}
+  msg "Creating cpio-archive '$1'..."
+  eval `cpio_cmd --update "$@"`  
+}
+
+# cpio_unpack [cpio-archive]
+# -------------------------------------------------------------------------
+cpio_unpack()
+{
+  
+  set -- cpio ${2+-C "$2"} -xv${1:+f"$1"} | sed "s:^:${2+${2%/}/}:"
+  verbose "$@"
+  "$@"
+}
+
+# cpio_list <cpio-archive> [files/directories]
+#
+# List either all or only the specified files and directories from the cpio-archive.
+# -------------------------------------------------------------------------
+cpio_list()
+{ 
+  local IFS= a=${1:?archive name required}
+  msg "Listing contents of cpio-archive '$1'..."
+  eval `cpio_cmd --list "$@"`  
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_archive_cpio_sh=:;}
