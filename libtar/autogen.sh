@@ -4,8 +4,8 @@
 
 
 libtoolize --force --copy --automake
-aclocal --force -I autoconf
+rm -f aclocal.m4; aclocal -I autoconf
 autoheader --force
 automake --force --copy --foreign --add-missing --foreign --add-missing
-aclocal --force -I autoconf
+rm -f aclocal.m4; aclocal -I autoconf
 autoconf --force

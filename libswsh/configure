@@ -680,22 +680,15 @@ SH
 BASH
 pkgdir
 portsdir
+MKDIR_P
 LN_S
-AM_BACKSLASH
-AM_DEFAULT_VERBOSITY
-AM_DEFAULT_V
-AM_V
-am__untar
-am__tar
-AMTAR
 am__leading_dot
 SET_MAKE
 AWK
-mkdir_p
-MKDIR_P
 INSTALL_STRIP_PROGRAM
 STRIP
 install_sh
+AMTAR
 MAKEINFO
 AUTOHEADER
 AUTOMAKE
@@ -704,7 +697,6 @@ ACLOCAL
 VERSION
 PACKAGE
 CYGPATH_W
-am__isrc
 INSTALL_DATA
 INSTALL_SCRIPT
 INSTALL_PROGRAM
@@ -761,7 +753,6 @@ SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
-enable_silent_rules
 with_shells
 with_profile_dir
 with_pkg_dir
@@ -1390,8 +1381,6 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
-  --enable-silent-rules   less verbose build output (undo: "make V=1")
-  --disable-silent-rules  verbose build output (undo: "make V=0")
   --enable-debug          Enable debug mode
 
 Optional Packages:
@@ -2003,8 +1992,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 
-am__api_version='1.13'
-
+am__api_version="1.7"
 # Find a good install program.  We prefer a C program (faster),
 # so one script is as good as another.  But avoid the broken or
 # incompatible versions:
@@ -2100,50 +2088,32 @@ test -z "$INSTALL_DATA" && INSTALL_DATA='${INSTALL} -m 644'
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether build environment is sane" >&5
 $as_echo_n "checking whether build environment is sane... " >&6; }
-# Reject unsafe characters in $srcdir or the absolute working directory
-# name.  Accept space and tab only in the latter.
-am_lf='
-'
-case `pwd` in
-  *[\\\"\#\$\&\'\`$am_lf]*)
-    as_fn_error $? "unsafe absolute working directory name" "$LINENO" 5;;
-esac
-case $srcdir in
-  *[\\\"\#\$\&\'\`$am_lf\ \	]*)
-    as_fn_error $? "unsafe srcdir value: '$srcdir'" "$LINENO" 5;;
-esac
-
-# Do 'set' in a subshell so we don't clobber the current shell's
+# Just in case
+sleep 1
+echo timestamp > conftest.file
+# Do `set' in a subshell so we don't clobber the current shell's
 # arguments.  Must try -L first in case configure is actually a
 # symlink; some systems play weird games with the mod time of symlinks
 # (eg FreeBSD returns the mod time of the symlink's containing
 # directory).
 if (
-   am_has_slept=no
-   for am_try in 1 2; do
-     echo "timestamp, slept: $am_has_slept" > conftest.file
-     set X `ls -Lt "$srcdir/configure" conftest.file 2> /dev/null`
-     if test "$*" = "X"; then
-	# -L didn't work.
-	set X `ls -t "$srcdir/configure" conftest.file`
-     fi
-     if test "$*" != "X $srcdir/configure conftest.file" \
-	&& test "$*" != "X conftest.file $srcdir/configure"; then
+   set X `ls -Lt $srcdir/configure conftest.file 2> /dev/null`
+   if test "$*" = "X"; then
+      # -L didn't work.
+      set X `ls -t $srcdir/configure conftest.file`
+   fi
+   rm -f conftest.file
+   if test "$*" != "X $srcdir/configure conftest.file" \
+      && test "$*" != "X conftest.file $srcdir/configure"; then
 
-	# If neither matched, then we have a broken ls.  This can happen
-	# if, for instance, CONFIG_SHELL is bash and it inherits a
-	# broken ls alias from the environment.  This has actually
-	# happened.  Such a system could not be considered "sane".
-	as_fn_error $? "ls -t appears to fail.  Make sure there is not a broken
-  alias in your environment" "$LINENO" 5
-     fi
-     if test "$2" = conftest.file || test $am_try -eq 2; then
-       break
-     fi
-     # Just in case.
-     sleep 1
-     am_has_slept=yes
-   done
+      # If neither matched, then we have a broken ls.  This can happen
+      # if, for instance, CONFIG_SHELL is bash and it inherits a
+      # broken ls alias from the environment.  This has actually
+      # happened.  Such a system could not be considered "sane".
+      as_fn_error $? "ls -t appears to fail.  Make sure there is not a broken
+alias in your environment" "$LINENO" 5
+   fi
+
    test "$2" = conftest.file
    )
 then
@@ -2155,16 +2125,6 @@ Check your system clock" "$LINENO" 5
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
-# If we didn't sleep, we still need to ensure time stamps of config.status and
-# generated files are strictly newer.
-am_sleep_pid=
-if grep 'slept: no' conftest.file >/dev/null 2>&1; then
-  ( sleep 1 ) &
-  am_sleep_pid=$!
-fi
-
-rm -f conftest.file
-
 test "$program_prefix" != NONE &&
   program_transform_name="s&^&$program_prefix&;$program_transform_name"
 # Use a double $ so make ignores it.
@@ -2175,39 +2135,157 @@ test "$program_suffix" != NONE &&
 ac_script='s/[\\$]/&&/g;s/;s,x,x,$//'
 program_transform_name=`$as_echo "$program_transform_name" | sed "$ac_script"`
 
+
 # expand $ac_aux_dir to an absolute path
 am_aux_dir=`cd $ac_aux_dir && pwd`
 
-if test x"${MISSING+set}" != xset; then
-  case $am_aux_dir in
-  *\ * | *\	*)
-    MISSING="\${SHELL} \"$am_aux_dir/missing\"" ;;
-  *)
-    MISSING="\${SHELL} $am_aux_dir/missing" ;;
-  esac
-fi
+test x"${MISSING+set}" = xset || MISSING="\${SHELL} $am_aux_dir/missing"
 # Use eval to expand $SHELL
-if eval "$MISSING --is-lightweight"; then
-  am_missing_run="$MISSING "
+if eval "$MISSING --run true"; then
+  am_missing_run="$MISSING --run "
 else
   am_missing_run=
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: 'missing' script is too old or missing" >&5
-$as_echo "$as_me: WARNING: 'missing' script is too old or missing" >&2;}
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: \`missing' script is too old or missing" >&5
+$as_echo "$as_me: WARNING: \`missing' script is too old or missing" >&2;}
 fi
 
-if test x"${install_sh}" != xset; then
-  case $am_aux_dir in
-  *\ * | *\	*)
-    install_sh="\${SHELL} '$am_aux_dir/install-sh'" ;;
+for ac_prog in gawk mawk nawk awk
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_AWK+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$AWK"; then
+  ac_cv_prog_AWK="$AWK" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_AWK="$ac_prog"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+AWK=$ac_cv_prog_AWK
+if test -n "$AWK"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $AWK" >&5
+$as_echo "$AWK" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$AWK" && break
+done
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether ${MAKE-make} sets \$(MAKE)" >&5
+$as_echo_n "checking whether ${MAKE-make} sets \$(MAKE)... " >&6; }
+set x ${MAKE-make}
+ac_make=`$as_echo "$2" | sed 's/+/p/g; s/[^a-zA-Z0-9_]/_/g'`
+if eval \${ac_cv_prog_make_${ac_make}_set+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat >conftest.make <<\_ACEOF
+SHELL = /bin/sh
+all:
+	@echo '@@@%%%=$(MAKE)=@@@%%%'
+_ACEOF
+# GNU make sometimes prints "make[1]: Entering ...", which would confuse us.
+case `${MAKE-make} -f conftest.make 2>/dev/null` in
+  *@@@%%%=?*=@@@%%%*)
+    eval ac_cv_prog_make_${ac_make}_set=yes;;
   *)
-    install_sh="\${SHELL} $am_aux_dir/install-sh"
-  esac
+    eval ac_cv_prog_make_${ac_make}_set=no;;
+esac
+rm -f conftest.make
+fi
+if eval test \$ac_cv_prog_make_${ac_make}_set = yes; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+  SET_MAKE=
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+  SET_MAKE="MAKE=${MAKE-make}"
 fi
 
-# Installed binaries are usually stripped using 'strip' when the user
-# run "make install-strip".  However 'strip' might not be the right
+rm -rf .tst 2>/dev/null
+mkdir .tst 2>/dev/null
+if test -d .tst; then
+  am__leading_dot=.
+else
+  am__leading_dot=_
+fi
+rmdir .tst 2>/dev/null
+
+ # test to see if srcdir already configured
+if test "`cd $srcdir && pwd`" != "`pwd`" &&
+   test -f $srcdir/config.status; then
+  as_fn_error $? "source directory already configured; run \"make distclean\" there first" "$LINENO" 5
+fi
+
+# test whether we have cygpath
+if test -z "$CYGPATH_W"; then
+  if (cygpath --version) >/dev/null 2>/dev/null; then
+    CYGPATH_W='cygpath -w'
+  else
+    CYGPATH_W=echo
+  fi
+fi
+
+
+# Define the identity of the package.
+ PACKAGE='libswsh'
+ VERSION='0.9.7'
+
+
+cat >>confdefs.h <<_ACEOF
+#define PACKAGE "$PACKAGE"
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define VERSION "$VERSION"
+_ACEOF
+
+# Some tools Automake needs.
+
+ACLOCAL=${ACLOCAL-"${am_missing_run}aclocal-${am__api_version}"}
+
+
+AUTOCONF=${AUTOCONF-"${am_missing_run}autoconf"}
+
+
+AUTOMAKE=${AUTOMAKE-"${am_missing_run}automake-${am__api_version}"}
+
+
+AUTOHEADER=${AUTOHEADER-"${am_missing_run}autoheader"}
+
+
+MAKEINFO=${MAKEINFO-"${am_missing_run}makeinfo"}
+
+
+AMTAR=${AMTAR-"${am_missing_run}tar"}
+
+install_sh=${install_sh-"$am_aux_dir/install-sh"}
+
+# Installed binaries are usually stripped using `strip' when the user
+# run `make install-strip'.  However `strip' might not be the right
 # tool to use in cross-compilation environments, therefore Automake
-# will honor the 'STRIP' environment variable to overrule this program.
+# will honor the `STRIP' environment variable to overrule this program.
 if test "$cross_compiling" != no; then
   if test -n "$ac_tool_prefix"; then
   # Extract the first word of "${ac_tool_prefix}strip", so it can be a program name with args.
@@ -2302,241 +2380,10 @@ else
 fi
 
 fi
-INSTALL_STRIP_PROGRAM="\$(install_sh) -c -s"
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for a thread-safe mkdir -p" >&5
-$as_echo_n "checking for a thread-safe mkdir -p... " >&6; }
-if test -z "$MKDIR_P"; then
-  if ${ac_cv_path_mkdir+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH$PATH_SEPARATOR/opt/sfw/bin
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_prog in mkdir gmkdir; do
-	 for ac_exec_ext in '' $ac_executable_extensions; do
-	   as_fn_executable_p "$as_dir/$ac_prog$ac_exec_ext" || continue
-	   case `"$as_dir/$ac_prog$ac_exec_ext" --version 2>&1` in #(
-	     'mkdir (GNU coreutils) '* | \
-	     'mkdir (coreutils) '* | \
-	     'mkdir (fileutils) '4.1*)
-	       ac_cv_path_mkdir=$as_dir/$ac_prog$ac_exec_ext
-	       break 3;;
-	   esac
-	 done
-       done
-  done
-IFS=$as_save_IFS
-
-fi
-
-  test -d ./--version && rmdir ./--version
-  if test "${ac_cv_path_mkdir+set}" = set; then
-    MKDIR_P="$ac_cv_path_mkdir -p"
-  else
-    # As a last resort, use the slow shell script.  Don't cache a
-    # value for MKDIR_P within a source directory, because that will
-    # break other packages using the cache if that directory is
-    # removed, or if the value is a relative name.
-    MKDIR_P="$ac_install_sh -d"
-  fi
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $MKDIR_P" >&5
-$as_echo "$MKDIR_P" >&6; }
-
-for ac_prog in gawk mawk nawk awk
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_AWK+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$AWK"; then
-  ac_cv_prog_AWK="$AWK" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_AWK="$ac_prog"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-fi
-fi
-AWK=$ac_cv_prog_AWK
-if test -n "$AWK"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $AWK" >&5
-$as_echo "$AWK" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$AWK" && break
-done
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether ${MAKE-make} sets \$(MAKE)" >&5
-$as_echo_n "checking whether ${MAKE-make} sets \$(MAKE)... " >&6; }
-set x ${MAKE-make}
-ac_make=`$as_echo "$2" | sed 's/+/p/g; s/[^a-zA-Z0-9_]/_/g'`
-if eval \${ac_cv_prog_make_${ac_make}_set+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  cat >conftest.make <<\_ACEOF
-SHELL = /bin/sh
-all:
-	@echo '@@@%%%=$(MAKE)=@@@%%%'
-_ACEOF
-# GNU make sometimes prints "make[1]: Entering ...", which would confuse us.
-case `${MAKE-make} -f conftest.make 2>/dev/null` in
-  *@@@%%%=?*=@@@%%%*)
-    eval ac_cv_prog_make_${ac_make}_set=yes;;
-  *)
-    eval ac_cv_prog_make_${ac_make}_set=no;;
-esac
-rm -f conftest.make
-fi
-if eval test \$ac_cv_prog_make_${ac_make}_set = yes; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-  SET_MAKE=
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-  SET_MAKE="MAKE=${MAKE-make}"
-fi
-
-rm -rf .tst 2>/dev/null
-mkdir .tst 2>/dev/null
-if test -d .tst; then
-  am__leading_dot=.
-else
-  am__leading_dot=_
-fi
-rmdir .tst 2>/dev/null
-
-# Check whether --enable-silent-rules was given.
-if test "${enable_silent_rules+set}" = set; then :
-  enableval=$enable_silent_rules;
-fi
-
-case $enable_silent_rules in # (((
-  yes) AM_DEFAULT_VERBOSITY=0;;
-   no) AM_DEFAULT_VERBOSITY=1;;
-    *) AM_DEFAULT_VERBOSITY=1;;
-esac
-am_make=${MAKE-make}
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether $am_make supports nested variables" >&5
-$as_echo_n "checking whether $am_make supports nested variables... " >&6; }
-if ${am_cv_make_support_nested_variables+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if $as_echo 'TRUE=$(BAR$(V))
-BAR0=false
-BAR1=true
-V=1
-am__doit:
-	@$(TRUE)
-.PHONY: am__doit' | $am_make -f - >/dev/null 2>&1; then
-  am_cv_make_support_nested_variables=yes
-else
-  am_cv_make_support_nested_variables=no
-fi
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $am_cv_make_support_nested_variables" >&5
-$as_echo "$am_cv_make_support_nested_variables" >&6; }
-if test $am_cv_make_support_nested_variables = yes; then
-    AM_V='$(V)'
-  AM_DEFAULT_V='$(AM_DEFAULT_VERBOSITY)'
-else
-  AM_V=$AM_DEFAULT_VERBOSITY
-  AM_DEFAULT_V=$AM_DEFAULT_VERBOSITY
-fi
-AM_BACKSLASH='\'
-
-if test "`cd $srcdir && pwd`" != "`pwd`"; then
-  # Use -I$(srcdir) only when $(srcdir) != ., so that make's output
-  # is not polluted with repeated "-I."
-  am__isrc=' -I$(srcdir)'
-  # test to see if srcdir already configured
-  if test -f $srcdir/config.status; then
-    as_fn_error $? "source directory already configured; run \"make distclean\" there first" "$LINENO" 5
-  fi
-fi
-
-# test whether we have cygpath
-if test -z "$CYGPATH_W"; then
-  if (cygpath --version) >/dev/null 2>/dev/null; then
-    CYGPATH_W='cygpath -w'
-  else
-    CYGPATH_W=echo
-  fi
-fi
-
-
-# Define the identity of the package.
- PACKAGE='libswsh'
- VERSION='0.9.7'
-
-
-cat >>confdefs.h <<_ACEOF
-#define PACKAGE "$PACKAGE"
-_ACEOF
-
-
-cat >>confdefs.h <<_ACEOF
-#define VERSION "$VERSION"
-_ACEOF
-
-# Some tools Automake needs.
-
-ACLOCAL=${ACLOCAL-"${am_missing_run}aclocal-${am__api_version}"}
-
-
-AUTOCONF=${AUTOCONF-"${am_missing_run}autoconf"}
-
-
-AUTOMAKE=${AUTOMAKE-"${am_missing_run}automake-${am__api_version}"}
-
-
-AUTOHEADER=${AUTOHEADER-"${am_missing_run}autoheader"}
-
-
-MAKEINFO=${MAKEINFO-"${am_missing_run}makeinfo"}
-
-# For better backward compatibility.  To be removed once Automake 1.9.x
-# dies out for good.  For more background, see:
-# <http://lists.gnu.org/archive/html/automake/2012-07/msg00001.html>
-# <http://lists.gnu.org/archive/html/automake/2012-07/msg00014.html>
-mkdir_p='$(MKDIR_P)'
+INSTALL_STRIP_PROGRAM="\${SHELL} \$(install_sh) -c -s"
 
 # We need awk for the "check" target.  The system "awk" is bad on
 # some platforms.
-# Always define AMTAR for backward compatibility.  Yes, it's still used
-# in the wild :-(  We should find a proper way to deprecate it ...
-AMTAR='$${TAR-tar}'
-
-
-# We'll loop over all known methods to create a tar archive until one works.
-_am_tools='gnutar  pax cpio none'
-
-am__tar='$${TAR-tar} chof - "$$tardir"' am__untar='$${TAR-tar} xf -'
-
-
-
 
 
 
@@ -2642,6 +2489,47 @@ else
 $as_echo "no, using $LN_S" >&6; }
 fi
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for a thread-safe mkdir -p" >&5
+$as_echo_n "checking for a thread-safe mkdir -p... " >&6; }
+if test -z "$MKDIR_P"; then
+  if ${ac_cv_path_mkdir+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH$PATH_SEPARATOR/opt/sfw/bin
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_prog in mkdir gmkdir; do
+	 for ac_exec_ext in '' $ac_executable_extensions; do
+	   as_fn_executable_p "$as_dir/$ac_prog$ac_exec_ext" || continue
+	   case `"$as_dir/$ac_prog$ac_exec_ext" --version 2>&1` in #(
+	     'mkdir (GNU coreutils) '* | \
+	     'mkdir (coreutils) '* | \
+	     'mkdir (fileutils) '4.1*)
+	       ac_cv_path_mkdir=$as_dir/$ac_prog$ac_exec_ext
+	       break 3;;
+	   esac
+	 done
+       done
+  done
+IFS=$as_save_IFS
+
+fi
+
+  test -d ./--version && rmdir ./--version
+  if test "${ac_cv_path_mkdir+set}" = set; then
+    MKDIR_P="$ac_cv_path_mkdir -p"
+  else
+    # As a last resort, use the slow shell script.  Don't cache a
+    # value for MKDIR_P within a source directory, because that will
+    # break other packages using the cache if that directory is
+    # removed, or if the value is a relative name.
+    MKDIR_P="$ac_install_sh -d"
+  fi
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $MKDIR_P" >&5
+$as_echo "$MKDIR_P" >&6; }
 
 
 
@@ -2979,7 +2867,9 @@ $as_echo "no" >&6; }
 fi
 
 
- if test -n "$DEVTODO"; then
+
+
+if test -n "$DEVTODO"; then
   DEVTODO_TRUE=
   DEVTODO_FALSE='#'
 else
@@ -3026,7 +2916,9 @@ $as_echo "no" >&6; }
 fi
 
 
- if test -n "$SHUNIT2"; then
+
+
+if test -n "$SHUNIT2"; then
   SHUNIT2_TRUE=
   SHUNIT2_FALSE='#'
 else
@@ -3071,7 +2963,9 @@ $as_echo "no" >&6; }
 fi
 
 
- if test -n "$SHFLAGS"; then
+
+
+if test -n "$SHFLAGS"; then
   SHFLAGS_TRUE=
   SHFLAGS_FALSE='#'
 else
@@ -3159,7 +3053,9 @@ $as_echo "no" >&6; }
 fi
 
 CURL=$ac_cv_file_CURL
- if test -n "$ac_cv_file_CURL"; then
+
+
+if test -n "$ac_cv_file_CURL"; then
   CURL_TRUE=
   CURL_FALSE='#'
 else
@@ -3204,7 +3100,9 @@ $as_echo "no" >&6; }
 fi
 
 WGET=$ac_cv_file_WGET
- if test -n "$ac_cv_file_WGET"; then
+
+
+if test -n "$ac_cv_file_WGET"; then
   WGET_TRUE=
   WGET_FALSE='#'
 else
@@ -3250,7 +3148,9 @@ $as_echo "no" >&6; }
 fi
 
 LYNX=$ac_cv_file_LYNX
- if test -n "$ac_cv_file_LYNX"; then
+
+
+if test -n "$ac_cv_file_LYNX"; then
   LYNX_TRUE=
   LYNX_FALSE='#'
 else
@@ -3295,7 +3195,9 @@ $as_echo "no" >&6; }
 fi
 
 LINKS=$ac_cv_file_LINKS
- if test -n "$ac_cv_file_LINKS"; then
+
+
+if test -n "$ac_cv_file_LINKS"; then
   LINKS_TRUE=
   LINKS_FALSE='#'
 else
@@ -3340,7 +3242,9 @@ $as_echo "no" >&6; }
 fi
 
 W3M=$ac_cv_file_W3M
- if test -n "$ac_cv_file_W3M"; then
+
+
+if test -n "$ac_cv_file_W3M"; then
   W3M_TRUE=
   W3M_FALSE='#'
 else
@@ -3386,7 +3290,9 @@ $as_echo "no" >&6; }
 fi
 
 FTP=$ac_cv_file_FTP
- if test -n "$ac_cv_file_FTP"; then
+
+
+if test -n "$ac_cv_file_FTP"; then
   FTP_TRUE=
   FTP_FALSE='#'
 else
@@ -3431,7 +3337,9 @@ $as_echo "no" >&6; }
 fi
 
 NCFTP=$ac_cv_file_NCFTP
- if test -n "$ac_cv_file_NCFTP"; then
+
+
+if test -n "$ac_cv_file_NCFTP"; then
   NCFTP_TRUE=
   NCFTP_FALSE='#'
 else
@@ -3476,7 +3384,9 @@ $as_echo "no" >&6; }
 fi
 
 LFTP=$ac_cv_file_LFTP
- if test -n "$ac_cv_file_LFTP"; then
+
+
+if test -n "$ac_cv_file_LFTP"; then
   LFTP_TRUE=
   LFTP_FALSE='#'
 else
@@ -3523,7 +3433,9 @@ $as_echo "no" >&6; }
 fi
 
 SHAR=$ac_cv_file_SHAR
- if test -n "$ac_cv_file_SHAR"; then
+
+
+if test -n "$ac_cv_file_SHAR"; then
   SHAR_TRUE=
   SHAR_FALSE='#'
 else
@@ -3568,7 +3480,9 @@ $as_echo "no" >&6; }
 fi
 
 TAR=$ac_cv_file_TAR
- if test -n "$ac_cv_file_TAR"; then
+
+
+if test -n "$ac_cv_file_TAR"; then
   TAR_TRUE=
   TAR_FALSE='#'
 else
@@ -3613,7 +3527,9 @@ $as_echo "no" >&6; }
 fi
 
 STAR=$ac_cv_file_STAR
- if test -n "$ac_cv_file_STAR"; then
+
+
+if test -n "$ac_cv_file_STAR"; then
   STAR_TRUE=
   STAR_FALSE='#'
 else
@@ -3658,7 +3574,9 @@ $as_echo "no" >&6; }
 fi
 
 ZIP=$ac_cv_file_ZIP
- if test -n "$ac_cv_file_ZIP"; then
+
+
+if test -n "$ac_cv_file_ZIP"; then
   ZIP_TRUE=
   ZIP_FALSE='#'
 else
@@ -3703,7 +3621,9 @@ $as_echo "no" >&6; }
 fi
 
 UNZIP=$ac_cv_file_UNZIP
- if test -n "$ac_cv_file_UNZIP"; then
+
+
+if test -n "$ac_cv_file_UNZIP"; then
   UNZIP_TRUE=
   UNZIP_FALSE='#'
 else
@@ -3748,7 +3668,9 @@ $as_echo "no" >&6; }
 fi
 
 RAR=$ac_cv_file_RAR
- if test -n "$ac_cv_file_RAR"; then
+
+
+if test -n "$ac_cv_file_RAR"; then
   RAR_TRUE=
   RAR_FALSE='#'
 else
@@ -3793,7 +3715,9 @@ $as_echo "no" >&6; }
 fi
 
 UNRAR=$ac_cv_file_UNRAR
- if test -n "$ac_cv_file_UNRAR"; then
+
+
+if test -n "$ac_cv_file_UNRAR"; then
   UNRAR_TRUE=
   UNRAR_FALSE='#'
 else
@@ -3840,7 +3764,9 @@ $as_echo "no" >&6; }
 fi
 
 COMPRESS=$ac_cv_file_COMPRESS
- if test -n "$ac_cv_file_COMPRESS"; then
+
+
+if test -n "$ac_cv_file_COMPRESS"; then
   COMPRESS_TRUE=
   COMPRESS_FALSE='#'
 else
@@ -3885,7 +3811,9 @@ $as_echo "no" >&6; }
 fi
 
 GZIP=$ac_cv_file_GZIP
- if test -n "$ac_cv_file_GZIP"; then
+
+
+if test -n "$ac_cv_file_GZIP"; then
   GZIP_TRUE=
   GZIP_FALSE='#'
 else
@@ -3930,7 +3858,9 @@ $as_echo "no" >&6; }
 fi
 
 BZIP2=$ac_cv_file_BZIP2
- if test -n "$ac_cv_file_BZIP2"; then
+
+
+if test -n "$ac_cv_file_BZIP2"; then
   BZIP2_TRUE=
   BZIP2_FALSE='#'
 else
@@ -3975,7 +3905,9 @@ $as_echo "no" >&6; }
 fi
 
 LZMA=$ac_cv_file_LZMA
- if test -n "$ac_cv_file_LZMA"; then
+
+
+if test -n "$ac_cv_file_LZMA"; then
   LZMA_TRUE=
   LZMA_FALSE='#'
 else
@@ -4020,7 +3952,9 @@ $as_echo "no" >&6; }
 fi
 
 LZOP=$ac_cv_file_LZOP
- if test -n "$ac_cv_file_LZOP"; then
+
+
+if test -n "$ac_cv_file_LZOP"; then
   LZOP_TRUE=
   LZOP_FALSE='#'
 else
@@ -4067,7 +4001,9 @@ $as_echo "no" >&6; }
 fi
 
 NEWFILE=$ac_cv_file_NEWFILE
- if test -n "$ac_cv_file_NEWFILE"; then
+
+
+if test -n "$ac_cv_file_NEWFILE"; then
   NEWFILE_TRUE=
   NEWFILE_FALSE='#'
 else
@@ -4113,7 +4049,9 @@ else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: not found" >&5
 $as_echo "not found" >&6; }
 fi
- if test -n "$ac_cv_profiledir"; then
+
+
+if test -n "$ac_cv_profiledir"; then
   PROFILE_TRUE=
   PROFILE_FALSE='#'
 else
@@ -4179,7 +4117,9 @@ fi
 
 
 
- if test "$ac_cv_debug" = yes; then
+
+
+if test "$ac_cv_debug" = yes; then
   DEBUG_TRUE=
   DEBUG_FALSE='#'
 else
@@ -4352,15 +4292,6 @@ LIBOBJS=$ac_libobjs
 
 LTLIBOBJS=$ac_ltlibobjs
 
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking that generated files are newer than configure" >&5
-$as_echo_n "checking that generated files are newer than configure... " >&6; }
-   if test -n "$am_sleep_pid"; then
-     # Hide warnings about reused PIDs.
-     wait $am_sleep_pid 2>/dev/null
-   fi
-   { $as_echo "$as_me:${as_lineno-$LINENO}: result: done" >&5
-$as_echo "done" >&6; }
 
 if test -z "${DEVTODO_TRUE}" && test -z "${DEVTODO_FALSE}"; then
   as_fn_error $? "conditional \"DEVTODO\" was never defined.
