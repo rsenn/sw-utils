@@ -74,7 +74,8 @@ cmake_clean()
     set -- `cmake_subdirs "$dir"` "$@"
    (cd "$dir"
     grep -q '^# CMAKE' Makefile 2>/dev/null && rm -f Makefile
-    IFS="$IFS "
+    IFS="
+ $IFS"
     for file in $cmake_generated; do
 #        msg Checking for $file ...
       out=$dir/$subdir/$file
