@@ -17,8 +17,7 @@ test $lib_buildsys_cmake_sh || {
 . $shlibdir/std/array.sh
 
 # ---------------------------------------------------------------------------
-cmake_file="CMakeLists.txt
-CMakeCache.txt"
+cmake_file="CMakeLists.txt CMakeCache.txt"
 cmake_generated="*.cmake
 CMakeCache.txt
 CMakeFiles
