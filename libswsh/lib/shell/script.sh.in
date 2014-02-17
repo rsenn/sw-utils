@@ -239,6 +239,7 @@ script_getfn()
   shift
   sed -n \
       -e "/$fn\s*()/ {
+              s,$fn\s*(),$fn(),
             s,^, ,
 
             /[^0-9A-Za-z]$fn\s*()/ {
@@ -254,6 +255,7 @@ script_getfn()
 
               /\n}\s*$/! { b lp2; }
 
+              s,$fn\s*(),$fn(),
               p
             }
           }" \

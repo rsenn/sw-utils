@@ -37,15 +37,15 @@ host_triplet = @host@
 target_triplet = @target@
 subdir = lib/archive
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(srcdir)/deb.sh.in $(srcdir)/jar.sh.in $(srcdir)/rar.sh.in \
-	$(srcdir)/tar.sh.in $(srcdir)/zip.sh.in
+	$(srcdir)/cpio.sh.in $(srcdir)/deb.sh.in $(srcdir)/jar.sh.in \
+	$(srcdir)/rar.sh.in $(srcdir)/tar.sh.in $(srcdir)/zip.sh.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/build/gnu/define-dir.m4 \
 	$(top_srcdir)/build/gnu/find.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
-CONFIG_CLEAN_FILES = deb.sh jar.sh rar.sh tar.sh zip.sh
+CONFIG_CLEAN_FILES = cpio.sh deb.sh jar.sh rar.sh tar.sh zip.sh
 CONFIG_CLEAN_VPATH_FILES =
 SOURCES =
 DIST_SOURCES =
@@ -203,9 +203,9 @@ templatedir = @templatedir@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-GENERATED_FILES = deb.sh jar.sh rar.sh tar.sh zip.sh
-INPUT_FILES = deb.sh.in jar.sh.in rar.sh.in tar.sh.in zip.sh.in
-pkglib_DATA = deb.sh jar.sh rar.sh tar.sh zip.sh
+GENERATED_FILES = cpio.sh deb.sh jar.sh rar.sh tar.sh zip.sh
+INPUT_FILES = cpio.sh.in deb.sh.in jar.sh.in rar.sh.in tar.sh.in zip.sh.in
+pkglib_DATA = cpio.sh deb.sh jar.sh rar.sh tar.sh zip.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 CLEANFILES = $(GENERATED_FILES) stamp-init
@@ -243,6 +243,8 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
+cpio.sh: $(top_builddir)/config.status $(srcdir)/cpio.sh.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 deb.sh: $(top_builddir)/config.status $(srcdir)/deb.sh.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 jar.sh: $(top_builddir)/config.status $(srcdir)/jar.sh.in

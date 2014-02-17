@@ -281,6 +281,7 @@ lib/xtra.sh
 lib/algorithm/Makefile
 lib/algorithm/fmt.sh
 lib/archive/Makefile
+lib/archive/cpio.sh
 lib/archive/deb.sh
 lib/archive/jar.sh
 lib/archive/rar.sh
