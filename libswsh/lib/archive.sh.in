@@ -99,6 +99,7 @@ archive_compression()
       gzip|bzip2) echo ${1//zip/z} ;;
       Zip) echo zip ;;
       RAR) echo rar ;;
+      7-[Zz]ip) echo 7z ;;
 #      ''|POSIX|ASCII) ;;
       *) echo - ;;
     esac
@@ -128,6 +129,7 @@ archive_infer()
       tar|cpio) c="$p" ;;
       gz|bz2|Z) x="$p" ;;
       tgz|tbz2) c="tar" x="${p#t}" ;;
+      7z) c="$p" ;;
     esac
   done
 
@@ -155,6 +157,7 @@ archive_container()
     MS-DOS) echo zip ;;
     Zip) echo zip ;;
     RAR|rar) echo rar ;;
+    7-[Zz]ip) echo 7z ;;
     tar|cpio|zip) echo $1 ;;
 #    POSIX|ASCII) echo $2 ;;
     gzip|*[-/]gzip|bzip2|compress*)
@@ -178,7 +181,7 @@ archive_decompress()
     gz|z|Z|compress*) gzip -dc "$1" ;;
     bz2) bzip2 -dc "$1" ;;
     ''|-) cat ${1+"$1"} ;;
-    zip|rar) cat ${1+"$1"} ;;
+    zip|rar|7z) cat ${1+"$1"} ;;
     *) msg "Unrecognized compression scheme '$comp'."; return 1 ;;
   esac
 }
@@ -218,6 +221,7 @@ archive_create()
     cpio) test "$a" = - || exec >"$a"; array "$@" | cpio -o ;;
     rar) ${a:+rm -f "$a"}; rar a ${a:-"-"} "$@" >/dev/null ;;
     zip) zip -9 -r ${a:-"-"} "$@" 2>/dev/null ;;
+    7z) 7z a -mx=5 "$a" ;;
     *) tar -cf ${a:-"-"} "$@" ;;
   esac)
 }
