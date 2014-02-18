@@ -285,6 +285,7 @@ lib/archive/cpio.sh
 lib/archive/deb.sh
 lib/archive/jar.sh
 lib/archive/rar.sh
+lib/archive/sevenzip.sh
 lib/archive/tar.sh
 lib/archive/zip.sh
 lib/buildsys/Makefile

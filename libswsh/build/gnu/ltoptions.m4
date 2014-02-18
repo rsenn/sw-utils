@@ -126,11 +126,7 @@ LT_OPTION_DEFINE([LT_INIT], [win32-dll],
 [enable_win32_dll=yes
 
 case $host in
-<<<<<<< HEAD
-*-*-cygwin* | *-*-msys* | *-*-mingw* | *-*-pw32* | *-*-cegcc*)
-=======
 *-*-cygwin* | *-*-mingw* | *-*-pw32* | *-*-cegcc*)
->>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
   AC_CHECK_TOOL(AS, as, false)
   AC_CHECK_TOOL(DLLTOOL, dlltool, false)
   AC_CHECK_TOOL(OBJDUMP, objdump, false)

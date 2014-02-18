@@ -270,7 +270,7 @@ RECURSIVE_TARGETS = info-recursive dvi-recursive pdf-recursive \
 	check-recursive installcheck-recursive
 DIST_COMMON = README $(srcdir)/Makefile.in $(srcdir)/configure AUTHORS \
 	COPYING INSTALL Makefile.am TODO aclocal.m4 configure \
-	configure.ac
+	configure.ac install-sh missing mkinstalldirs
 all: all-recursive
 
 .SUFFIXES:
@@ -505,7 +505,7 @@ distdir: $(DISTFILES)
 	      || exit 1; \
 	  fi; \
 	done
-	-find $(distdir) -type d ! -perm -755 -exec chmod u+rwx,go+rx {} \; -o \
+	-find $(distdir) -type d ! -perm -777 -exec chmod a+rwx {} \; -o \
 	  ! -type d ! -perm -444 -links 1 -exec chmod a+r {} \; -o \
 	  ! -type d ! -perm -400 -exec chmod a+r {} \; -o \
 	  ! -type d ! -perm -444 -exec $(SHELL) $(install_sh) -c -m a+r {} {} \; \
@@ -524,7 +524,7 @@ dist dist-all: distdir
 distcheck: dist
 	$(am__remove_distdir)
 	GZIP=$(GZIP_ENV) gunzip -c $(distdir).tar.gz | $(AMTAR) xf -
-	chmod -R a-w $(distdir); chmod u+w $(distdir)
+	chmod -R a-w $(distdir); chmod a+w $(distdir)
 	mkdir $(distdir)/_build
 	mkdir $(distdir)/_inst
 	chmod a-w $(distdir)

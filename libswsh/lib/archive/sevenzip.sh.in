@@ -1,0 +1,123 @@
+#!/bin/sh
+#
+# archive/sevenzip.sh: RAR archiving functions.
+#
+# $Id: sevenzip.sh.in 967 2009-06-22 07:18:20Z enki $
+
+test $lib_archive_sevenzip_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/util.sh
+. $shlibdir/std/escape.sh
+
+# sevenzip_cmd [options] <sevenzip-archive> [files/directories...]
+#
+# Outputs a suitable command-line for the sevenzip program.
+#
+#     -l, --level NUM         Compression level: 0 = store -> 9 = best.
+#     -d, --dereference       Dump the files instead of symlink pointing to.
+#     -x, --exclude PATTERN   Exclude files matching PATTERN.
+# -------------------------------------------------------------------------
+sevenzip_cmd()
+{
+  local cmd= uncmd= un= arg= xcl= a= s=' ' c=false IFS=$nl
+  eval "set -- $(getopt --name=sevenzip --shell=sh \
+                        --longoptions=level:,dereference,exclude:,no-recursion,create,delete,list,unpack -o 0123456789hx:Rcdlu -- "$@")"
+
+  cmd="7z"
+
+  local filter= #"|sed -e 's|^\s*[^:\s]\+:\s\+||' -e 's|\s\+([^()]\+)$||'"
+  local unfilter= #"|sed -ne 's|^\s*[0-9]\+\s\+[0-1][0-9]-[0-3][0-9]-[0-9][0-9]\s\+[0-2][0-9]:[0-5][0-9]\s\+\(.*\)$|\1|p'"
+
+  while test -n "$1"; do
+    case $1 in
+      # compression level
+      -[0-9]|--level)
+         ;;
+
+      # exclude files/dirs...
+      -x|--exclude)
+
+         xcl=${xcl:+$xcl$s}'-x"'"`escape_dquote "$2"`"'"'
+         shift
+         ;;
+
+      -c|--create)
+        # cmd=${cmd//-[cxtv]$s/} && cmd=${cmd%$s-[cxtv]}
+         cmd=${cmd:+$cmd$s}'a'
+         ;;
+
+      -l|--list)
+         cmd="${cmd}${s}l"
+         arg="${arg:+$arg$s}2>/dev/null"
+         ;;
+
+      -u|--unpack)
+         cmd="7z${s}x"
+         
+         ;;
+
+#      -h|--dereference)  cmd=${cmd:+$cmd$s}'-h' ;;
+      -R|--no-recursion) cmd=${cmd:+$cmd$s}'-r-' ;;
+
+      --) shift && break ;;
+    esac
+    shift
+  done
+  a=$1
+  shift
+  while test -n "$1"; do
+    arg="${arg:+$arg$s}\"`escape_dquote "$1"`\""
+    shift
+  done
+  echo $cmd "\"`escape_dquote "$a"`\"" $arg $xcl `var_get ${un}filter`
+}
+
+# sevenzip_create <sevenzip-archive> [files/directories...]
+#
+# Pack the specified files and directories into a newly created sevenzip-archive.
+# -------------------------------------------------------------------------
+sevenzip_create()
+{
+  local IFS= a=${1:?archive name required}
+  msg "Creating 7z archive '$1'..."
+  eval `sevenzip_cmd --create "$@"`
+}
+
+# -------------------------------------------------------------------------
+sevenzip_unpack()
+{
+  local IFS= a=${1:?archive name required}
+  msg "Unpacking 7z archive '$1'..."
+  eval `sevenzip_cmd --unpack "$@"`
+}
+
+# sevenzip_update <sevenzip-archive> [files/directories]
+#
+# Update the sevenzip-archive (adding when necessary) with the specified files
+# and directories.
+# -------------------------------------------------------------------------
+sevenzip_update()
+{ 
+  local IFS= a=${1:?archive name required}
+  msg "Creating 7z archive '$1'..."
+  eval `sevenzip_cmd --update "$@"`  
+}
+
+# sevenzip_list <sevenzip-archive> [files/directories]
+#
+# List either all or only the specified files and directories from the sevenzip-archive.
+# -------------------------------------------------------------------------
+sevenzip_list()
+{ 
+  local IFS= a=${1:?archive name required}
+  msg "Listing contents of 7z archive '$1'..."
+  eval `sevenzip_cmd --list "$@"`  
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_archive_sevenzip_sh=:; }

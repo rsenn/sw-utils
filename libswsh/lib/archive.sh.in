@@ -16,6 +16,7 @@ test $lib_archive_sh || {
 . $shlibdir/util.sh
 . $shlibdir/fs/dir.sh
 . $shlibdir/archive/rar.sh
+. $shlibdir/archive/sevenzip.sh
 . $shlibdir/archive/zip.sh
 . $shlibdir/archive/jar.sh
 

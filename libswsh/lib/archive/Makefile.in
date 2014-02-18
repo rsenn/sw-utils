@@ -37,50 +37,7 @@ NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
 host_triplet = @host@
-<<<<<<< HEAD
-target_triplet = @target@
-subdir = lib/archive
-DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(srcdir)/cpio.sh.in $(srcdir)/deb.sh.in $(srcdir)/jar.sh.in \
-	$(srcdir)/rar.sh.in $(srcdir)/tar.sh.in $(srcdir)/zip.sh.in
-ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/build/gnu/define-dir.m4 \
-	$(top_srcdir)/build/gnu/find.m4 $(top_srcdir)/configure.ac
-am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
-	$(ACLOCAL_M4)
-mkinstalldirs = $(install_sh) -d
-CONFIG_CLEAN_FILES = cpio.sh deb.sh jar.sh rar.sh tar.sh zip.sh
-CONFIG_CLEAN_VPATH_FILES =
-SOURCES =
-DIST_SOURCES =
-am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
-am__vpath_adj = case $$p in \
-    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
-    *) f=$$p;; \
-  esac;
-am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
-am__install_max = 40
-am__nobase_strip_setup = \
-  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
-am__nobase_strip = \
-  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
-am__nobase_list = $(am__nobase_strip_setup); \
-  for p in $$list; do echo "$$p $$p"; done | \
-  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
-  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
-    if (++n[$$2] == $(am__install_max)) \
-      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
-    END { for (dir in files) print dir, files[dir] }'
-am__base_list = \
-  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
-  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
-am__installdirs = "$(DESTDIR)$(pkglibdir)"
-DATA = $(noinst_DATA) $(pkglib_DATA)
-DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
-pkgdatadir = @pkgdatadir@
-=======
 
->>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 pkglibdir = $(libdir)/sh/archive
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
@@ -249,19 +206,11 @@ target_cpu = @target_cpu@
 target_os = @target_os@
 target_vendor = @target_vendor@
 templatedir = @templatedir@
-<<<<<<< HEAD
-top_build_prefix = @top_build_prefix@
-top_builddir = @top_builddir@
-top_srcdir = @top_srcdir@
-GENERATED_FILES = cpio.sh deb.sh jar.sh rar.sh tar.sh zip.sh
-INPUT_FILES = cpio.sh.in deb.sh.in jar.sh.in rar.sh.in tar.sh.in zip.sh.in
-=======
 
-GENERATED_FILES = cpio.sh deb.sh jar.sh rar.sh tar.sh zip.sh
-INPUT_FILES = cpio.sh.in deb.sh.in jar.sh.in rar.sh.in tar.sh.in zip.sh.in
+GENERATED_FILES = cpio.sh deb.sh jar.sh rar.sh sevenzip.sh tar.sh zip.sh
+INPUT_FILES = cpio.sh.in deb.sh.in jar.sh.in rar.sh.in sevenzip.sh.in tar.sh.in zip.sh.in
 
->>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
-pkglib_DATA = cpio.sh deb.sh jar.sh rar.sh tar.sh zip.sh
+pkglib_DATA = cpio.sh deb.sh jar.sh rar.sh sevenzip.sh tar.sh zip.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 
@@ -270,50 +219,16 @@ CONFIG_MAINTAINERCLEAN_FILES = Makefile.in
 subdir = lib/archive
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/build/gnu/mkinstalldirs
-CONFIG_CLEAN_FILES = cpio.sh deb.sh jar.sh rar.sh tar.sh zip.sh
+CONFIG_CLEAN_FILES = cpio.sh deb.sh jar.sh rar.sh sevenzip.sh tar.sh \
+	zip.sh
 DIST_SOURCES =
 DATA = $(noinst_DATA) $(pkglib_DATA)
 
 DIST_COMMON = $(srcdir)/Makefile.in Makefile.am cpio.sh.in deb.sh.in \
-	jar.sh.in rar.sh.in tar.sh.in zip.sh.in
+	jar.sh.in rar.sh.in sevenzip.sh.in tar.sh.in zip.sh.in
 all: all-am
 
 .SUFFIXES:
-<<<<<<< HEAD
-$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
-	@for dep in $?; do \
-	  case '$(am__configure_deps)' in \
-	    *$$dep*) \
-	      ( cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh ) \
-	        && { if test -f $@; then exit 0; else break; fi; }; \
-	      exit 1;; \
-	  esac; \
-	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign lib/archive/Makefile'; \
-	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign lib/archive/Makefile
-.PRECIOUS: Makefile
-Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
-	@case '$?' in \
-	  *config.status*) \
-	    cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh;; \
-	  *) \
-	    echo ' cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@ $(am__depfiles_maybe)'; \
-	    cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@ $(am__depfiles_maybe);; \
-	esac;
-
-$(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
-	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-
-$(top_srcdir)/configure:  $(am__configure_deps)
-	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-$(ACLOCAL_M4):  $(am__aclocal_m4_deps)
-	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-$(am__aclocal_m4_deps):
-cpio.sh: $(top_builddir)/config.status $(srcdir)/cpio.sh.in
-	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
-deb.sh: $(top_builddir)/config.status $(srcdir)/deb.sh.in
-=======
 $(srcdir)/Makefile.in:  Makefile.am  $(top_srcdir)/configure.ac $(ACLOCAL_M4)
 	cd $(top_srcdir) && \
 	  $(AUTOMAKE) --foreign  lib/archive/Makefile
@@ -322,11 +237,12 @@ Makefile:  $(srcdir)/Makefile.in  $(top_builddir)/config.status
 cpio.sh: $(top_builddir)/config.status cpio.sh.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 deb.sh: $(top_builddir)/config.status deb.sh.in
->>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 jar.sh: $(top_builddir)/config.status jar.sh.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 rar.sh: $(top_builddir)/config.status rar.sh.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+sevenzip.sh: $(top_builddir)/config.status sevenzip.sh.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 tar.sh: $(top_builddir)/config.status tar.sh.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
