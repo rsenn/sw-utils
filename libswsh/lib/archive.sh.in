@@ -144,7 +144,7 @@ archive_container()
   local a=${1-"-"}
   local magic=`file "$a"` IFS="$space$newline$tabstop"
 
-  set -- ${magic#*:}
+  set -- ${magic#*": "}
 
   case $1 in
     POSIX|ASCII) shift ;;

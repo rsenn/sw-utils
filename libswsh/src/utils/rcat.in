@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # utils/rcat.sh: a wrapper around grep(), recursively iterating over directories
 #

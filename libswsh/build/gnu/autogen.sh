@@ -19,10 +19,10 @@ FILES=
 
 
 libtoolize --force --copy --automake 
-aclocal --force -I build/gnu
+rm -f aclocal.m4; aclocal -I build/gnu
 #autoheader --force
 automake --force --copy --foreign --add-missing
-aclocal --force -I build/gnu
+aclocal  -I build/gnu
 autoconf --force
 
 
@@ -132,7 +132,7 @@ cd "$MY_DIR/${PREPEND_AGOUTPUT}"
 
 (PS4="$MY_NAME: executing "
  set -x
- aclocal --force -I ${ACINPUT_DIR:-"."}
+ rm -f aclocal.m4; aclocal -I ${ACINPUT_DIR:-"."}
  automake --force --copy --foreign --add-missing
- aclocal --force -I ${ACINPUT_DIR:-"."}
+ rm -f aclocal.m4; aclocal -I ${ACINPUT_DIR:-"."}
  autoconf --force) 2>&1 

@@ -1,9 +1,17 @@
 
+<<<<<<< HEAD
 # libtool (GNU libtool) 2.4
 # Written by Gordon Matzigkeit <gord@gnu.ai.mit.edu>, 1996
 
 # Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006,
 # 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
+=======
+# libtool (GNU libtool) 2.4.2
+# Written by Gordon Matzigkeit <gord@gnu.ai.mit.edu>, 1996
+
+# Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006,
+# 2007, 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 # This is free software; see the source for copying conditions.  There is NO
 # warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
@@ -41,6 +49,10 @@
 #       --quiet, --silent    don't print informational messages
 #       --no-quiet, --no-silent
 #                            print informational messages (default)
+<<<<<<< HEAD
+=======
+#       --no-warn            don't display warning messages
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 #       --tag=TAG            use configuration variables from tag TAG
 #   -v, --verbose            print more informational messages than default
 #       --no-verbose         don't print the extra informational messages
@@ -69,7 +81,11 @@
 #         compiler:		$LTCC
 #         compiler flags:		$LTCFLAGS
 #         linker:		$LD (gnu? $with_gnu_ld)
+<<<<<<< HEAD
 #         $progname:	(GNU libtool) 2.4
+=======
+#         $progname:	(GNU libtool) 2.4.2
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 #         automake:	$automake_version
 #         autoconf:	$autoconf_version
 #
@@ -79,9 +95,15 @@
 
 PROGRAM=libtool
 PACKAGE=libtool
+<<<<<<< HEAD
 VERSION=2.4
 TIMESTAMP=""
 package_revision=1.3294
+=======
+VERSION=2.4.2
+TIMESTAMP=""
+package_revision=1.3337
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 
 # Be Bourne compatible
 if test -n "${ZSH_VERSION+set}" && (emulate sh) >/dev/null 2>&1; then
@@ -136,15 +158,17 @@ progpath="$0"
 
 : ${CP="cp -f"}
 test "${ECHO+set}" = set || ECHO=${as_echo-'printf %s\n'}
+<<<<<<< HEAD
 : ${EGREP="/bin/grep -E"}
 : ${FGREP="/bin/grep -F"}
 : ${GREP="/bin/grep"}
 : ${LN_S="cp -p"}
+=======
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 : ${MAKE="make"}
 : ${MKDIR="mkdir"}
 : ${MV="mv -f"}
 : ${RM="rm -f"}
-: ${SED="/bin/sed"}
 : ${SHELL="${CONFIG_SHELL-/bin/sh}"}
 : ${Xsed="$SED -e 1s/^X//"}
 
@@ -387,7 +411,7 @@ case $progpath in
      ;;
   *)
      save_IFS="$IFS"
-     IFS=:
+     IFS=${PATH_SEPARATOR-:}
      for progdir in $PATH; do
        IFS="$save_IFS"
        test -x "$progdir/$progname" && break
@@ -771,8 +795,8 @@ func_help ()
 	s*\$LTCFLAGS*'"$LTCFLAGS"'*
 	s*\$LD*'"$LD"'*
 	s/\$with_gnu_ld/'"$with_gnu_ld"'/
-	s/\$automake_version/'"`(automake --version) 2>/dev/null |$SED 1q`"'/
-	s/\$autoconf_version/'"`(autoconf --version) 2>/dev/null |$SED 1q`"'/
+	s/\$automake_version/'"`(${AUTOMAKE-automake} --version) 2>/dev/null |$SED 1q`"'/
+	s/\$autoconf_version/'"`(${AUTOCONF-autoconf} --version) 2>/dev/null |$SED 1q`"'/
 	p
 	d
      }
@@ -804,11 +828,32 @@ func_split_short_opt ()
 {
     my_sed_short_opt='1s/^\(..\).*$/\1/;q'
     my_sed_short_rest='1s/^..\(.*\)$/\1/;q'
+<<<<<<< HEAD
+=======
+
+    func_split_short_opt_name=`$ECHO "$1" | $SED "$my_sed_short_opt"`
+    func_split_short_opt_arg=`$ECHO "$1" | $SED "$my_sed_short_rest"`
+} # func_split_short_opt may be replaced by extended shell implementation
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 
     func_split_short_opt_name=`$ECHO "$1" | $SED "$my_sed_short_opt"`
     func_split_short_opt_arg=`$ECHO "$1" | $SED "$my_sed_short_rest"`
 } # func_split_short_opt may be replaced by extended shell implementation
 
+
+# func_split_long_opt longopt
+# Set func_split_long_opt_name and func_split_long_opt_arg shell
+# variables after splitting LONGOPT at the `=' sign.
+func_split_long_opt ()
+{
+    my_sed_long_opt='1s/^\(--[^=]*\)=.*/\1/;q'
+    my_sed_long_arg='1s/^--[^=]*=//'
+
+    func_split_long_opt_name=`$ECHO "$1" | $SED "$my_sed_long_opt"`
+    func_split_long_opt_arg=`$ECHO "$1" | $SED "$my_sed_long_arg"`
+} # func_split_long_opt may be replaced by extended shell implementation
+
+exit_cmd=:
 
 # func_split_long_opt longopt
 # Set func_split_long_opt_name and func_split_long_opt_arg shell
@@ -1008,6 +1053,8 @@ $progname: but the definition of this LT_INIT comes from revision $macro_revisio
 $progname: You should recreate aclocal.m4 with macros from revision $package_revision
 $progname: of $PACKAGE $VERSION and run autoconf again.
 _LT_EOF
+<<<<<<< HEAD
+=======
     fi
 
     exit $EXIT_MISMATCH
@@ -1015,6 +1062,197 @@ _LT_EOF
 }
 
 
+# Shorthand for --mode=foo, only valid as the first argument
+case $1 in
+clean|clea|cle|cl)
+  shift; set dummy --mode clean ${1+"$@"}; shift
+  ;;
+compile|compil|compi|comp|com|co|c)
+  shift; set dummy --mode compile ${1+"$@"}; shift
+  ;;
+execute|execut|execu|exec|exe|ex|e)
+  shift; set dummy --mode execute ${1+"$@"}; shift
+  ;;
+finish|finis|fini|fin|fi|f)
+  shift; set dummy --mode finish ${1+"$@"}; shift
+  ;;
+install|instal|insta|inst|ins|in|i)
+  shift; set dummy --mode install ${1+"$@"}; shift
+  ;;
+link|lin|li|l)
+  shift; set dummy --mode link ${1+"$@"}; shift
+  ;;
+uninstall|uninstal|uninsta|uninst|unins|unin|uni|un|u)
+  shift; set dummy --mode uninstall ${1+"$@"}; shift
+  ;;
+esac
+
+
+
+# Option defaults:
+opt_debug=:
+opt_dry_run=false
+opt_config=false
+opt_preserve_dup_deps=false
+opt_features=false
+opt_finish=false
+opt_help=false
+opt_help_all=false
+opt_silent=:
+opt_warning=:
+opt_verbose=:
+opt_silent=false
+opt_verbose=false
+
+
+# Parse options once, thoroughly.  This comes as soon as possible in the
+# script to make things like `--version' happen as quickly as we can.
+{
+  # this just eases exit handling
+  while test $# -gt 0; do
+    opt="$1"
+    shift
+    case $opt in
+      --debug|-x)	opt_debug='set -x'
+			func_echo "enabling shell trace mode"
+			$opt_debug
+			;;
+      --dry-run|--dryrun|-n)
+			opt_dry_run=:
+			;;
+      --config)
+			opt_config=:
+func_config
+			;;
+      --dlopen|-dlopen)
+			optarg="$1"
+			opt_dlopen="${opt_dlopen+$opt_dlopen
+}$optarg"
+			shift
+			;;
+      --preserve-dup-deps)
+			opt_preserve_dup_deps=:
+			;;
+      --features)
+			opt_features=:
+func_features
+			;;
+      --finish)
+			opt_finish=:
+set dummy --mode finish ${1+"$@"}; shift
+			;;
+      --help)
+			opt_help=:
+			;;
+      --help-all)
+			opt_help_all=:
+opt_help=': help-all'
+			;;
+      --mode)
+			test $# = 0 && func_missing_arg $opt && break
+			optarg="$1"
+			opt_mode="$optarg"
+case $optarg in
+  # Valid mode arguments:
+  clean|compile|execute|finish|install|link|relink|uninstall) ;;
+
+  # Catch anything else as an error
+  *) func_error "invalid argument for $opt"
+     exit_cmd=exit
+     break
+     ;;
+esac
+			shift
+			;;
+      --no-silent|--no-quiet)
+			opt_silent=false
+func_append preserve_args " $opt"
+			;;
+      --no-warning|--no-warn)
+			opt_warning=false
+func_append preserve_args " $opt"
+			;;
+      --no-verbose)
+			opt_verbose=false
+func_append preserve_args " $opt"
+			;;
+      --silent|--quiet)
+			opt_silent=:
+func_append preserve_args " $opt"
+        opt_verbose=false
+			;;
+      --verbose|-v)
+			opt_verbose=:
+func_append preserve_args " $opt"
+opt_silent=false
+			;;
+      --tag)
+			test $# = 0 && func_missing_arg $opt && break
+			optarg="$1"
+			opt_tag="$optarg"
+func_append preserve_args " $opt $optarg"
+func_enable_tag "$optarg"
+			shift
+			;;
+
+      -\?|-h)		func_usage				;;
+      --help)		func_help				;;
+      --version)	func_version				;;
+
+      # Separate optargs to long options:
+      --*=*)
+			func_split_long_opt "$opt"
+			set dummy "$func_split_long_opt_name" "$func_split_long_opt_arg" ${1+"$@"}
+			shift
+			;;
+
+      # Separate non-argument short options:
+      -\?*|-h*|-n*|-v*)
+			func_split_short_opt "$opt"
+			set dummy "$func_split_short_opt_name" "-$func_split_short_opt_arg" ${1+"$@"}
+			shift
+			;;
+
+      --)		break					;;
+      -*)		func_fatal_help "unrecognized option \`$opt'" ;;
+      *)		set dummy "$opt" ${1+"$@"};	shift; break  ;;
+    esac
+  done
+
+  # Validate options:
+
+  # save first non-option argument
+  if test "$#" -gt 0; then
+    nonopt="$opt"
+    shift
+  fi
+
+  # preserve --debug
+  test "$opt_debug" = : || func_append preserve_args " --debug"
+
+  case $host in
+    *cygwin* | *mingw* | *pw32* | *cegcc*)
+      # don't eliminate duplications in $postdeps and $predeps
+      opt_duplicate_compiler_generated_deps=:
+      ;;
+    *)
+      opt_duplicate_compiler_generated_deps=$opt_preserve_dup_deps
+      ;;
+  esac
+
+  $opt_help || {
+    # Sanity checks first:
+    func_check_version_match
+
+    if test "$build_libtool_libs" != yes && test "$build_old_libs" != yes; then
+      func_fatal_configuration "not configured to build any kind of library"
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
+    fi
+
+    # Darwin sucks
+    eval std_shrext=\"$shrext_cmds\"
+
+<<<<<<< HEAD
 # Shorthand for --mode=foo, only valid as the first argument
 case $1 in
 clean|clea|cle|cl)
@@ -1142,11 +1380,30 @@ func_append preserve_args " $opt $optarg"
 func_enable_tag "$optarg"
 			shift
 			;;
+=======
+    # Only execute mode is allowed to have -dlopen flags.
+    if test -n "$opt_dlopen" && test "$opt_mode" != execute; then
+      func_error "unrecognized option \`-dlopen'"
+      $ECHO "$help" 1>&2
+      exit $EXIT_FAILURE
+    fi
+
+    # Change the help message to a mode-specific one.
+    generic_help="$help"
+    help="Try \`$progname --help --mode=$opt_mode' for more information."
+  }
+
+
+  # Bail if the options were screwed
+  $exit_cmd $EXIT_FAILURE
+}
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 
       -\?|-h)		func_usage				;;
       --help)		func_help				;;
       --version)	func_version				;;
 
+<<<<<<< HEAD
       # Separate optargs to long options:
       --*=*)
 			func_split_long_opt "$opt"
@@ -1215,7 +1472,13 @@ func_enable_tag "$optarg"
   # Bail if the options were screwed
   $exit_cmd $EXIT_FAILURE
 }
+=======
 
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
+
+## ----------- ##
+##    Main.    ##
+## ----------- ##
 
 
 
@@ -2059,7 +2322,11 @@ func_mode_compile ()
     *.[cCFSifmso] | \
     *.ada | *.adb | *.ads | *.asm | \
     *.c++ | *.cc | *.ii | *.class | *.cpp | *.cxx | \
+<<<<<<< HEAD
     *.[fF][09]? | *.for | *.java | *.obj | *.sx | *.cu | *.cup)
+=======
+    *.[fF][09]? | *.for | *.java | *.go | *.obj | *.sx | *.cu | *.cup)
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
       func_xform "$libobj"
       libobj=$func_xform_result
       ;;
@@ -2657,6 +2924,7 @@ func_mode_finish ()
     do
       if test -d "$opt"; then
 	func_append libdirs " $opt"
+<<<<<<< HEAD
 
       elif test -f "$opt"; then
 	if func_lalib_unsafe_p "$opt"; then
@@ -2694,6 +2962,45 @@ func_mode_finish ()
       fi
     fi
 
+=======
+
+      elif test -f "$opt"; then
+	if func_lalib_unsafe_p "$opt"; then
+	  func_append libs " $opt"
+	else
+	  func_warning "\`$opt' is not a valid libtool archive"
+	fi
+
+      else
+	func_fatal_error "invalid argument \`$opt'"
+      fi
+    done
+
+    if test -n "$libs"; then
+      if test -n "$lt_sysroot"; then
+        sysroot_regex=`$ECHO "$lt_sysroot" | $SED "$sed_make_literal_regex"`
+        sysroot_cmd="s/\([ ']\)$sysroot_regex/\1/g;"
+      else
+        sysroot_cmd=
+      fi
+
+      # Remove sysroot references
+      if $opt_dry_run; then
+        for lib in $libs; do
+          echo "removing references to $lt_sysroot and \`=' prefixes from $lib"
+        done
+      else
+        tmpdir=`func_mktempdir`
+        for lib in $libs; do
+	  sed -e "${sysroot_cmd} s/\([ ']-[LR]\)=/\1/g; s/\([ ']\)=/\1/g" $lib \
+	    > $tmpdir/tmp-la
+	  mv -f $tmpdir/tmp-la $lib
+	done
+        ${RM}r "$tmpdir"
+      fi
+    fi
+
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
     if test -n "$finish_cmds$finish_eval" && test -n "$libdirs"; then
       for libdir in $libdirs; do
 	if test -n "$finish_cmds"; then
@@ -2735,6 +3042,7 @@ func_mode_finish ()
       if test -n "$hardcode_libdir_flag_spec"; then
 	libdir=LIBDIR
 	eval flag=\"$hardcode_libdir_flag_spec\"
+<<<<<<< HEAD
 
 	$ECHO "   - use the \`$flag' linker flag"
       fi
@@ -2746,6 +3054,19 @@ func_mode_finish ()
       fi
       echo
 
+=======
+
+	$ECHO "   - use the \`$flag' linker flag"
+      fi
+      if test -n "$admincmds"; then
+	$ECHO "   - have your system administrator run these commands:$admincmds"
+      fi
+      if test -f /etc/ld.so.conf; then
+	echo "   - have your system administrator add LIBDIR to \`/etc/ld.so.conf'"
+      fi
+      echo
+
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
       echo "See any operating system documentation about shared libraries for"
       case $host in
 	solaris2.[6789]|solaris2.1[0-9])
@@ -3201,11 +3522,13 @@ func_mode_install ()
 
       # Set up the ranlib parameters.
       oldlib="$destdir/$name"
+      func_to_tool_file "$oldlib" func_convert_file_msys_to_w32
+      tool_oldlib=$func_to_tool_file_result
 
       func_show_eval "$install_prog \$file \$oldlib" 'exit $?'
 
       if test -n "$stripme" && test -n "$old_striplib"; then
-	func_show_eval "$old_striplib $oldlib" 'exit $?'
+	func_show_eval "$old_striplib $tool_oldlib" 'exit $?'
       fi
 
       # Do each command in the postinstall commands.
@@ -3272,7 +3595,11 @@ extern \"C\" {
 #endif
 
 /* Keep this code in sync between libtool.m4, ltmain, lt_system.h, and tests.  */
+<<<<<<< HEAD
 #if defined(_WIN32) || defined(__CYGWIN__) || defined(__MSYS__) || defined(_WIN32_WCE)
+=======
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(_WIN32_WCE)
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 /* DATA imports from DLLs on WIN32 con't be const, because runtime
    relocations are performed -- see ld's documentation on pseudo-relocs.  */
 # define LT_DLSYM_CONST
@@ -3332,7 +3659,11 @@ extern \"C\" {
 	      eval '$GREP -f "$output_objdir/$outputname.exp" < "$nlist" > "$nlist"T'
 	      eval '$MV "$nlist"T "$nlist"'
 	      case $host in
+<<<<<<< HEAD
 	        *cygwin* | *msys* | *mingw* | *cegcc* )
+=======
+	        *cygwin* | *mingw* | *cegcc* )
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 	          eval "echo EXPORTS "'> "$output_objdir/$outputname.def"'
 	          eval 'cat "$nlist" >> "$output_objdir/$outputname.def"'
 	          ;;
@@ -3346,7 +3677,11 @@ extern \"C\" {
 	  func_basename "$dlprefile"
 	  name="$func_basename_result"
           case $host in
+<<<<<<< HEAD
 	    *cygwin* | *msys* | *mingw* | *cegcc* )
+=======
+	    *cygwin* | *mingw* | *cegcc* )
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 	      # if an import library, we need to obtain dlname
 	      if func_win32_import_lib_p "$dlprefile"; then
 	        func_tr_sh "$dlprefile"
@@ -3470,7 +3805,7 @@ static const void *lt_preloaded_setup() {
 	  # linked before any other PIC object.  But we must not use
 	  # pic_flag when linking with -static.  The problem exists in
 	  # FreeBSD 2.2.6 and is fixed in FreeBSD 3.1.
-	  *-*-freebsd2*|*-*-freebsd3.0*|*-*-freebsdelf3.0*)
+	  *-*-freebsd2.*|*-*-freebsd3.0*|*-*-freebsdelf3.0*)
 	    pic_flag_for_symtable=" $pic_flag -DFREEBSD_WORKAROUND" ;;
 	  *-*-hpux*)
 	    pic_flag_for_symtable=" $pic_flag"  ;;
@@ -3982,6 +4317,7 @@ func_exec_program_core ()
 # launches target application with the remaining arguments.
 func_exec_program ()
 {
+<<<<<<< HEAD
   for lt_wr_arg
   do
     case \$lt_wr_arg in
@@ -3990,6 +4326,19 @@ func_exec_program ()
     esac
     shift
   done
+=======
+  case \" \$* \" in
+  *\\ --lt-*)
+    for lt_wr_arg
+    do
+      case \$lt_wr_arg in
+      --lt-*) ;;
+      *) set x \"\$@\" \"\$lt_wr_arg\"; shift;;
+      esac
+      shift
+    done ;;
+  esac
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
   func_exec_program_core \${1+\"\$@\"}
 }
 
@@ -4176,7 +4525,11 @@ EOF
 # ifdef __STRICT_ANSI__
 int _putenv (const char *);
 # endif
+<<<<<<< HEAD
 #elif defined(__CYGWIN__) || defined(__MSYS__)
+=======
+#elif defined(__CYGWIN__)
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 # ifdef __STRICT_ANSI__
 char *realpath (const char *, char *);
 int putenv (char *);
@@ -4203,6 +4556,7 @@ int setenv (const char *, const char *, int);
 # define chmod   _chmod
 # define getcwd  _getcwd
 # define putenv  _putenv
+<<<<<<< HEAD
 #elif defined(__CYGWIN__) || defined(__MSYS__)
 # define HAVE_SETENV
 # define FOPEN_WB "wb"
@@ -4210,6 +4564,11 @@ int setenv (const char *, const char *, int);
    typedef long intptr_t;
 #  define __intptr_t_defined
 # endif
+=======
+#elif defined(__CYGWIN__)
+# define HAVE_SETENV
+# define FOPEN_WB "wb"
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 /* #elif defined (other platforms) ... */
 #endif
 
@@ -5057,6 +5416,7 @@ prepare_spawn (char **argv)
 EOF
 		;;
 	    esac
+<<<<<<< HEAD
 
             cat <<"EOF"
 void lt_dump_script (FILE* f)
@@ -5067,11 +5427,30 @@ EOF
 	           -e 's/^/  fputs ("/' -e 's/$/\\n", f);/'
 
             cat <<"EOF"
+=======
+
+            cat <<"EOF"
+void lt_dump_script (FILE* f)
+{
+EOF
+	    func_emit_wrapper yes |
+	      $SED -n -e '
+s/^\(.\{79\}\)\(..*\)/\1\
+\2/
+h
+s/\([\\"]\)/\\\1/g
+s/$/\\n/
+s/\([^\n]*\).*/  fputs ("\1", f);/p
+g
+D'
+            cat <<"EOF"
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 }
 EOF
 }
 # end: func_emit_cwrapperexe_src
 
+<<<<<<< HEAD
 # func_emit_exe_manifest
 # emit a Win32 UAC manifest for executable on stdout
 # Must ONLY be called from within func_mode_link because
@@ -5107,6 +5486,8 @@ EOF
 EOF
 }
 
+=======
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 # func_win32_import_lib_p ARG
 # True if ARG is an import lib, as indicated by $file_magic_cmd
 func_win32_import_lib_p ()
@@ -5610,7 +5991,11 @@ func_mode_link ()
 	  ;;
 	esac
 	case $host in
+<<<<<<< HEAD
 	*-*-cygwin* | *-*-msys* | *-*-mingw* | *-*-pw32* | *-*-os2* | *-cegcc*)
+=======
+	*-*-cygwin* | *-*-mingw* | *-*-pw32* | *-*-os2* | *-cegcc*)
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 	  testbindir=`$ECHO "$dir" | $SED 's*/lib$*/bin*'`
 	  case :$dllsearchpath: in
 	  *":$dir:"*) ;;
@@ -5630,7 +6015,11 @@ func_mode_link ()
       -l*)
 	if test "X$arg" = "X-lc" || test "X$arg" = "X-lm"; then
 	  case $host in
+<<<<<<< HEAD
 	  *-*-cygwin* | *-*-msys* | *-*-mingw* | *-*-pw32* | *-*-beos* | *-cegcc* | *-*-haiku*)
+=======
+	  *-*-cygwin* | *-*-mingw* | *-*-pw32* | *-*-beos* | *-cegcc* | *-*-haiku*)
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 	    # These systems don't actually have a C or math library (as such)
 	    continue
 	    ;;
@@ -5684,7 +6073,12 @@ func_mode_link ()
 	continue
 	;;
 
+<<<<<<< HEAD
       -mt|-mthreads|-kthread|-Kthread|-pthread|-pthreads|--thread-safe|-threads)
+=======
+      -mt|-mthreads|-kthread|-Kthread|-pthread|-pthreads|--thread-safe \
+      |-threads|-fopenmp|-openmp|-mp|-xopenmp|-omp|-qsmp=*)
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 	func_append compiler_flags " $arg"
 	func_append compile_command " $arg"
 	func_append finalize_command " $arg"
@@ -5879,6 +6273,7 @@ func_mode_link ()
       # -tp=*                Portland pgcc target processor selection
       # --sysroot=*          for sysroot support
       # -O*, -flto*, -fwhopr*, -fuse-linker-plugin GCC link-time optimization
+<<<<<<< HEAD
       # -{shared,static}-libgcc, -static-{libgfortran|libstdc++}
       #                      link against specified runtime library
       # -fstack-protector*   stack protector flags for GCC
@@ -5887,6 +6282,11 @@ func_mode_link ()
       -O*|-flto*|-fwhopr*|-fuse-linker-plugin| \
       -shared-libgcc|-static-libgcc|-static-libgfortran|-static-libstdc++| \
       -fstack-protector*)
+=======
+      -64|-mips[0-9]|-r[0-9][0-9]*|-xarch=*|-xtarget=*|+DA*|+DD*|-q*|-m*| \
+      -t[45]*|-txscale*|-p|-pg|--coverage|-fprofile-*|-F*|@*|-tp=*|--sysroot=*| \
+      -O*|-flto*|-fwhopr*|-fuse-linker-plugin)
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
         func_quote_for_eval "$arg"
 	arg="$func_quote_for_eval_result"
         func_append compile_command " $arg"
@@ -6193,7 +6593,8 @@ func_mode_link ()
 	lib=
 	found=no
 	case $deplib in
-	-mt|-mthreads|-kthread|-Kthread|-pthread|-pthreads|--thread-safe|-threads)
+	-mt|-mthreads|-kthread|-Kthread|-pthread|-pthreads|--thread-safe \
+        |-threads|-fopenmp|-openmp|-mp|-xopenmp|-omp|-qsmp=*)
 	  if test "$linkmode,$pass" = "prog,link"; then
 	    compile_deplibs="$deplib $compile_deplibs"
 	    finalize_deplibs="$deplib $finalize_deplibs"
@@ -6577,7 +6978,11 @@ func_mode_link ()
 	  fi
 	  case "$host" in
 	    # special handling for platforms with PE-DLLs.
+<<<<<<< HEAD
 	    *cygwin* | *msys* | *mingw* | *cegcc* )
+=======
+	    *cygwin* | *mingw* | *cegcc* )
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 	      # Linker will automatically link against shared library if both
 	      # static and shared are present.  Therefore, ensure we extract
 	      # symbols from the import library if a shared library is present
@@ -6877,7 +7282,7 @@ func_mode_link ()
 	         test "$hardcode_direct_absolute" = no; then
 		add="$dir/$linklib"
 	      elif test "$hardcode_minus_L" = yes; then
-		add_dir="-L$dir"
+		add_dir="-L$absdir"
 		# Try looking first in the location we're being installed to.
 		if test -n "$inst_prefix_dir"; then
 		  case $libdir in
@@ -7362,6 +7767,7 @@ func_mode_link ()
 	  # which has an extra 1 added just for fun
 	  #
 	  case $version_type in
+	  # correct linux to gnu/linux during the next big refactor
 	  darwin|linux|osf|windows|none)
 	    func_arith $number_major + $number_minor
 	    current=$func_arith_result
@@ -7478,7 +7884,7 @@ func_mode_link ()
 	  versuffix="$major.$revision"
 	  ;;
 
-	linux)
+	linux) # correct to gnu/linux during the next big refactor
 	  func_arith $current - $age
 	  major=.$func_arith_result
 	  versuffix="$major.$age.$revision"
@@ -7651,7 +8057,11 @@ func_mode_link ()
       if test "$build_libtool_libs" = yes; then
 	if test -n "$rpath"; then
 	  case $host in
+<<<<<<< HEAD
 	  *-*-cygwin* | *-*-msys* | *-*-mingw* | *-*-pw32* | *-*-os2* | *-*-beos* | *-cegcc* | *-*-haiku*)
+=======
+	  *-*-cygwin* | *-*-mingw* | *-*-pw32* | *-*-os2* | *-*-beos* | *-cegcc* | *-*-haiku*)
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 	    # these systems don't actually have a c library (as such)!
 	    ;;
 	  *-*-rhapsody* | *-*-darwin1.[012])
@@ -8066,6 +8476,11 @@ EOF
 
       # Test again, we may have decided not to build it any more
       if test "$build_libtool_libs" = yes; then
+	# Remove ${wl} instances when linking with ld.
+	# FIXME: should test the right _cmds variable.
+	case $archive_cmds in
+	  *\$LD\ *) wl= ;;
+        esac
 	if test "$hardcode_into_libs" = yes; then
 	  # Hardcode the library paths
 	  hardcode_libdirs=
@@ -8096,7 +8511,11 @@ EOF
 	    elif test -n "$runpath_var"; then
 	      case "$perm_rpath " in
 	      *" $libdir "*) ;;
+<<<<<<< HEAD
 	      *) func_apped perm_rpath " $libdir" ;;
+=======
+	      *) func_append perm_rpath " $libdir" ;;
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 	      esac
 	    fi
 	  done
@@ -8104,11 +8523,7 @@ EOF
 	  if test -n "$hardcode_libdir_separator" &&
 	     test -n "$hardcode_libdirs"; then
 	    libdir="$hardcode_libdirs"
-	    if test -n "$hardcode_libdir_flag_spec_ld"; then
-	      eval dep_rpath=\"$hardcode_libdir_flag_spec_ld\"
-	    else
-	      eval dep_rpath=\"$hardcode_libdir_flag_spec\"
-	    fi
+	    eval "dep_rpath=\"$hardcode_libdir_flag_spec\""
 	  fi
 	  if test -n "$runpath_var" && test -n "$perm_rpath"; then
 	    # We should set the runpath_var.
@@ -8911,7 +9326,11 @@ EOF
         # Disable wrappers for cegcc and mingw32ce hosts, we are cross compiling anyway.
         wrappers_required=no
         ;;
+<<<<<<< HEAD
       *cygwin* | *msys* | *mingw* )
+=======
+      *cygwin* | *mingw* )
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
         if test "$build_libtool_libs" != yes; then
           wrappers_required=no
         fi
@@ -9208,6 +9627,8 @@ EOF
 	    esac
 	  done
 	fi
+	func_to_tool_file "$oldlib" func_convert_file_msys_to_w32
+	tool_oldlib=$func_to_tool_file_result
 	eval cmds=\"$old_archive_cmds\"
 
 	func_len " $cmds"
@@ -9317,7 +9738,8 @@ EOF
 	      *.la)
 		func_basename "$deplib"
 		name="$func_basename_result"
-		eval libdir=`${SED} -n -e 's/^libdir=\(.*\)$/\1/p' $deplib`
+		func_resolve_sysroot "$deplib"
+		eval libdir=`${SED} -n -e 's/^libdir=\(.*\)$/\1/p' $func_resolve_sysroot_result`
 		test -z "$libdir" && \
 		  func_fatal_error "\`$deplib' is not a valid libtool archive"
 		func_append newdependency_libs " ${lt_sysroot:+=}$libdir/$name"
@@ -9402,7 +9824,11 @@ EOF
 	  # tests/bindir.at for full details.
 	  tdlname=$dlname
 	  case $host,$output,$installed,$module,$dlname in
+<<<<<<< HEAD
 	    *cygwin*,*lai,yes,no,*.dll | *msys*,*lai,yes,no,*.dll | *mingw*,*lai,yes,no,*.dll | *cegcc*,*lai,yes,no,*.dll)
+=======
+	    *cygwin*,*lai,yes,no,*.dll | *mingw*,*lai,yes,no,*.dll | *cegcc*,*lai,yes,no,*.dll)
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 	      # If a -bindir argument was supplied, place the dll there.
 	      if test "x$bindir" != x ;
 	      then
@@ -9622,9 +10048,14 @@ func_mode_uninstall ()
 	    # note $name still contains .exe if it was in $file originally
 	    # as does the version of $file that was added into $rmfiles
 	    func_append rmfiles " $odir/$name $odir/${name}S.${objext}"
+<<<<<<< HEAD
 	    func_append rmfiles " ${name}.manifest $objdir/${name}.manifest"
 	    if test "$fast_install" = yes && test -n "$relink_command"; then
 	      func_append rmfiles " $odir/lt-$name $objdir/lt-${name}.manifest"
+=======
+	    if test "$fast_install" = yes && test -n "$relink_command"; then
+	      func_append rmfiles " $odir/lt-$name"
+>>>>>>> e18d8b4fcb6f4a0ebb8c549e050778e633c7ec14
 	    fi
 	    if test "X$noexename" != "X$name" ; then
 	      func_append rmfiles " $odir/lt-${noexename}.c"

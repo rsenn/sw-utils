@@ -90,7 +90,15 @@ apt_install()
 # -------------------------------------------------------------------------
 apt_info()
 {
-  apt-cache show "$@"
+  CMD='apt-cache show "$@"'
+  [ $# -gt 1 ] &&
+    CMD="$CMD | while read -r LINE; do
+    case \$LINE in
+      Package:*) PKG=\${LINE#*Package: } ;;
+    esac
+    echo \"\$PKG: \$LINE\"
+  done"
+  eval "$CMD"
 }
 
 # apt_dep_cache 

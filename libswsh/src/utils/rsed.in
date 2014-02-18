@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # utils/rsed.sh: a wrapper around sed(1) recursively iterating over directories
 #

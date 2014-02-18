@@ -10,10 +10,10 @@ cd "$topdir"
 set -x
 
 libtoolize --force --copy --automake
-aclocal --force -I m4 -I build/gnu
+rm -f aclocal.m4; aclocal  -I m4 -I build/gnu
 autoheader --force
 automake --force --copy --foreign --add-missing --foreign
-aclocal --force -I m4 -I build/gnu
+rm -f aclocal.m4; aclocal -I m4 -I build/gnu
 autoconf --force
 
 #([ -d objconv ] && cd objconv && exec sh -x autogen.sh) || exit $?
