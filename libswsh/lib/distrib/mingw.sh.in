@@ -6,10 +6,10 @@
 # ------------------------------------------------------------------------- 
 test $lib_distrib_mingw_sh || {
 
-: ${prefix:="@prefix@"}
-: ${exec_prefix:="@exec_prefix@"}
-: ${libdir:="@libdir@"}
-: ${shlibdir:="@shlibdir@"}
+: ${prefix:="/usr"}
+: ${exec_prefix:="/usr"}
+: ${libdir:="${exec_prefix}/lib"}
+: ${shlibdir:="${libdir}/sh"}
 
 # is_mingw [mingw-release-file]
 #
@@ -17,8 +17,8 @@ test $lib_distrib_mingw_sh || {
 # ---------------------------------------------------------------------------
 is_mingw()
 {
-  case `uname -o` in
-    MINGW*) return 0 ;;
+  case "$MSYSTEM":`gcc -dumpmachine` in
+    MINGW*:*-mingw*) return 0 ;;
   esac
   return 1
 }
@@ -41,7 +41,7 @@ mingw_relfile()
 mingw_version() 
 {
 # TODO: this is not the mingw runtime version
-  mingw32-gcc -dumpversion
+  echo
 }
 
 # mingw_release
@@ -63,7 +63,7 @@ mingw_release()
 # ---------------------------------------------------------------------------
 mingw_pkgmgr()
 {
-  echo mingw
+  echo mingw-get
 }
 
 # --- eof ---------------------------------------------------------------------

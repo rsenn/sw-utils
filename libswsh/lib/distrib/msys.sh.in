@@ -1,79 +1,79 @@
 #!/bin/sh
 #
-# distrib/cygwin.sh: Cygwin distribution detection and handling of distribution-specific things.
+# distrib/msys.sh: Msys distribution detection and handling of distribution-specific things.
 #
-# $Id: cygwin.sh.in 655 2008-09-12 00:21:46Z enki $
+# $Id: msys.sh.in 655 2008-09-12 00:21:46Z enki $
 # ------------------------------------------------------------------------- 
-test $lib_distrib_cygwin_sh || {
+test $lib_distrib_msys_sh || {
 
 : ${prefix:="@prefix@"}
 : ${exec_prefix:="@exec_prefix@"}
 : ${libdir:="@libdir@"}
 : ${shlibdir:="@shlibdir@"}
 
-# is_cygwin [cygwin-release-file]
+# is_msys [msys-release-file]
 #
-# Checks whether the underlying distribution is a Cygwin. 
+# Checks whether the underlying distribution is a Msys. 
 # ---------------------------------------------------------------------------
-is_cygwin()
+is_msys()
 {
   case `uname -o`:`gcc -dumpmachine` in
-    Cygwin:*-cygwin-*) return 0 ;;
+    Msys:*-msys*) return 0 ;;
   esac
   return 1
 }
 
-# cygwin_relfile [cygwin-release-file]
+# msys_relfile [msys-release-file]
 #
-# Print the path to the Cygwin release file.
+# Print the path to the Msys release file.
 # ---------------------------------------------------------------------------
-cygwin_relfile() 
+msys_relfile() 
 {
   echo /etc/postinstall/base-files-profile.sh.done
 }
 
-# cygwin_version
+# msys_version
 #
-# Get Cygwin version information 
+# Get Msys version information 
 # ---------------------------------------------------------------------------
-cygwin_version() 
+msys_version() 
 {
- (if is_cygwin; then
+ (if is_msys; then
     RELEASE=`uname -r`
     echo ${RELEASE%"("*}
   fi)
 }
 
-# cygwin_release
+# msys_release
 #
-# Get Cygwin release information
+# Get Msys release information
 # ---------------------------------------------------------------------------
-cygwin_release()
+msys_release()
 {
- (id=Cygwin 
-  release=`cygwin_version`
-  description="Cygwin $release"
+ (id=Msys 
+  release=`msys_version`
+  description="Msys $release"
 
   var_dump id release description)
 }
 
-# cygwin_pkgmgr
+# msys_pkgmgr
 #
 # The kind of package manager used by Ubuntu distributions.
 # ---------------------------------------------------------------------------
-cygwin_pkgmgr()
+msys_pkgmgr()
 {
-  echo cygsetup
+  echo 
 }
 
-# cygwin_mirrors
+# msys_mirrors
 # ---------------------------------------------------------------------------
-cygwin_mirrors()
+msys_mirrors()
 {
-  http_get "http://www.cygwin.com/mirrors.html" | 
+  http_get "http://www.msys.com/mirrors.html" | 
   xml_get li | 
   xml_get a href
 }
 
 # --- eof ---------------------------------------------------------------------
-lib_distrib_cygwin_sh=:;}
+lib_distrib_msys_sh=:;}
