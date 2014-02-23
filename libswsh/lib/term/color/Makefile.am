@@ -3,7 +3,7 @@
 
 pkglibdir = $(libdir)/sh/term/color
 
-pkglib_DATA = 
+pkglib_DATA = Makefile
 EXTRA_DIST =
 
 CONFIG_MAINTAINERCLEAN_FILES = Makefile.in

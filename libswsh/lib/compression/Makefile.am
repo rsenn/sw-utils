@@ -6,7 +6,7 @@ INPUT_FILES = bzip2.sh.in gzip.sh.in lzma.sh.in
 
 pkglibdir = $(libdir)/sh/compression
 
-pkglib_DATA = bzip2.sh gzip.sh lzma.sh
+pkglib_DATA = bzip2.sh gzip.sh lzma.sh Makefile
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

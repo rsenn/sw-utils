@@ -5,7 +5,7 @@ INPUT_FILES = tokgrep.in toksubst.in
 
 
 
-bin_SCRIPTS = tokgrep toksubst
+bin_SCRIPTS = Makefile tokgrep toksubst
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

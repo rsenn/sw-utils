@@ -6,7 +6,7 @@ INPUT_FILES = acbootstrap.in acbuild.in acrun.in fnsed.in rcat.in rsed.in
 
 
 
-bin_SCRIPTS = acbootstrap acbuild acrun fnsed rcat rsed
+bin_SCRIPTS = acbootstrap acbuild acrun fnsed Makefile rcat rsed
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

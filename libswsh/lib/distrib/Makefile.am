@@ -6,7 +6,7 @@ INPUT_FILES = centos.sh.in cygwin.sh.in debian.sh.in gentoo.sh.in lsb.sh.in mand
 
 pkglibdir = $(libdir)/sh/distrib
 
-pkglib_DATA = centos.sh cygwin.sh debian.sh gentoo.sh lsb.sh mandrake.sh mingw.sh msys.sh redhat.sh slackware.sh ubuntu.sh
+pkglib_DATA = centos.sh cygwin.sh debian.sh gentoo.sh lsb.sh Makefile mandrake.sh mingw.sh msys.sh redhat.sh slackware.sh ubuntu.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

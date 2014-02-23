@@ -268,8 +268,8 @@ lib/buildsys.sh
 lib/bytesize.sh
 lib/distrib.sh
 lib/fs.sh
-lib/pkg.sh
 lib/pkgmgr.sh
+lib/pkg.sh
 lib/port.sh
 lib/service.sh
 lib/shdoc.sh

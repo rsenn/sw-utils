@@ -6,7 +6,7 @@ INPUT_FILES = bin.sh.in perl.sh.in ruby.sh.in
 
 pkglibdir = $(libdir)/sh/code
 
-pkglib_DATA = bin.sh perl.sh ruby.sh
+pkglib_DATA = bin.sh Makefile perl.sh ruby.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 
