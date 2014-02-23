@@ -799,6 +799,9 @@ uninstall-am: uninstall-pkgdocDATA uninstall-pkglib_shDATA
 	uninstall-pkglib_shDATA
 
 
+@DEVTODO_TRUE@$(srcdir)/.todo:
+@DEVTODO_TRUE@	[ ! -s "$@" ] && echo -e '<?xml version="1.0"?>\n<todo version="0.1.20">\n</todo>' >$@
+
 @DEVTODO_TRUE@TODO: $(srcdir)/.todo
 @DEVTODO_TRUE@	-devtodo -A --TODO --verbose --date-format "%Y%m%d" --database $<
 
