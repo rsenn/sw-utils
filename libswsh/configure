@@ -2319,7 +2319,11 @@ if test "$cross_compiling" != no; then
 set dummy ${ac_tool_prefix}strip; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
 $as_echo_n "checking for $ac_word... " >&6; }
+<<<<<<< HEAD
 if test "${ac_cv_prog_STRIP+set}" = set; then :
+=======
+if ${ac_cv_prog_STRIP+:} false; then :
+>>>>>>> 0be96e30245e504a7e77ee65c8acfcdee48641e6
   $as_echo_n "(cached) " >&6
 else
   if test -n "$STRIP"; then
@@ -2331,7 +2335,11 @@ do
   IFS=$as_save_IFS
   test -z "$as_dir" && as_dir=.
     for ac_exec_ext in '' $ac_executable_extensions; do
+<<<<<<< HEAD
   if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+=======
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+>>>>>>> 0be96e30245e504a7e77ee65c8acfcdee48641e6
     ac_cv_prog_STRIP="${ac_tool_prefix}strip"
     $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
     break 2
@@ -2359,7 +2367,11 @@ if test -z "$ac_cv_prog_STRIP"; then
 set dummy strip; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
 $as_echo_n "checking for $ac_word... " >&6; }
+<<<<<<< HEAD
 if test "${ac_cv_prog_ac_ct_STRIP+set}" = set; then :
+=======
+if ${ac_cv_prog_ac_ct_STRIP+:} false; then :
+>>>>>>> 0be96e30245e504a7e77ee65c8acfcdee48641e6
   $as_echo_n "(cached) " >&6
 else
   if test -n "$ac_ct_STRIP"; then
@@ -2371,7 +2383,11 @@ do
   IFS=$as_save_IFS
   test -z "$as_dir" && as_dir=.
     for ac_exec_ext in '' $ac_executable_extensions; do
+<<<<<<< HEAD
   if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+=======
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+>>>>>>> 0be96e30245e504a7e77ee65c8acfcdee48641e6
     ac_cv_prog_ac_ct_STRIP="strip"
     $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
     break 2

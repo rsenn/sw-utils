@@ -1,7 +1,11 @@
 #!/bin/sh
 # install - install a program, script, or datafile
 
+<<<<<<< HEAD
 scriptversion=2006-10-14.15
+=======
+scriptversion=2006-12-25.00
+>>>>>>> 0be96e30245e504a7e77ee65c8acfcdee48641e6
 
 # This originates from X11R5 (mit/util/scripts/install.sh), which was
 # later released in X11R6 (xc/config/util/install.sh) with the
