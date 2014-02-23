@@ -678,6 +678,8 @@ DASH
 ASH
 SH
 BASH
+pkgdir
+portsdir
 LN_S
 am__untar
 am__tar
@@ -2550,8 +2552,40 @@ fi
 
 
 
-AC_DEFINE_DIR(portsdir,prefix/ports,Define this to the directory where you store your ports tree)
-AC_DEFINE_DIR(pkgdir,prefix/pkg,Define this to the directory where you want to store built packages)
+
+  prefix_NONE=
+  exec_prefix_NONE=
+  test "x$prefix" = xNONE && prefix_NONE=yes && prefix=$ac_default_prefix
+  test "x$exec_prefix" = xNONE && exec_prefix_NONE=yes && exec_prefix=$prefix
+  eval ac_define_dir="\"$prefix/ports\""
+  eval ac_define_dir="\"$ac_define_dir\""
+  portsdir="$ac_define_dir"
+
+
+cat >>confdefs.h <<_ACEOF
+#define portsdir "$ac_define_dir"
+_ACEOF
+
+  test "$prefix_NONE" && prefix=NONE
+  test "$exec_prefix_NONE" && exec_prefix=NONE
+
+
+  prefix_NONE=
+  exec_prefix_NONE=
+  test "x$prefix" = xNONE && prefix_NONE=yes && prefix=$ac_default_prefix
+  test "x$exec_prefix" = xNONE && exec_prefix_NONE=yes && exec_prefix=$prefix
+  eval ac_define_dir="\"$prefix/pkg\""
+  eval ac_define_dir="\"$ac_define_dir\""
+  pkgdir="$ac_define_dir"
+
+
+cat >>confdefs.h <<_ACEOF
+#define pkgdir "$ac_define_dir"
+_ACEOF
+
+  test "$prefix_NONE" && prefix=NONE
+  test "$exec_prefix_NONE" && exec_prefix=NONE
+
 
 # Check for required programs
 SHELLS=
