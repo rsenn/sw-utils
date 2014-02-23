@@ -262,16 +262,13 @@ BUILD_FILES = \
   setup.sh
 
 pkgdocdir = ${docdir}
-pkgdoc_DATA = \
-  README \
-  TODO \
-	AUTHORS
-
+@DEVTODO_TRUE@DEVTODO_OUTPUT = TODO
+pkgdoc_DATA = README AUTHORS $(DEVTODO_OUTPUT)
 pkglib_shdir = ${libdir}/sh
 pkglib_sh_DATA = 
 CONFIG_MAINTAINERCLEAN_FILES = \
   Makefile.in \
-  TODO \
+  $(DEVTODO_OUTPUT) \
   aclocal.m4 \
   configure \
   configure.ac \
