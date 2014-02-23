@@ -35,6 +35,11 @@ distrib_list()
   done)
 }
 
+distrib_flavour()
+{
+				sed '\|^\s*#|d; \|^\s*$|d; s,^\s*,,' </etc/apt/sources.list | awk '{ print $3 }'
+}
+
 # distrib_relfile
 #
 # Prints the path to the distribution release file (distribution dependant).
@@ -110,9 +115,15 @@ distrib_canonical()
   local id release
   
   id=`distrib_get id`
-  release=`distrib_get release | sed 's,[^.0-9A-Za-z],-,g'`
 
-  echo `str_tolower "${id%%[!A-Za-z0-9_]*}"`"${release:+-$release}"
+	if [ "$(type -t "${id}_canonical")" = function ]; then
+					${id}_canonical "$@"
+	else
+
+					release=`distrib_get release | sed 's,[^.0-9A-Za-z],-,g'`
+
+					echo `str_tolower "${id%%[!A-Za-z0-9_]*}"`"${release:+-$release}"
+	fi
 }
 
 # distrib_mirrors

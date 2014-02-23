@@ -24,6 +24,23 @@ is_debian()
   return 1
 }
 
+debian_canonical()
+{
+ (host=`debian_host "$@"`
+  arch=${host%%-*}
+	echo "${arch:+$arch-}debian")
+}
+debian_host()
+{
+ (if is_debian; then
+    host=$(gcc -dumpmachine)
+		case "$host" in 
+						*-linux-gnu) echo "$host" ; exit 0 ;;
+		esac
+	fi
+	exit 1)
+}
+
 # debian_relfile [debian-release-file]
 #
 # Prints the debian release file name.
@@ -39,7 +56,8 @@ debian_relfile()
 # ---------------------------------------------------------------------------
 debian_sources()
 {
-  grep -ERh '^[ \t]*deb(|-src)[ \t]' /etc/apt/sources.list{,.d} 2>/dev/null
+#  grep -ERh '^[ \t]*deb(|-src)[ \t]' /etc/apt/sources.list{,.d} 2>/dev/null
+sed '\|^\s*#|d; \|^\s*$|d; s,^\s*,,' </etc/apt/sources.list
 }
 
 # debian_codename
@@ -69,10 +87,12 @@ debian_release()
   then
    (IFS="
  "  release=`<$rf`
-    codename=`debian_codename "$@"`
-    echo "id=Debian"
+    codename=`debian_codename`
+    host=`debian_host`
+    echo "id=debian"
     echo "release=$release"
-    test -n "$codename" && echo "codename=$codename")
+    test -n "$codename" && echo "codename=$codename"
+    test -n "$host" && echo "host=$host" && echo "arch=${host%%-*}")
   else
     errormsg "Cannot read $rf"
   fi
