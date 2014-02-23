@@ -20,6 +20,9 @@ AC_PROG_LN_S
 #AC_PROG_TOUCH
 AM_PROG_LIBTOOL
 
+AC_CHECK_PROG([DEVTODO],[devtodo],[devtodo])
+
+
 AC_ARG_WITH([shell], AS_HELP_STRING([--with-shell=PATH],[Shell interpreter]),
 [SHELL="$withval" ac_cv_prog_SHELL="$SHELL"])
 

@@ -346,6 +346,7 @@ lib/distrib/gentoo.sh
 lib/distrib/lsb.sh
 lib/distrib/mandrake.sh
 lib/distrib/mingw.sh
+lib/distrib/msys.sh
 lib/distrib/redhat.sh
 lib/distrib/slackware.sh
 lib/distrib/ubuntu.sh
