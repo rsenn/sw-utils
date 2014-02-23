@@ -13,22 +13,27 @@ BUILD_FILES = \
   setup.sh
 
 pkgdocdir = ${docdir}
-pkgdoc_DATA = \
-  README \
-  TODO \
-	AUTHORS
+
+if DEVTODO
+DEVTODO_OUTPUT = TODO
+endif
+
+pkgdoc_DATA = README AUTHORS $(DEVTODO_OUTPUT)
 
 pkglib_shdir = ${libdir}/sh
 pkglib_sh_DATA = 
 
 if DEVTODO
+$(srcdir)/.todo:
+	[ ! -s "$@" ] && echo -e '<?xml version="1.0"?>\n<todo version="0.1.20">\n</todo>' >$@
+
 TODO: $(srcdir)/.todo
 	-devtodo -A --TODO --verbose --date-format "%Y%m%d" --database $<
 endif
 
 CONFIG_MAINTAINERCLEAN_FILES = \
   Makefile.in \
-  TODO \
+  $(DEVTODO_OUTPUT) \
   aclocal.m4 \
   configure \
   configure.ac \

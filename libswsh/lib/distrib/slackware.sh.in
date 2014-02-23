@@ -1,0 +1,103 @@
+#!/bin/sh
+#
+# distrib/slackware.sh: Slackware distribution detection and handling of distribution-specific things.
+#
+# $Id: slackware.sh.in 655 2008-09-12 00:21:46Z enki $
+# ------------------------------------------------------------------------- 
+test $lib_distrib_slackware_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# is_slackware [slackware-release-file]
+#
+# Checks whether the underlying distribution is an Slackware. 
+# ---------------------------------------------------------------------------
+is_slackware()
+{
+ (host=$(gcc -dumpmachine)
+ 
+  case "$host" in
+      *-slackware-*) exit 0 ;;
+    *) test -d /etc/slackpkg && exit 0 ;;
+  esac)
+}
+
+# slackware_relfile [slackware-release-file]
+#
+# Print the path to the Slackware (LSB) release file.
+# ---------------------------------------------------------------------------
+slackware_relfile() 
+{
+echo 
+}
+
+# slackware_id
+# ---------------------------------------------------------------------------
+slackware_id() 
+{
+ (if is_slackware; then
+    HOST=`slackware_host`
+    case "$HOST" in
+      x86_64-*) echo "slackware64" ;;
+      *) echo "slackware" ;;
+    esac
+  fi)
+}
+
+# slackware_release [slackware-release-file]
+#
+# Get Slackware release information via the common LSB release information.
+# ---------------------------------------------------------------------------
+slackware_release() 
+{
+ (if is_slackware; then
+    ID=`slackware_id` 
+    VERSION=`slackware_version` 
+    #HOST=`slackware_host`
+    echo id="$ID"
+    echo release="$VERSION"
+    echo codename=
+    echo description="\"$ID $VERSION\""
+  fi)
+}
+
+# slackware_pkgmgr
+#
+# The kind of package manager used by Slackware distributions.
+# ---------------------------------------------------------------------------
+slackware_pkgmgr()
+{
+  echo slackpkg
+}
+
+# slackware_mirrors
+# ---------------------------------------------------------------------------
+slackware_mirrors()
+{
+  sed -n '\|://| { s,^#\s*,,; /slackware\(64\)\?-[.0-9]\+/ p }' \
+    </etc/slackpkg/mirrors
+}
+
+# slackware_version
+# ---------------------------------------------------------------------------
+slackware_version()
+{
+  slackware_mirrors | sed -n 's,.*-\([0-9][.0-9]*\)/\?$,\1,p' | head -n1
+}
+
+# slackware_host
+# ---------------------------------------------------------------------------
+slackware_host()
+{
+  (host=$(gcc -dumpmachine)
+  case "$host" in
+    *-slackware-*) echo "$host" ;;
+    *) exit 1 ;;
+  esac)
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_distrib_slackware_sh=:;}
