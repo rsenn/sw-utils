@@ -45,7 +45,7 @@ DIST_COMMON = $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/rejmerge.8.in $(srcdir)/rejmerge.in \
 	$(srcdir)/wrap.in $(top_srcdir)/configure AUTHORS COPYING \
 	INSTALL TODO config.guess config.sub depcomp install-sh \
-	ltmain.sh missing
+	missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/build/gnu/libtool.m4 \
 	$(top_srcdir)/build/gnu/ltoptions.m4 \
