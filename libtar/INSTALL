@@ -1,8 +1,13 @@
 Installation Instructions
 *************************
 
+<<<<<<< HEAD
 Copyright (C) 1994-1996, 1999-2002, 2004-2011 Free Software Foundation,
 Inc.
+=======
+Copyright (C) 1994, 1995, 1996, 1999, 2000, 2001, 2002, 2004, 2005,
+2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+>>>>>>> 30c5f5f9818ac947b460cd64fe30d55722dd76db
 
    Copying and distribution of this file, with or without modification,
 are permitted in any medium without royalty provided the copyright

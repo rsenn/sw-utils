@@ -93,7 +93,7 @@ FGREP="/bin/grep -F"
 NM="/usr/bin/nm -B"
 
 # Whether we need soft or hard links.
-LN_S="cp -pR"
+LN_S="ln -s"
 
 # What is the maximum length of a command?
 max_cmd_len=1572864
@@ -275,7 +275,7 @@ hardcode_into_libs=yes
 sys_lib_search_path_spec="/usr/lib/gcc/i486-slackware-linux/4.5.2 /usr/i486-slackware-linux/lib /usr/lib /lib "
 
 # Run-time system search path for libraries.
-sys_lib_dlsearch_path_spec="/lib /usr/lib /usr/lib/firefox "
+sys_lib_dlsearch_path_spec="/lib /usr/lib /usr/lib/firefox /opt/kde3/lib "
 
 # Whether dlopen is supported.
 dlopen_support=unknown

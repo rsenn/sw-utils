@@ -19,7 +19,7 @@
 
 # Static variables
 # ---------------------------------------------------------------------------
-DISTRIB_known="cygwin ubuntu debian gentoo centos mandrake redhat lsb slackware"
+DISTRIB_known="cygwin ubuntu debian gentoo centos mandrake redhat lsb slackware msys mingw"
 
 # distrib_list
 #
@@ -33,6 +33,11 @@ distrib_list()
   do
     echo ${name%.sh}
   done)
+}
+
+distrib_flavour()
+{
+				sed '\|^\s*#|d; \|^\s*$|d; s,^\s*,,' </etc/apt/sources.list | awk '{ print $3 }'
 }
 
 # distrib_relfile
@@ -110,9 +115,15 @@ distrib_canonical()
   local id release
   
   id=`distrib_get id`
-  release=`distrib_get release | sed 's,[^.0-9A-Za-z],-,g'`
 
-  echo `str_tolower "${id%%[!A-Za-z0-9_]*}"`"${release:+-$release}"
+	if [ "$(type -t "${id}_canonical")" = function ]; then
+					${id}_canonical "$@"
+	else
+
+					release=`distrib_get release | sed 's,[^.0-9A-Za-z],-,g'`
+
+					echo `str_tolower "${id%%[!A-Za-z0-9_]*}"`"${release:+-$release}"
+	fi
 }
 
 # distrib_mirrors
