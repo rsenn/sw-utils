@@ -19,11 +19,11 @@ FILES=
 
 
 libtoolize --force --copy --automake 
-rm -f aclocal.m4; aclocal -I build/gnu
+rm -f aclocal.m4; aclocal -I build/gnu -I ../m4
 #autoheader --force
 automake --force --copy --foreign --add-missing
-aclocal  -I build/gnu
-autoconf --force
+aclocal  -I build/gnu -I ../m4
+autoconf --force -I build/gnu -I ../m4
 
 
 find $MY_DIR/../../lib $MY_DIR/../../src | 
