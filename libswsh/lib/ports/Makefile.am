@@ -7,7 +7,7 @@ DISTRIBUTED_FILES = spec.sh
 
 pkglibdir = $(libdir)/sh/ports
 
-pkglib_DATA = deb.sh spec.sh
+pkglib_DATA = deb.sh Makefile spec.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(DISTRIBUTED_FILES) $(INPUT_FILES)
 

@@ -6,7 +6,7 @@ INPUT_FILES = proc.sh.in
 
 pkglibdir = $(libdir)/sh/sys
 
-pkglib_DATA = proc.sh
+pkglib_DATA = Makefile proc.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

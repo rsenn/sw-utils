@@ -6,7 +6,7 @@ INPUT_FILES = strace.sh.in
 
 pkglibdir = $(libdir)/sh/trace
 
-pkglib_DATA = strace.sh
+pkglib_DATA = Makefile strace.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

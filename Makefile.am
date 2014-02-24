@@ -63,7 +63,6 @@ DISTCLEANFILES = \
   pkgrm.8 \
   pkginfo.8 \
   rejmerge.8 \
-  depcomp \
   unused-libs \
   check-libs \
   $(target)-wrap
@@ -117,7 +116,7 @@ uninstall-hook:
 #$(srcdir)/.todo:
 #        [ ! -s "$@" ] && echo -e '<?xml version="1.0"?>\n<todo version="0.1.20">\n</todo>' >$@
 #
-#TODO: $(srcdir)/.todo
+#TODO: | $(srcdir)/.todo
 #        -devtodo -A --TODO --verbose --date-format "%Y%m%d" --database $<
 #endif
 
@@ -147,6 +146,7 @@ BUILD_DIST_FILES = \
   build/gnu/ltsugar.m4 \
   build/gnu/ltversion.m4 \
   build/gnu/lt~obsolete.m4 \
+  build/gnu/install-sh \
 	m4/libtar.m4 \
 	m4/zlib.m4 \
 	m4/bzlib.m4 \

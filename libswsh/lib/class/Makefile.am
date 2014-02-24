@@ -6,7 +6,7 @@ INPUT_FILES = cache.sh.in tempfile.sh.in
 
 pkglibdir = $(libdir)/sh/class
 
-pkglib_DATA = cache.sh tempfile.sh
+pkglib_DATA = cache.sh Makefile tempfile.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

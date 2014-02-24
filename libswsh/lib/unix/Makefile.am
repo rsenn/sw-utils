@@ -6,7 +6,7 @@ INPUT_FILES = group.sh.in user.sh.in
 
 pkglibdir = $(libdir)/sh/unix
 
-pkglib_DATA = group.sh user.sh
+pkglib_DATA = group.sh Makefile user.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 
