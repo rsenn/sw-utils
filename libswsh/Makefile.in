@@ -35,7 +35,7 @@ target_triplet = @target@
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(top_srcdir)/configure AUTHORS COPYING \
-	INSTALL TODO
+	INSTALL
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/build/gnu/define-dir.m4 \
 	$(top_srcdir)/build/gnu/find.m4 $(top_srcdir)/configure.ac
@@ -218,10 +218,19 @@ BUILD_FILES = \
   setup.sh
 
 pkgdocdir = ${docdir}
-@DEVTODO_TRUE@DEVTODO_OUTPUT = TODO
+
+#if DEVTODO
+#endif
+#
 pkgdoc_DATA = README AUTHORS $(DEVTODO_OUTPUT)
 pkglib_shdir = ${libdir}/sh
 pkglib_sh_DATA = 
+
+#if DEVTODO
+#
+#TODO: | $(srcdir)/.todo
+#	-devtodo -A --TODO --verbose --date-format "%Y%m%d" --database $<
+#endif
 CONFIG_MAINTAINERCLEAN_FILES = \
   Makefile.in \
   $(DEVTODO_OUTPUT) \
@@ -697,12 +706,6 @@ uninstall-am: uninstall-pkgdocDATA uninstall-pkglib_shDATA
 	uninstall uninstall-am uninstall-pkgdocDATA \
 	uninstall-pkglib_shDATA
 
-
-@DEVTODO_TRUE@$(srcdir)/.todo:
-@DEVTODO_TRUE@	[ ! -s "$@" ] && echo -e '<?xml version="1.0"?>\n<todo version="0.1.20">\n</todo>' >$@
-
-@DEVTODO_TRUE@TODO: $(srcdir)/.todo
-@DEVTODO_TRUE@	-devtodo -A --TODO --verbose --date-format "%Y%m%d" --database $<
 
 maintainer-clean-am: distclean-am maintainer-clean-generic
 	-rm -f $(CONFIG_MAINTAINERCLEAN_FILES)

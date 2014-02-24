@@ -6,7 +6,7 @@ INPUT_FILES = require.sh.in sw.in
 
 
 
-bin_SCRIPTS = Makefile require.sh sw
+bin_SCRIPTS = require.sh sw
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

@@ -44,8 +44,7 @@ DIST_COMMON = $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/wrap.in $(top_srcdir)/configure AUTHORS COPYING \
 	INSTALL TODO build/gnu/config.guess build/gnu/config.sub \
 	build/gnu/depcomp build/gnu/install-sh build/gnu/ltmain.sh \
-	build/gnu/missing config.sub depcomp install-sh missing \
-	mkinstalldirs
+	build/gnu/missing config.sub install-sh missing mkinstalldirs
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/build/gnu/libtool.m4 \
 	$(top_srcdir)/build/gnu/ltoptions.m4 \
@@ -356,7 +355,6 @@ DISTCLEANFILES = \
   pkgrm.8 \
   pkginfo.8 \
   rejmerge.8 \
-  depcomp \
   unused-libs \
   check-libs \
   $(target)-wrap
@@ -384,7 +382,7 @@ pkgadd_static_LDFLAGS = -all-static
 #$(srcdir)/.todo:
 #        [ ! -s "$@" ] && echo -e '<?xml version="1.0"?>\n<todo version="0.1.20">\n</todo>' >$@
 #
-#TODO: $(srcdir)/.todo
+#TODO: | $(srcdir)/.todo
 #        -devtodo -A --TODO --verbose --date-format "%Y%m%d" --database $<
 #endif
 CONFIG_DISTCLEAN_FILES = \
@@ -396,7 +394,6 @@ am__CONFIG_DISTCLEAN_FILES = config.log config.status
 EXTRA_DIST_FILES = \
   configure \
   Makefile.in \
-  config.guess \
   config.sub \
   aclocal.m4 \
 	cfg.sh
@@ -412,6 +409,8 @@ BUILD_DIST_FILES = \
   build/gnu/ltsugar.m4 \
   build/gnu/ltversion.m4 \
   build/gnu/lt~obsolete.m4 \
+  build/gnu/install-sh \
+  build/gnu/config.guess \
 	m4/libtar.m4 \
 	m4/zlib.m4 \
 	m4/bzlib.m4 \

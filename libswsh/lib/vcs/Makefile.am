@@ -6,7 +6,7 @@ INPUT_FILES = svn.sh.in
 
 pkglibdir = $(libdir)/sh/vcs
 
-pkglib_DATA = Makefile svn.sh
+pkglib_DATA = svn.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

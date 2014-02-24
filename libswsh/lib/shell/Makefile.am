@@ -7,7 +7,7 @@ DISTRIBUTED_FILES = fd.sh
 
 pkglibdir = $(libdir)/sh/shell
 
-pkglib_DATA = bash.sh child.sh cmd.sh emit.sh fd.sh fn.sh Makefile script.sh trap.sh
+pkglib_DATA = bash.sh child.sh cmd.sh emit.sh fd.sh fn.sh script.sh trap.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(DISTRIBUTED_FILES) $(INPUT_FILES)
 

@@ -130,7 +130,6 @@ am__CONFIG_DISTCLEAN_FILES = config.log config.status
 EXTRA_DIST_FILES = \
   configure \
   Makefile.in \
-  config.guess \
   config.sub \
   aclocal.m4 \
 	cfg.sh
@@ -147,6 +146,7 @@ BUILD_DIST_FILES = \
   build/gnu/ltversion.m4 \
   build/gnu/lt~obsolete.m4 \
   build/gnu/install-sh \
+  build/gnu/config.guess \
 	m4/libtar.m4 \
 	m4/zlib.m4 \
 	m4/bzlib.m4 \
