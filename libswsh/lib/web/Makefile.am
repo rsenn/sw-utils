@@ -6,7 +6,7 @@ INPUT_FILES = freshmeat.sh.in gnu.sh.in googlecode.sh.in kernel.sh.in rubyforge.
 
 pkglibdir = $(libdir)/sh/web
 
-pkglib_DATA = freshmeat.sh gnu.sh googlecode.sh kernel.sh Makefile rubyforge.sh sourceforge.sh
+pkglib_DATA = freshmeat.sh gnu.sh googlecode.sh kernel.sh rubyforge.sh sourceforge.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

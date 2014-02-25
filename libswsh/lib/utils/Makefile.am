@@ -6,7 +6,7 @@ INPUT_FILES = rcat.sh.in rsed.sh.in sed.sh.in
 
 pkglibdir = $(libdir)/sh/utils
 
-pkglib_DATA = Makefile rcat.sh rsed.sh sed.sh
+pkglib_DATA = rcat.sh rsed.sh sed.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

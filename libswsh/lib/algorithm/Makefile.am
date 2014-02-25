@@ -7,7 +7,7 @@ DISTRIBUTED_FILES = combine.sh escape.sh
 
 pkglibdir = $(libdir)/sh/algorithm
 
-pkglib_DATA = combine.sh escape.sh fmt.sh Makefile
+pkglib_DATA = combine.sh escape.sh fmt.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(DISTRIBUTED_FILES) $(INPUT_FILES)
 

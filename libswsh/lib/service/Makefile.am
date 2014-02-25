@@ -8,7 +8,7 @@ DISTRIBUTED_FILES = runsv.sh
 
 pkglibdir = $(libdir)/sh/service
 
-pkglib_DATA = Makefile runit.sh runsv.sh
+pkglib_DATA = runit.sh runsv.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(DISTRIBUTED_FILES) $(INPUT_FILES)
 

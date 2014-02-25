@@ -6,7 +6,7 @@ INPUT_FILES = dpkg.sh.in rpm.sh.in
 
 pkglibdir = $(libdir)/sh/pkgmgr
 
-pkglib_DATA = dpkg.sh Makefile rpm.sh
+pkglib_DATA = dpkg.sh rpm.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 
