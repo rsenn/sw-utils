@@ -37,35 +37,96 @@ POST_UNINSTALL = :
 host_triplet = @host@
 
 pkgdatadir = $(datadir)/sw-utils
+ACLOCAL = @ACLOCAL@
+AMDEP_FALSE = @AMDEP_FALSE@
+AMDEP_TRUE = @AMDEP_TRUE@
+AMTAR = @AMTAR@
+AM_BACKSLASH = @AM_BACKSLASH@
+AM_DEFAULT_V = @AM_DEFAULT_V@
+AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
+AM_V = @AM_V@
+AR = @AR@
+AUTOCONF = @AUTOCONF@
+AUTOHEADER = @AUTOHEADER@
+AUTOMAKE = @AUTOMAKE@
+AWK = @AWK@
 BUILD_DEBUG = @BUILD_DEBUG@
 BUILD_OPT = @BUILD_OPT@
+BZLIB_CFLAGS = @BZLIB_CFLAGS@
+BZLIB_DIR = @BZLIB_DIR@
+BZLIB_ENABLE = @BZLIB_ENABLE@
+BZLIB_INC_DIR = @BZLIB_INC_DIR@
+BZLIB_LIBS = @BZLIB_LIBS@
+BZLIB_LIB_DIR = @BZLIB_LIB_DIR@
 CC = @CC@
+CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
 CFLAGS_DEBUG = @CFLAGS_DEBUG@
 CFLAGS_OPT = @CFLAGS_OPT@
+CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CXX = @CXX@
+CXXCPP = @CXXCPP@
+CXXDEPMODE = @CXXDEPMODE@
 CXXFLAGS = @CXXFLAGS@
 CXXFLAGS_DEBUG = @CXXFLAGS_DEBUG@
 CXXFLAGS_OPT = @CXXFLAGS_OPT@
+CYGPATH_W = @CYGPATH_W@
+DB_CFLAGS = @DB_CFLAGS@
+DB_LIBS = @DB_LIBS@
 DEBUG = @DEBUG@
+DEBUG_FALSE = @DEBUG_FALSE@
+DEBUG_TRUE = @DEBUG_TRUE@
 
 DEFS = -DPKG_DIR=\"$(PKG_DIR)\" \
        -DSYSCONFDIR=\"$(sysconfdir)\" \
        -DSBINDIR=\"$(sbindir)\" \
        -DLIBDIR=\"$(libdir)\"
 
+DEPDIR = @DEPDIR@
+DLLTOOL = @DLLTOOL@
+DSYMUTIL = @DSYMUTIL@
+DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
+EGREP = @EGREP@
 EXEEXT = @EXEEXT@
+FGREP = @FGREP@
+GREP = @GREP@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_SCRIPT = @INSTALL_SCRIPT@
+INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
+LIBTAR_CFLAGS = @LIBTAR_CFLAGS@
+LIBTAR_DIR = @LIBTAR_DIR@
+LIBTAR_ENABLE = @LIBTAR_ENABLE@
+LIBTAR_INC_DIR = @LIBTAR_INC_DIR@
+LIBTAR_LIBS = @LIBTAR_LIBS@
+LIBTAR_LIB_DIR = @LIBTAR_LIB_DIR@
+LIBTAR_SUBDIR = @LIBTAR_SUBDIR@
+LIBTOOL = @LIBTOOL@
+LIPO = @LIPO@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
 LTVERSION = @LTVERSION@
+MAINT = @MAINT@
+MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
+MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
+MAKEINFO = @MAKEINFO@
+MANIFEST_TOOL = @MANIFEST_TOOL@
+MKDIR_P = @MKDIR_P@
+NM = @NM@
+NMEDIT = @NMEDIT@
+OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
+OTOOL = @OTOOL@
+OTOOL64 = @OTOOL64@
+PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
 PACKAGE_STRING = @PACKAGE_STRING@
@@ -74,10 +135,42 @@ PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_DIR = @PKG_DIR@
+RANLIB = @RANLIB@
+SED = @SED@
+SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
+STRIP = @STRIP@
+SYSTEM_LIBTAR_FALSE = @SYSTEM_LIBTAR_FALSE@
+SYSTEM_LIBTAR_TRUE = @SYSTEM_LIBTAR_TRUE@
+USE_SYSTEM_LIBTAR_FALSE = @USE_SYSTEM_LIBTAR_FALSE@
+USE_SYSTEM_LIBTAR_TRUE = @USE_SYSTEM_LIBTAR_TRUE@
+VERSION = @VERSION@
 WERROR = @WERROR@
+WERROR_FALSE = @WERROR_FALSE@
+WERROR_TRUE = @WERROR_TRUE@
+ZLIB_CFLAGS = @ZLIB_CFLAGS@
+ZLIB_DIR = @ZLIB_DIR@
+ZLIB_ENABLE = @ZLIB_ENABLE@
+ZLIB_INC_DIR = @ZLIB_INC_DIR@
+ZLIB_LIBS = @ZLIB_LIBS@
+ZLIB_LIB_DIR = @ZLIB_LIB_DIR@
+ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
+ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
+am__EXEEXT_FALSE = @am__EXEEXT_FALSE@
+am__EXEEXT_TRUE = @am__EXEEXT_TRUE@
+am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
+am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
+am__fastdepCXX_FALSE = @am__fastdepCXX_FALSE@
+am__fastdepCXX_TRUE = @am__fastdepCXX_TRUE@
+am__include = @am__include@
+am__isrc = @am__isrc@
+am__leading_dot = @am__leading_dot@
+am__nodep = @am__nodep@
+am__quote = @am__quote@
+am__tar = @am__tar@
+am__untar = @am__untar@
 bindir = @bindir@
 build = @build@
 build_alias = @build_alias@
@@ -98,11 +191,13 @@ host_vendor = @host_vendor@
 htmldir = @htmldir@
 includedir = @includedir@
 infodir = @infodir@
+install_sh = @install_sh@
 libdir = @libdir@
 libexecdir = @libexecdir@
 localedir = @localedir@
 localstatedir = @localstatedir@
 mandir = @mandir@
+mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
 pdfdir = @pdfdir@
 prefix = @prefix@
@@ -246,6 +341,7 @@ BUILD_DIST_FILES = \
 	m4/db.m4
 
 subdir = .
+ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES = rejmerge pkgadd.conf pkgadd.8 pkginfo.8 pkgrm.8 \
@@ -274,9 +370,12 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/main.Po
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
+LTCXXCOMPILE = $(LIBTOOL) --mode=compile $(CXX) $(DEFS) \
+	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
+	$(AM_CXXFLAGS) $(CXXFLAGS)
 CXXLD = $(CXX)
-CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
-	-o $@
+CXXLINK = $(LIBTOOL) --mode=link $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 DIST_SOURCES = $(pkgadd_SOURCES) $(pkgadd_static_SOURCES)
 
 NROFF = nroff
@@ -290,9 +389,9 @@ RECURSIVE_TARGETS = info-recursive dvi-recursive pdf-recursive \
 	installdirs-recursive install-recursive uninstall-recursive \
 	check-recursive installcheck-recursive
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/configure AUTHORS COPYING \
-	INSTALL Makefile.am TODO config.guess config.h.in config.sub \
-	configure configure.in depcomp install-sh ltmain.sh missing \
-	mkinstalldirs pkgadd.8.in pkgadd.conf.in pkginfo.8.in \
+	INSTALL Makefile.am TODO aclocal.m4 config.guess config.h.in \
+	config.sub configure configure.in depcomp install-sh ltmain.sh \
+	missing mkinstalldirs pkgadd.8.in pkgadd.conf.in pkginfo.8.in \
 	pkgrm.8.in rejmerge.8.in rejmerge.in wrap.in
 SOURCES = $(pkgadd_SOURCES) $(pkgadd_static_SOURCES)
 
@@ -300,17 +399,20 @@ all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
 .SUFFIXES:
-.SUFFIXES: .cpp .o .obj
-$(srcdir)/Makefile.in:  Makefile.am  $(top_srcdir)/configure.in $(ACLOCAL_M4)
+.SUFFIXES: .cpp .lo .o .obj
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ Makefile.am  $(top_srcdir)/configure.in $(ACLOCAL_M4)
 	cd $(top_srcdir) && \
 	  $(AUTOMAKE) --foreign  Makefile
-Makefile:  $(srcdir)/Makefile.in  $(top_builddir)/config.status
+Makefile: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.in  $(top_builddir)/config.status
 	cd $(top_builddir) && $(SHELL) ./config.status $@ $(am__depfiles_maybe)
 
 $(top_builddir)/config.status: $(srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	$(SHELL) ./config.status --recheck
-$(srcdir)/configure:  $(srcdir)/configure.in $(ACLOCAL_M4) $(CONFIGURE_DEPENDENCIES)
+$(srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(srcdir)/configure.in $(ACLOCAL_M4) $(CONFIGURE_DEPENDENCIES)
 	cd $(srcdir) && $(AUTOCONF)
+
+$(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ configure.in build/gnu/libtool.m4 build/gnu/ltoptions.m4 build/gnu/ltsugar.m4 build/gnu/ltversion.m4 build/gnu/lt~obsolete.m4 m4/bzlib.m4 m4/db.m4 m4/libtar.m4 m4/lzmadec.m4 m4/pkgsrc.m4 m4/zlib.m4
+	cd $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
 
 config.h: stamp-h1
 	@if test ! -f $@; then \
@@ -322,7 +424,7 @@ stamp-h1: $(srcdir)/config.h.in $(top_builddir)/config.status
 	@rm -f stamp-h1
 	cd $(top_builddir) && $(SHELL) ./config.status config.h
 
-$(srcdir)/config.h.in:  $(top_srcdir)/configure.in $(ACLOCAL_M4) 
+$(srcdir)/config.h.in: @MAINTAINER_MODE_TRUE@ $(top_srcdir)/configure.in $(ACLOCAL_M4) 
 	cd $(top_srcdir) && $(AUTOHEADER)
 	touch $(srcdir)/config.h.in
 
@@ -349,10 +451,11 @@ install-binPROGRAMS: $(bin_PROGRAMS)
 	@list='$(bin_PROGRAMS)'; for p in $$list; do \
 	  p1=`echo $$p|sed 's/$(EXEEXT)$$//'`; \
 	  if test -f $$p \
+	     || test -f $$p1 \
 	  ; then \
 	    f=`echo "$$p1" | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'`; \
-	   echo " $(INSTALL_PROGRAM_ENV) $(binPROGRAMS_INSTALL) $$p $(DESTDIR)$(bindir)/$$f"; \
-	   $(INSTALL_PROGRAM_ENV) $(binPROGRAMS_INSTALL) $$p $(DESTDIR)$(bindir)/$$f || exit 1; \
+	   echo " $(INSTALL_PROGRAM_ENV) $(LIBTOOL) --mode=install $(binPROGRAMS_INSTALL) $$p $(DESTDIR)$(bindir)/$$f"; \
+	   $(INSTALL_PROGRAM_ENV) $(LIBTOOL) --mode=install $(binPROGRAMS_INSTALL) $$p $(DESTDIR)$(bindir)/$$f || exit 1; \
 	  else :; fi; \
 	done
 
@@ -365,7 +468,11 @@ uninstall-binPROGRAMS:
 	done
 
 clean-binPROGRAMS:
-	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
+	@list='$(bin_PROGRAMS)'; for p in $$list; do \
+	  f=`echo $$p|sed 's/$(EXEEXT)$$//'`; \
+	  echo " rm -f $$p $$f"; \
+	  rm -f $$p $$f ; \
+	done
 pkgadd$(EXEEXT): $(pkgadd_OBJECTS) $(pkgadd_DEPENDENCIES) 
 	@rm -f pkgadd$(EXEEXT)
 	$(CXXLINK) $(pkgadd_LDFLAGS) $(pkgadd_OBJECTS) $(pkgadd_LDADD) $(LIBS)
@@ -422,6 +529,26 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXXCOMPILE) -c -o $@ `if test -f '$<'; then $(CYGPATH_W) '$<'; else $(CYGPATH_W) '$(srcdir)/$<'; fi`
+
+.cpp.lo:
+@am__fastdepCXX_TRUE@	if $(LTCXXCOMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" \
+@am__fastdepCXX_TRUE@	  -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Plo"; \
+@am__fastdepCXX_TRUE@	else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; \
+@am__fastdepCXX_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	depfile='$(DEPDIR)/$*.Plo' tmpdepfile='$(DEPDIR)/$*.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LTCXXCOMPILE) -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<
+
+mostlyclean-libtool:
+	-rm -f *.lo
+
+clean-libtool:
+	-rm -rf .libs _libs
+
+distclean-libtool:
+	-rm -f libtool
 uninstall-info-am:
 
 man8dir = $(mandir)/man8
@@ -811,14 +938,14 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-recursive
 
-clean-am: clean-binPROGRAMS clean-generic mostlyclean-am
+clean-am: clean-binPROGRAMS clean-generic clean-libtool mostlyclean-am
 
 distclean: distclean-recursive
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic distclean-hdr \
-	distclean-tags
+	distclean-libtool distclean-tags
 
 dvi: dvi-recursive
 
@@ -853,7 +980,8 @@ maintainer-clean-am: distclean-am maintainer-clean-generic
 
 mostlyclean: mostlyclean-recursive
 
-mostlyclean-am: mostlyclean-compile mostlyclean-generic
+mostlyclean-am: mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool
 
 pdf: pdf-recursive
 
@@ -874,24 +1002,24 @@ uninstall-info: uninstall-info-recursive
 uninstall-man: uninstall-man8
 
 .PHONY: $(RECURSIVE_TARGETS) CTAGS GTAGS all all-am check check-am clean \
-	clean-binPROGRAMS clean-generic clean-recursive ctags \
-	ctags-recursive dist dist-all dist-gzip distcheck distclean \
-	distclean-compile distclean-generic distclean-hdr \
-	distclean-recursive distclean-tags distcleancheck distdir \
-	distuninstallcheck dvi dvi-am dvi-recursive info info-am \
-	info-recursive install install-am install-binPROGRAMS \
-	install-binSCRIPTS install-data install-data-am \
-	install-data-recursive install-exec install-exec-am \
-	install-exec-recursive install-info install-info-am \
-	install-info-recursive install-man install-man8 \
+	clean-binPROGRAMS clean-generic clean-libtool clean-recursive \
+	ctags ctags-recursive dist dist-all dist-gzip distcheck \
+	distclean distclean-compile distclean-generic distclean-hdr \
+	distclean-libtool distclean-recursive distclean-tags \
+	distcleancheck distdir distuninstallcheck dvi dvi-am \
+	dvi-recursive info info-am info-recursive install install-am \
+	install-binPROGRAMS install-binSCRIPTS install-data \
+	install-data-am install-data-recursive install-exec \
+	install-exec-am install-exec-recursive install-info \
+	install-info-am install-info-recursive install-man install-man8 \
 	install-pkgdataDATA install-pkgmksysconfDATA install-recursive \
 	install-strip install-sysconfDATA installcheck installcheck-am \
 	installdirs installdirs-am installdirs-recursive \
 	maintainer-clean maintainer-clean-generic \
 	maintainer-clean-recursive mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-recursive pdf pdf-am \
-	pdf-recursive ps ps-am ps-recursive tags tags-recursive \
-	uninstall uninstall-am uninstall-binPROGRAMS \
+	mostlyclean-generic mostlyclean-libtool mostlyclean-recursive \
+	pdf pdf-am pdf-recursive ps ps-am ps-recursive tags \
+	tags-recursive uninstall uninstall-am uninstall-binPROGRAMS \
 	uninstall-binSCRIPTS uninstall-info-am uninstall-info-recursive \
 	uninstall-man uninstall-man8 uninstall-pkgdataDATA \
 	uninstall-pkgmksysconfDATA uninstall-recursive \
