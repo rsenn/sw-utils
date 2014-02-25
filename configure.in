@@ -1,10 +1,13 @@
 dnl Initialize autoconf and automake
 AC_INIT([sw-utils],[0.9.7])
-
-dnl AC_CONFIG_AUX_DIR([build/gnu])
-
 AC_CANONICAL_TARGET
+AC_CONFIG_AUX_DIR([build/gnu])
 AM_INIT_AUTOMAKE
+AC_CONFIG_SRCDIR([libsw++/pkgtool.cpp])
+
+
+
+
 AM_MAINTAINER_MODE
 AM_DEP_TRACK
 
@@ -16,6 +19,9 @@ AC_PROG_CXX
 AC_PROG_LN_S
 #AC_PROG_TOUCH
 AM_PROG_LIBTOOL
+
+AC_CHECK_PROG([DEVTODO],[devtodo],[devtodo])
+
 
 AC_ARG_WITH([shell], AS_HELP_STRING([--with-shell=PATH],[Shell interpreter]),
 [SHELL="$withval" ac_cv_prog_SHELL="$SHELL"])

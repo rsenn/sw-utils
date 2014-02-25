@@ -285,6 +285,7 @@ lib/archive/cpio.sh
 lib/archive/deb.sh
 lib/archive/jar.sh
 lib/archive/rar.sh
+lib/archive/sevenzip.sh
 lib/archive/tar.sh
 lib/archive/zip.sh
 lib/buildsys/Makefile
@@ -345,7 +346,9 @@ lib/distrib/gentoo.sh
 lib/distrib/lsb.sh
 lib/distrib/mandrake.sh
 lib/distrib/mingw.sh
+lib/distrib/msys.sh
 lib/distrib/redhat.sh
+lib/distrib/slackware.sh
 lib/distrib/ubuntu.sh
 lib/djb/Makefile
 lib/djb/buffer.sh

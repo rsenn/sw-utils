@@ -16,6 +16,7 @@ test $lib_archive_sh || {
 . $shlibdir/util.sh
 . $shlibdir/fs/dir.sh
 . $shlibdir/archive/rar.sh
+. $shlibdir/archive/sevenzip.sh
 . $shlibdir/archive/zip.sh
 . $shlibdir/archive/jar.sh
 
@@ -96,9 +97,12 @@ archive_compression()
     case $1 in
       compress*) echo Z ;;
       *[-/]gzip) echo gz ;;
+      XZ) echo xz ;;
+      LZMA) echo lzma ;;
       gzip|bzip2) echo ${1//zip/z} ;;
       Zip) echo zip ;;
       RAR) echo rar ;;
+      7-[Zz]ip) echo 7z ;;
 #      ''|POSIX|ASCII) ;;
       *) echo - ;;
     esac
@@ -126,8 +130,9 @@ archive_infer()
       deb) x="$p" ;;
       zip|rar|lha) c="$p" x="$p" ;;
       tar|cpio) c="$p" ;;
-      gz|bz2|Z) x="$p" ;;
-      tgz|tbz2) c="tar" x="${p#t}" ;;
+      lzma|xz|gz|bz2|Z) x="$p" ;;
+      txz|tgz|tbz2) c="tar" x="${p#t}" ;;
+      7z) c="$p" ;;
     esac
   done
 
@@ -144,7 +149,7 @@ archive_container()
   local a=${1-"-"}
   local magic=`file "$a"` IFS="$space$newline$tabstop"
 
-  set -- ${magic#*:}
+  set -- ${magic#*": "}
 
   case $1 in
     POSIX|ASCII) shift ;;
@@ -155,9 +160,10 @@ archive_container()
     MS-DOS) echo zip ;;
     Zip) echo zip ;;
     RAR|rar) echo rar ;;
+    7-[Zz]ip) echo 7z ;;
     tar|cpio|zip) echo $1 ;;
 #    POSIX|ASCII) echo $2 ;;
-    gzip|*[-/]gzip|bzip2|compress*)
+    XZ|LZMA|gzip|*[-/]gzip|bzip2|compress*)
       set -- "${1##*[-/]}"
       archive_decompress "$a" "${1//zip/z}" | bheader | archive_container -
       ;;
@@ -176,9 +182,11 @@ archive_decompress()
 
   case $comp in
     gz|z|Z|compress*) gzip -dc "$1" ;;
+    XZ|xz) xz -dc "$1" ;;
+    lzma) lzma -dc "$1" ;;
     bz2) bzip2 -dc "$1" ;;
     ''|-) cat ${1+"$1"} ;;
-    zip|rar) cat ${1+"$1"} ;;
+    zip|rar|7z) cat ${1+"$1"} ;;
     *) msg "Unrecognized compression scheme '$comp'."; return 1 ;;
   esac
 }
@@ -192,6 +200,8 @@ archive_compress()
   local comp=${2-`archive_compression "$1"`}
 
   case $comp in
+    lzma) lzma -c "$1" ;;
+    xz) xz -c "$1" ;;
     gz) gzip -c "$1" ;;
     bz2) bzip2 -c "$1" ;;
     ''|-) cat ${1+"$1"} ;;
@@ -218,6 +228,7 @@ archive_create()
     cpio) test "$a" = - || exec >"$a"; array "$@" | cpio -o ;;
     rar) ${a:+rm -f "$a"}; rar a ${a:-"-"} "$@" >/dev/null ;;
     zip) zip -9 -r ${a:-"-"} "$@" 2>/dev/null ;;
+    7z) 7z a -mx=5 "$a" ;;
     *) tar -cf ${a:-"-"} "$@" ;;
   esac)
 }
@@ -362,8 +373,10 @@ ___archive_create()
   local ext=${archive##*.}local tarsw
 
   case $ext in
-    bz2) tarsw='j' ;;
-    gz|Z) tarsw='z' ;;
+    bz2) tarsw='-j' ;;
+    gz|Z) tarsw='-z' ;;
+    xz) tarsw='-J' ;;
+    lzma) tarsw='--use-compress-program=lzma' ;;
     *) tarsw='' ;;
   esac
 
@@ -374,7 +387,7 @@ ___archive_create()
 
   shift 2
 
-  tar -C ${path+"$path"} -cv${tarsw}f ${archive+"$archive"} "$@"
+  tar -C ${path+"$path"} ${tarsw} -cvf ${archive+"$archive"} "$@"
 }
 
 # _archive_footprint_filter

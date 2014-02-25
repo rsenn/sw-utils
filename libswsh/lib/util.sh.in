@@ -620,9 +620,10 @@ bheader()
 # ---------------------------------------------------------------------------
 explode()
 {
- (IFS="$2$IFS"
+ (V=$1
+ IFS="$IFS$*"
 
-  for VALUE in $1; do
+  for VALUE in $V; do
     echo "$VALUE"
   done)
 }

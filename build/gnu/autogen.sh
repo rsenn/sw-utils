@@ -14,7 +14,7 @@ rm -f aclocal.m4; aclocal  -I m4 -I build/gnu
 autoheader --force
 automake --force --copy --foreign --add-missing --foreign
 rm -f aclocal.m4; aclocal -I m4 -I build/gnu
-autoconf --force
+autoconf --force -I m4 -I build/gnu
 
 #([ -d objconv ] && cd objconv && exec sh -x autogen.sh) || exit $?
 (cd libtar && exec ${BASH:-sh} autogen.sh) || exit $?

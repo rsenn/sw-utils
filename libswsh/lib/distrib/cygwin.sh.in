@@ -17,8 +17,8 @@ test $lib_distrib_cygwin_sh || {
 # ---------------------------------------------------------------------------
 is_cygwin()
 {
-  case `uname -o` in
-    Cygwin) return 0 ;;
+  case `uname -o`:`gcc -dumpmachine` in
+    Cygwin:*-cygwin-*) return 0 ;;
   esac
   return 1
 }

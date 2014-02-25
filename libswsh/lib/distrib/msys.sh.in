@@ -1,0 +1,79 @@
+#!/bin/sh
+#
+# distrib/msys.sh: Msys distribution detection and handling of distribution-specific things.
+#
+# $Id: msys.sh.in 655 2008-09-12 00:21:46Z enki $
+# ------------------------------------------------------------------------- 
+test $lib_distrib_msys_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# is_msys [msys-release-file]
+#
+# Checks whether the underlying distribution is a Msys. 
+# ---------------------------------------------------------------------------
+is_msys()
+{
+  case `uname -o`:`gcc -dumpmachine` in
+    Msys:*-msys*) return 0 ;;
+  esac
+  return 1
+}
+
+# msys_relfile [msys-release-file]
+#
+# Print the path to the Msys release file.
+# ---------------------------------------------------------------------------
+msys_relfile() 
+{
+  echo /etc/postinstall/base-files-profile.sh.done
+}
+
+# msys_version
+#
+# Get Msys version information 
+# ---------------------------------------------------------------------------
+msys_version() 
+{
+ (if is_msys; then
+    RELEASE=`uname -r`
+    echo ${RELEASE%"("*}
+  fi)
+}
+
+# msys_release
+#
+# Get Msys release information
+# ---------------------------------------------------------------------------
+msys_release()
+{
+ (id=Msys 
+  release=`msys_version`
+  description="Msys $release"
+
+  var_dump id release description)
+}
+
+# msys_pkgmgr
+#
+# The kind of package manager used by Ubuntu distributions.
+# ---------------------------------------------------------------------------
+msys_pkgmgr()
+{
+  echo 
+}
+
+# msys_mirrors
+# ---------------------------------------------------------------------------
+msys_mirrors()
+{
+  http_get "http://www.msys.com/mirrors.html" | 
+  xml_get li | 
+  xml_get a href
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_distrib_msys_sh=:;}
