@@ -437,7 +437,7 @@ Copyright (C) 2012 Free Software Foundation, Inc.
 This config.status script is free software; the Free Software Foundation
 gives unlimited permission to copy, distribute and modify it."
 
-ac_pwd='/root/Sources/sw-utils/libtar'
+ac_pwd='/home/roman/Sources/sw-utils/libtar'
 srcdir='.'
 INSTALL='/usr/bin/install -c'
 MKDIR_P='/usr/bin/mkdir -p'
@@ -613,7 +613,7 @@ MAGIC_CMD='file'
 lt_prog_compiler_no_builtin_flag=' -fno-builtin'
 lt_prog_compiler_pic=' -fPIC -DPIC'
 lt_prog_compiler_wl='-Wl,'
-lt_prog_compiler_static=''
+lt_prog_compiler_static='-static'
 lt_cv_prog_compiler_c_o='yes'
 need_locks='no'
 MANIFEST_TOOL=':'
@@ -675,7 +675,7 @@ finish_cmds='PATH="\$PATH:/sbin" ldconfig -n $libdir'
 finish_eval=''
 hardcode_into_libs='yes'
 sys_lib_search_path_spec='/usr/lib/gcc/x86_64-redhat-linux/4.8.2 /usr/lib64 /lib64 '
-sys_lib_dlsearch_path_spec='/lib64 /usr/lib64 /lib /usr/lib '
+sys_lib_dlsearch_path_spec='/lib64 /usr/lib64 /lib /usr/lib /usr/lib64/atlas /usr/lib64/iscsi '
 hardcode_action='immediate'
 enable_dlopen='unknown'
 enable_dlopen_self='unknown'
@@ -824,8 +824,6 @@ fi
 
 echo 'BEGIN {' >"$ac_tmp/subs1.awk" &&
 cat >>"$ac_tmp/subs1.awk" <<\_ACAWK &&
-S["am__EXEEXT_FALSE"]=""
-S["am__EXEEXT_TRUE"]="#"
 S["LTLIBOBJS"]=" ${LIBOBJDIR}basename$U.lo ${LIBOBJDIR}dirname$U.lo ${LIBOBJDIR}strlcpy$U.lo ${LIBOBJDIR}strmode$U.lo"
 S["ZLIB_ENABLE"]="yes"
 S["ZLIB_LIBS"]="-L${prefix}/lib -lz"
@@ -869,7 +867,6 @@ S["RANLIB"]="ranlib"
 S["am__fastdepCC_FALSE"]=""
 S["am__fastdepCC_TRUE"]="#"
 S["CCDEPMODE"]="depmode=none"
-S["am__nodep"]=""
 S["AMDEPBACKSLASH"]=""
 S["AMDEP_FALSE"]=""
 S["AMDEP_TRUE"]="#"
@@ -884,26 +881,22 @@ S["LDFLAGS"]=""
 S["CFLAGS"]="-O"
 S["CC"]="x86_64-redhat-linux-gcc"
 S["MKDIR"]="mkdir -p -m 755"
-S["AM_BACKSLASH"]="\\"
-S["AM_DEFAULT_VERBOSITY"]="1"
-S["AM_DEFAULT_V"]="$(AM_DEFAULT_VERBOSITY)"
-S["AM_V"]="$(V)"
-S["am__untar"]="$${TAR-tar} xf -"
-S["am__tar"]="$${TAR-tar} chof - \"$$tardir\""
-S["AMTAR"]="$${TAR-tar}"
+S["am__untar"]="${AMTAR} xf -"
+S["am__tar"]="${AMTAR} chof - \"$$tardir\""
+S["AMTAR"]="${SHELL} /home/roman/Sources/sw-utils/libtar/autoconf/missing --run tar"
 S["am__leading_dot"]="."
 S["SET_MAKE"]=""
 S["AWK"]="gawk"
-S["mkdir_p"]="$(MKDIR_P)"
+S["mkdir_p"]="/usr/bin/mkdir -p"
 S["MKDIR_P"]="/usr/bin/mkdir -p"
 S["INSTALL_STRIP_PROGRAM"]="$(install_sh) -c -s"
 S["STRIP"]="strip"
-S["install_sh"]="${SHELL} /root/Sources/sw-utils/libtar/autoconf/install-sh"
-S["MAKEINFO"]="makeinfo"
-S["AUTOHEADER"]="autoheader"
-S["AUTOMAKE"]="automake-1.13"
-S["AUTOCONF"]="autoconf"
-S["ACLOCAL"]="aclocal-1.13"
+S["install_sh"]="$(SHELL) /home/roman/Sources/sw-utils/libtar/autoconf/install-sh"
+S["MAKEINFO"]="${SHELL} /home/roman/Sources/sw-utils/libtar/autoconf/missing --run makeinfo"
+S["AUTOHEADER"]="${SHELL} /home/roman/Sources/sw-utils/libtar/autoconf/missing --run autoheader"
+S["AUTOMAKE"]="${SHELL} /home/roman/Sources/sw-utils/libtar/autoconf/missing --run automake-1.10"
+S["AUTOCONF"]="${SHELL} /home/roman/Sources/sw-utils/libtar/autoconf/missing --run autoconf"
+S["ACLOCAL"]="${SHELL} /home/roman/Sources/sw-utils/libtar/autoconf/missing --run aclocal-1.10"
 S["VERSION"]="1.2.11"
 S["PACKAGE"]="libtar"
 S["CYGPATH_W"]="echo"
@@ -1357,7 +1350,7 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
 
   case $ac_file$ac_mode in
     "depfiles":C) test x"$AMDEP_TRUE" != x"" || {
-  # Older Autoconf quotes --file arguments for eval, but not when files
+  # Autoconf 2.62 quotes --file arguments for eval, but not when files
   # are listed without --file.  Let's play safe and only enable the eval
   # if we detect the quoting.
   case $CONFIG_FILES in
@@ -1370,7 +1363,7 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
     # Strip MF so we end up with the name of the file.
     mf=`echo "$mf" | sed -e 's/:.*$//'`
     # Check whether this is an Automake generated Makefile or not.
-    # We used to match only the files named 'Makefile.in', but
+    # We used to match only the files named `Makefile.in', but
     # some people rename them; so instead we look at the file content.
     # Grep'ing the first line is not enough: some people post-process
     # each Makefile.in and add a new line on top of each file to say so.
@@ -1404,19 +1397,21 @@ $as_echo X"$mf" |
       continue
     fi
     # Extract the definition of DEPDIR, am__include, and am__quote
-    # from the Makefile without running 'make'.
+    # from the Makefile without running `make'.
     DEPDIR=`sed -n 's/^DEPDIR = //p' < "$mf"`
     test -z "$DEPDIR" && continue
     am__include=`sed -n 's/^am__include = //p' < "$mf"`
-    test -z "$am__include" && continue
+    test -z "am__include" && continue
     am__quote=`sed -n 's/^am__quote = //p' < "$mf"`
+    # When using ansi2knr, U may be empty or an underscore; expand it
+    U=`sed -n 's/^U = //p' < "$mf"`
     # Find all dependency output files, they are included files with
     # $(DEPDIR) in their names.  We invoke sed twice because it is the
     # simplest approach to changing $(DEPDIR) to its actual value in the
     # expansion.
     for file in `sed -n "
       s/^$am__include $am__quote\(.*(DEPDIR).*\)$am__quote"'$/\1/p' <"$mf" | \
-	 sed -e 's/\$(DEPDIR)/'"$DEPDIR"'/g'`; do
+	 sed -e 's/\$(DEPDIR)/'"$DEPDIR"'/g' -e 's/\$U/'"$U"'/g'`; do
       # Make sure the directory exists.
       test -f "$dirpart/$file" && continue
       fdir=`$as_dirname -- "$file" ||
