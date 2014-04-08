@@ -36,7 +36,28 @@ color_code()
   echo ${code}
 }
 
+# color_fromrgb <r> <g> <b>
+# -------------------------------------------------------------------------
+color_fromrgb()
+{
+ (while :; do
+ case "$1" in
+   -a) ANSI=true; shift ;;
+   -c) ESC="$2"; shift 2 ;;
+   -e) ECHO="echo
+-e"; shift ;;
+   *) break ;;
+ esac
+ done
+ R=$((${1:-0}*5/255)) G=$((${2:-0}*5/255)) B=$((${3:-0}*5/255)) 
+  N=$((16+(R*36)+(G*6)+B))
+ [ "$ANSI" = true ] && N="${ESC-\033}[38;5;${N}m"
+ $ECHO "$N"
+ )
+}
+
 # color_cube <values-per-channel> <ncolors> [format-string] [offset]
+# -------------------------------------------------------------------------
 color_cube()
 {
  (

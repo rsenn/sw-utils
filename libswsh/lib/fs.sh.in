@@ -401,5 +401,25 @@ fs_siblings()
   echo "$*"
 }
 
+# -----------------------------------------------------------------------------
+fs_avail () 
+{ 
+ (unset OPTS
+  while :; do
+    case "$1" in
+			--) shift; break ;;
+			-*) OPTS=${OPTS+$OPTS
+}$1 ;;
+      *) break ;;
+    esac
+  done
+  CMD='df -B1 $OPTS "$ARG" | sed "1d" | awk "{ print \$4 }" | addprefix "$ARG: "'
+  test $# -gt 1 && CMD="$CMD | addprefix \"\$ARG: \""
+  for ARG in "$@";
+  do
+					eval "$CMD"
+  done
+	)	
+}
 # --- eof ---------------------------------------------------------------------
 lib_fs_sh=:;}
