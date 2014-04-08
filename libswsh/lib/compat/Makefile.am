@@ -6,7 +6,7 @@ INPUT_FILES = declare.sh.in
 
 pkglibdir = $(libdir)/sh/compat
 
-pkglib_DATA = declare.sh Makefile
+pkglib_DATA = declare.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

@@ -6,7 +6,7 @@ INPUT_FILES = cpio.sh.in deb.sh.in jar.sh.in rar.sh.in sevenzip.sh.in tar.sh.in 
 
 pkglibdir = $(libdir)/sh/archive
 
-pkglib_DATA = cpio.sh deb.sh jar.sh Makefile rar.sh sevenzip.sh tar.sh zip.sh
+pkglib_DATA = cpio.sh deb.sh jar.sh rar.sh sevenzip.sh tar.sh zip.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

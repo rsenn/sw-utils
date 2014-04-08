@@ -6,8 +6,7 @@ DIST_SUBDIRS = build lib src data doc test
 
 EXTRA_DIST = \
   $(BUILD_FILES) \
-  $(pkgdoc_DATA) \
-	.todo
+  $(pkgdoc_DATA)
 
 BUILD_FILES = \
   setup.sh

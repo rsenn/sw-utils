@@ -7,7 +7,7 @@ INPUT_FILES = compiler.sh.in patch.sh.in scan.sh.in srcdist.sh.in toolchain.sh.i
 
 pkglibdir = $(libdir)/sh/devel
 
-pkglib_DATA = compiler.sh Makefile patch.sh scan.sh srcdist.sh toolchain.sh triplet.sh
+pkglib_DATA = compiler.sh patch.sh scan.sh srcdist.sh toolchain.sh triplet.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 
