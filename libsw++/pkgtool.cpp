@@ -499,7 +499,7 @@ string mtos(mode_t mode)
 }
 
 #ifdef HAVE_ZLIB
-int unistd_gzopen(char* pathname, int flags, mode_t mode)
+intptr_t unistd_gzopen(char* pathname, int flags, mode_t mode)
 {
 	const char* gz_mode;
    
@@ -532,7 +532,7 @@ int unistd_gzopen(char* pathname, int flags, mode_t mode)
 		return -1;
 	}
    
-	return (int)gz_file;
+	return (intptr_t)gz_file;
 }
 #endif /* HAVE_ZLIB */
 
