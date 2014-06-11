@@ -42,14 +42,14 @@ str_index()
 # -------------------------------------------------------------------------
 str_tolower()
 {
-  echo "$@" | tr [:upper:] [:lower:]
+  echo "$@" | tr "[[:upper:]]" "[[:lower:]]"
 }
 
 # str_toupper <str>
 # -------------------------------------------------------------------------
 str_toupper()
 {
-  echo "$@" | tr [:lower:] [:upper:]
+  echo "$@" | tr "[[:lower:]]" "[[:upper:]]"
 }
 
 # str_ucfirst <str>
