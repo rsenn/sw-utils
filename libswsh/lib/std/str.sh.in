@@ -42,14 +42,22 @@ str_index()
 # -------------------------------------------------------------------------
 str_tolower()
 {
+<<<<<<< HEAD
   echo "$@" | tr '[:upper:]' '[:lower:]'
+=======
+  echo "$@" | tr "[[:upper:]]" "[[:lower:]]"
+>>>>>>> 7ac568fc4cd428af6101c6e0b0552eabef15c912
 }
 
 # str_toupper <str>
 # -------------------------------------------------------------------------
 str_toupper()
 {
+<<<<<<< HEAD
   echo "$@" | tr '[:lower:]' '[:upper:]'
+=======
+  echo "$@" | tr "[[:lower:]]" "[[:upper:]]"
+>>>>>>> 7ac568fc4cd428af6101c6e0b0552eabef15c912
 }
 
 # str_ucfirst <str>
