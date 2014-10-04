@@ -4,7 +4,7 @@ GENERATED_FILES = bzip2.sh gzip.sh lzma.sh
 INPUT_FILES = bzip2.sh.in gzip.sh.in lzma.sh.in
 
 
-pkglibdir = $(libdir)/sh/compression
+pkgshdir = $(libdir)/sh/compression
 
 pkglib_DATA = bzip2.sh gzip.sh lzma.sh
 noinst_DATA = $(INPUT_FILES)

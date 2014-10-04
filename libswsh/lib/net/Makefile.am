@@ -5,7 +5,7 @@ GENERATED_FILES = bridge.sh cidr.sh ethernet.sh http.sh if.sh inet.sh ip4.sh ssh
 INPUT_FILES = bridge.sh.in cidr.sh.in ethernet.sh.in http.sh.in if.sh.in inet.sh.in ip4.sh.in ssh.sh.in url.sh.in www.sh.in
 
 
-pkglibdir = $(libdir)/sh/net
+pkgshdir = $(libdir)/sh/net
 
 pkglib_DATA = bridge.sh cidr.sh ethernet.sh http.sh if.sh inet.sh ip4.sh ssh.sh url.sh www.sh
 noinst_DATA = $(INPUT_FILES)

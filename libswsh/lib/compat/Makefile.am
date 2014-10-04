@@ -4,7 +4,7 @@ GENERATED_FILES = declare.sh
 INPUT_FILES = declare.sh.in
 
 
-pkglibdir = $(libdir)/sh/compat
+pkgshdir = $(libdir)/sh/compat
 
 pkglib_DATA = declare.sh
 noinst_DATA = $(INPUT_FILES)

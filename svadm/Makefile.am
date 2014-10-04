@@ -1,6 +1,6 @@
 bin_SCRIPTS = svadm
 
-pkglibdir = $(libdir)/svadm
+pkgshdir = $(libdir)/svadm
 pkglib_DATA = autostart ui startstop
 
 EXTRA_DIST = $(pkglib_DATA)

@@ -5,7 +5,7 @@ INPUT_FILES = bash.sh.in child.sh.in cmd.sh.in emit.sh.in fn.sh.in script.sh.in 
 DISTRIBUTED_FILES = fd.sh
 
 
-pkglibdir = $(libdir)/sh/shell
+pkgshdir = $(libdir)/sh/shell
 
 pkglib_DATA = bash.sh child.sh cmd.sh emit.sh fd.sh fn.sh script.sh trap.sh
 noinst_DATA = $(INPUT_FILES)

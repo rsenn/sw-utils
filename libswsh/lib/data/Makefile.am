@@ -4,7 +4,7 @@ GENERATED_FILES = config.sh envdir.sh html.sh info.sh list.sh obj.sh pdf.sh reg.
 INPUT_FILES = config.sh.in envdir.sh.in html.sh.in info.sh.in list.sh.in obj.sh.in pdf.sh.in reg.sh.in text.sh.in tree.sh.in xml.sh.in
 
 
-pkglibdir = $(libdir)/sh/data
+pkgshdir = $(libdir)/sh/data
 
 pkglib_DATA = config.sh envdir.sh html.sh info.sh list.sh obj.sh pdf.sh reg.sh text.sh tree.sh xml.sh
 noinst_DATA = $(INPUT_FILES)

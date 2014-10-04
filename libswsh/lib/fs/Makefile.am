@@ -4,7 +4,7 @@ GENERATED_FILES = dir.sh file.sh hier.sh path.sh
 INPUT_FILES = dir.sh.in file.sh.in hier.sh.in path.sh.in
 
 
-pkglibdir = $(libdir)/sh/fs
+pkgshdir = $(libdir)/sh/fs
 
 pkglib_DATA = dir.sh file.sh hier.sh path.sh
 noinst_DATA = $(INPUT_FILES)

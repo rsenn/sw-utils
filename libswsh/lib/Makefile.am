@@ -6,7 +6,7 @@ INPUT_FILES = archive.sh.in buildsys.sh.in bytesize.sh.in distrib.sh.in fs.sh.in
 DISTRIBUTED_FILES = src.sh ui.sh
 
 
-pkglibdir = $(libdir)/sh
+pkgshdir = $(libdir)/sh
 
 pkglib_DATA = archive.sh buildsys.sh bytesize.sh distrib.sh fs.sh pkg.sh pkgmgr.sh port.sh service.sh shdoc.sh src.sh swsh.sh template.sh term.sh ui.sh util.sh xtra.sh
 noinst_DATA = $(INPUT_FILES)

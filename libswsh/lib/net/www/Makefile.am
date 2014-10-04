@@ -4,7 +4,7 @@ GENERATED_FILES = curl.sh
 INPUT_FILES = curl.sh.in
 
 
-pkglibdir = $(libdir)/sh/net/www
+pkgshdir = $(libdir)/sh/net/www
 
 pkglib_DATA = curl.sh
 noinst_DATA = $(INPUT_FILES)

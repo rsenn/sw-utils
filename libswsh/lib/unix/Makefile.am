@@ -4,7 +4,7 @@ GENERATED_FILES = group.sh user.sh
 INPUT_FILES = group.sh.in user.sh.in
 
 
-pkglibdir = $(libdir)/sh/unix
+pkgshdir = $(libdir)/sh/unix
 
 pkglib_DATA = group.sh user.sh
 noinst_DATA = $(INPUT_FILES)
