@@ -50,7 +50,7 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES = svadm
-am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibdir)"
+am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkgshdir)"
 binSCRIPT_INSTALL = $(INSTALL_SCRIPT)
 SCRIPTS = $(bin_SCRIPTS)
 SOURCES =
@@ -61,10 +61,10 @@ am__vpath_adj = case $$p in \
     *) f=$$p;; \
   esac;
 am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
-pkglibDATA_INSTALL = $(INSTALL_DATA)
-DATA = $(pkglib_DATA)
+pkgshDATA_INSTALL = $(INSTALL_DATA)
+DATA = $(pkgsh_DATA)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
-pkglibdir = $(libdir)/svadm
+pkgshdir = $(libdir)/svadm
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AR = @AR@
@@ -229,8 +229,8 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 bin_SCRIPTS = svadm
-pkglib_DATA = autostart ui startstop
-EXTRA_DIST = $(pkglib_DATA)
+pkgsh_DATA = autostart ui startstop
+EXTRA_DIST = $(pkgsh_DATA)
 all: all-am
 
 .SUFFIXES:
@@ -290,22 +290,22 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
-install-pkglibDATA: $(pkglib_DATA)
+install-pkgshDATA: $(pkgsh_DATA)
 	@$(NORMAL_INSTALL)
-	test -z "$(pkglibdir)" || $(MKDIR_P) "$(DESTDIR)$(pkglibdir)"
-	@list='$(pkglib_DATA)'; for p in $$list; do \
+	test -z "$(pkgshdir)" || $(MKDIR_P) "$(DESTDIR)$(pkgshdir)"
+	@list='$(pkgsh_DATA)'; for p in $$list; do \
 	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
 	  f=$(am__strip_dir) \
-	  echo " $(pkglibDATA_INSTALL) '$$d$$p' '$(DESTDIR)$(pkglibdir)/$$f'"; \
-	  $(pkglibDATA_INSTALL) "$$d$$p" "$(DESTDIR)$(pkglibdir)/$$f"; \
+	  echo " $(pkgshDATA_INSTALL) '$$d$$p' '$(DESTDIR)$(pkgshdir)/$$f'"; \
+	  $(pkgshDATA_INSTALL) "$$d$$p" "$(DESTDIR)$(pkgshdir)/$$f"; \
 	done
 
-uninstall-pkglibDATA:
+uninstall-pkgshDATA:
 	@$(NORMAL_UNINSTALL)
-	@list='$(pkglib_DATA)'; for p in $$list; do \
+	@list='$(pkgsh_DATA)'; for p in $$list; do \
 	  f=$(am__strip_dir) \
-	  echo " rm -f '$(DESTDIR)$(pkglibdir)/$$f'"; \
-	  rm -f "$(DESTDIR)$(pkglibdir)/$$f"; \
+	  echo " rm -f '$(DESTDIR)$(pkgshdir)/$$f'"; \
+	  rm -f "$(DESTDIR)$(pkgshdir)/$$f"; \
 	done
 tags: TAGS
 TAGS:
@@ -344,7 +344,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(SCRIPTS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibdir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkgshdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -393,7 +393,7 @@ install-data-am:
 
 install-dvi: install-dvi-am
 
-install-exec-am: install-binSCRIPTS install-pkglibDATA
+install-exec-am: install-binSCRIPTS install-pkgshDATA
 
 install-html: install-html-am
 
@@ -423,7 +423,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binSCRIPTS uninstall-pkglibDATA
+uninstall-am: uninstall-binSCRIPTS uninstall-pkgshDATA
 
 .MAKE: install-am install-strip
 
@@ -433,12 +433,12 @@ uninstall-am: uninstall-binSCRIPTS uninstall-pkglibDATA
 	install-binSCRIPTS install-data install-data-am install-dvi \
 	install-dvi-am install-exec install-exec-am install-html \
 	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-pkglibDATA install-ps \
+	install-pdf install-pdf-am install-pkgshDATA install-ps \
 	install-ps-am install-strip installcheck installcheck-am \
 	installdirs maintainer-clean maintainer-clean-generic \
 	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
 	ps ps-am uninstall uninstall-am uninstall-binSCRIPTS \
-	uninstall-pkglibDATA
+	uninstall-pkgshDATA
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

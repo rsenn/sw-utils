@@ -6,7 +6,7 @@ INPUT_FILES = config.sh.in envdir.sh.in html.sh.in info.sh.in list.sh.in obj.sh.
 
 pkgshdir = $(libdir)/sh/data
 
-pkglib_DATA = config.sh envdir.sh html.sh info.sh list.sh obj.sh pdf.sh reg.sh text.sh tree.sh xml.sh
+pkgsh_DATA = config.sh envdir.sh html.sh info.sh list.sh obj.sh pdf.sh reg.sh text.sh tree.sh xml.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

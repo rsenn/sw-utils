@@ -6,7 +6,7 @@ INPUT_FILES = buffer.sh.in
 
 pkgshdir = $(libdir)/sh/djb
 
-pkglib_DATA = buffer.sh
+pkgsh_DATA = buffer.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

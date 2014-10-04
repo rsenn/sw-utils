@@ -12,8 +12,8 @@
 : ${libdir="@libdir@"}
 : ${shlibdir="@shlibdir@"}
 : ${localstatedir:="@localstatedir@"}
-: ${dpkglibdir:="$localstatedir/lib/dpkg"}
-: ${dpkginfolibdir:="$dpkglibdir/info"}
+: ${dpkgshdir:="$localstatedir/lib/dpkg"}
+: ${dpkginfolibdir:="$dpkgshdir/info"}
 
 # -------------------------------------------------------------------------
 . $shlibdir/data/info.sh

@@ -6,7 +6,7 @@ INPUT_FILES = curl.sh.in
 
 pkgshdir = $(libdir)/sh/net/www
 
-pkglib_DATA = curl.sh
+pkgsh_DATA = curl.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

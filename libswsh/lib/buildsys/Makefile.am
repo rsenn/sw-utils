@@ -7,7 +7,7 @@ INPUT_FILES = autotools.sh.in cmake.sh.in make.sh.in nobuild.sh.in plmake.sh.in 
 
 pkgshdir = $(libdir)/sh/buildsys
 
-pkglib_DATA = autotools.sh cmake.sh make.sh nobuild.sh plmake.sh pysetup.sh
+pkgsh_DATA = autotools.sh cmake.sh make.sh nobuild.sh plmake.sh pysetup.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

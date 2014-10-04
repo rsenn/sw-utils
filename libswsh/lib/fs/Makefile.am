@@ -6,7 +6,7 @@ INPUT_FILES = dir.sh.in file.sh.in hier.sh.in path.sh.in
 
 pkgshdir = $(libdir)/sh/fs
 
-pkglib_DATA = dir.sh file.sh hier.sh path.sh
+pkgsh_DATA = dir.sh file.sh hier.sh path.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

@@ -7,7 +7,7 @@ DISTRIBUTED_FILES = math.sh
 
 pkgshdir = $(libdir)/sh/std
 
-pkglib_DATA = algorithm.sh array.sh ctype.sh escape.sh log.sh math.sh str.sh var.sh
+pkgsh_DATA = algorithm.sh array.sh ctype.sh escape.sh log.sh math.sh str.sh var.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(DISTRIBUTED_FILES) $(INPUT_FILES)
 

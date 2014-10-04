@@ -197,26 +197,26 @@ initialize()
 
   if ${pkginstall:-false}
   then
-    pkglibdir=$pkgroot/lib/swconfig
-    log 'Initializing swconfig in standalone mode...' "(pkglibdir = $pkglibdir)"
+    pkgshdir=$pkgroot/lib/swconfig
+    log 'Initializing swconfig in standalone mode...' "(pkgshdir = $pkgshdir)"
   else
-    pkglibdir=$libdir/swconfig
+    pkgshdir=$libdir/swconfig
     export PATH="$prefix/bin:$prefix/sbin"
-    log 'Initializing swconfig in pkginstall mode...' "(pkglibdir = $pkglibdir, pkgroot = $pkgroot)"
+    log 'Initializing swconfig in pkginstall mode...' "(pkgshdir = $pkgshdir, pkgroot = $pkgroot)"
   fi
 
   if test $swconfig_update = yes
   then
-    modules=$(array $prefix/lib/swconfig/* $pkglibdir/*)
+    modules=$(array $prefix/lib/swconfig/* $pkgshdir/*)
   else
-    modules=$(array $pkglibdir/*)
+    modules=$(array $pkgshdir/*)
   fi
 
   log "Unsorted modules:
 $modules"
 
   array_sort 'modules'
-  array_order 'modules' "$pkglibdir/global" "$pkglibdir/daemontools"
+  array_order 'modules' "$pkgshdir/global" "$pkgshdir/daemontools"
 
   log "Sorted modules:
 $modules"

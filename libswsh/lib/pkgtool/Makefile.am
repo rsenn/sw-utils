@@ -6,7 +6,7 @@ INPUT_FILES = apt.sh.in
 
 pkgshdir = $(libdir)/sh/pkgtool
 
-pkglib_DATA = apt.sh
+pkgsh_DATA = apt.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

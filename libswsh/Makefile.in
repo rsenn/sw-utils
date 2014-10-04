@@ -61,8 +61,8 @@ am__make_running_with_option = \
 am__make_dryrun = (target_option=n; $(am__make_running_with_option))
 am__make_keepgoing = (target_option=k; $(am__make_running_with_option))
 pkgincludedir = $(includedir)/@PACKAGE@
-pkglibdir = $(libdir)/@PACKAGE@
-pkglibexecdir = $(libexecdir)/@PACKAGE@
+pkgshdir = $(libdir)/@PACKAGE@
+pkgshexecdir = $(libexecdir)/@PACKAGE@
 am__cd = CDPATH="$${ZSH_VERSION+.}$(PATH_SEPARATOR)" && cd
 install_sh_DATA = $(install_sh) -c -m 644
 install_sh_PROGRAM = $(install_sh) -c
@@ -147,8 +147,8 @@ am__uninstall_files_from_dir = { \
     || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
-am__installdirs = "$(DESTDIR)$(pkgdocdir)" "$(DESTDIR)$(pkglib_shdir)"
-DATA = $(pkgdoc_DATA) $(pkglib_sh_DATA)
+am__installdirs = "$(DESTDIR)$(pkgdocdir)" "$(DESTDIR)$(pkgsh_shdir)"
+DATA = $(pkgdoc_DATA) $(pkgsh_sh_DATA)
 RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
 am__recursive_targets = \
@@ -365,8 +365,8 @@ pkgdocdir = ${docdir}
 #endif
 #
 pkgdoc_DATA = README AUTHORS $(DEVTODO_OUTPUT)
-pkglib_shdir = ${libdir}/sh
-pkglib_sh_DATA = 
+pkgsh_shdir = ${libdir}/sh
+pkgsh_sh_DATA = 
 
 #if DEVTODO
 #
@@ -455,27 +455,27 @@ uninstall-pkgdocDATA:
 	@list='$(pkgdoc_DATA)'; test -n "$(pkgdocdir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
 	dir='$(DESTDIR)$(pkgdocdir)'; $(am__uninstall_files_from_dir)
-install-pkglib_shDATA: $(pkglib_sh_DATA)
+install-pkgsh_shDATA: $(pkgsh_sh_DATA)
 	@$(NORMAL_INSTALL)
-	@list='$(pkglib_sh_DATA)'; test -n "$(pkglib_shdir)" || list=; \
+	@list='$(pkgsh_sh_DATA)'; test -n "$(pkgsh_shdir)" || list=; \
 	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(pkglib_shdir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(pkglib_shdir)" || exit 1; \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(pkgsh_shdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(pkgsh_shdir)" || exit 1; \
 	fi; \
 	for p in $$list; do \
 	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
 	  echo "$$d$$p"; \
 	done | $(am__base_list) | \
 	while read files; do \
-	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(pkglib_shdir)'"; \
-	  $(INSTALL_DATA) $$files "$(DESTDIR)$(pkglib_shdir)" || exit $$?; \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(pkgsh_shdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(pkgsh_shdir)" || exit $$?; \
 	done
 
-uninstall-pkglib_shDATA:
+uninstall-pkgsh_shDATA:
 	@$(NORMAL_UNINSTALL)
-	@list='$(pkglib_sh_DATA)'; test -n "$(pkglib_shdir)" || list=; \
+	@list='$(pkgsh_sh_DATA)'; test -n "$(pkgsh_shdir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	dir='$(DESTDIR)$(pkglib_shdir)'; $(am__uninstall_files_from_dir)
+	dir='$(DESTDIR)$(pkgsh_shdir)'; $(am__uninstall_files_from_dir)
 
 # This directory's subdirectories are mostly independent; you can cd
 # into them and run 'make' without going through this Makefile.
@@ -776,7 +776,7 @@ check: check-recursive
 all-am: Makefile $(DATA)
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(pkgdocdir)" "$(DESTDIR)$(pkglib_shdir)"; do \
+	for dir in "$(DESTDIR)$(pkgdocdir)" "$(DESTDIR)$(pkgsh_shdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-recursive
@@ -830,7 +830,7 @@ info: info-recursive
 
 info-am:
 
-install-data-am: install-pkgdocDATA install-pkglib_shDATA
+install-data-am: install-pkgdocDATA install-pkgsh_shDATA
 
 install-dvi: install-dvi-recursive
 
@@ -874,7 +874,7 @@ ps: ps-recursive
 
 ps-am:
 
-uninstall-am: uninstall-pkgdocDATA uninstall-pkglib_shDATA
+uninstall-am: uninstall-pkgdocDATA uninstall-pkgsh_shDATA
 
 .MAKE: $(am__recursive_targets) install-am install-strip
 
@@ -888,12 +888,12 @@ uninstall-am: uninstall-pkgdocDATA uninstall-pkglib_shDATA
 	install-data-am install-dvi install-dvi-am install-exec \
 	install-exec-am install-html install-html-am install-info \
 	install-info-am install-man install-pdf install-pdf-am \
-	install-pkgdocDATA install-pkglib_shDATA install-ps \
+	install-pkgdocDATA install-pkgsh_shDATA install-ps \
 	install-ps-am install-strip installcheck installcheck-am \
 	installdirs installdirs-am maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-generic pdf \
 	pdf-am ps ps-am tags tags-am uninstall uninstall-am \
-	uninstall-pkgdocDATA uninstall-pkglib_shDATA
+	uninstall-pkgdocDATA uninstall-pkgsh_shDATA
 
 
 maintainer-clean-am: distclean-am maintainer-clean-generic

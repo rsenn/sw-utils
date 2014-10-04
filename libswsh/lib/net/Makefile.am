@@ -7,7 +7,7 @@ INPUT_FILES = bridge.sh.in cidr.sh.in ethernet.sh.in http.sh.in if.sh.in inet.sh
 
 pkgshdir = $(libdir)/sh/net
 
-pkglib_DATA = bridge.sh cidr.sh ethernet.sh http.sh if.sh inet.sh ip4.sh ssh.sh url.sh www.sh
+pkgsh_DATA = bridge.sh cidr.sh ethernet.sh http.sh if.sh inet.sh ip4.sh ssh.sh url.sh www.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

@@ -7,7 +7,7 @@ DISTRIBUTED_FILES = msvc.sh
 
 pkgshdir = $(libdir)/sh/devel/toolchain
 
-pkglib_DATA = gcc.sh icl.sh msvc.sh
+pkgsh_DATA = gcc.sh icl.sh msvc.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(DISTRIBUTED_FILES) $(INPUT_FILES)
 

@@ -70,7 +70,7 @@ else
   export PATH="$prefix/bin:$prefix/sbin"
 fi
 
-pkglibdir=$libdir/svadm
+pkgshdir=$libdir/svadm
   
 test -f "$swload" && source "$swload"
 
@@ -88,7 +88,7 @@ do
 done
 
 # load the modules
-for module in $pkglibdir/{autostart,startstop,ui}
+for module in $pkgshdir/{autostart,startstop,ui}
 do
   source $module
 done

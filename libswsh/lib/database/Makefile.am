@@ -6,7 +6,7 @@ INPUT_FILES = mysql.bash.in mysql.sh.in
 
 pkgshdir = $(libdir)/sh/database
 
-pkglib_DATA = mysql.bash mysql.sh
+pkgsh_DATA = mysql.bash mysql.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

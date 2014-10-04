@@ -3,7 +3,7 @@
 
 pkgshdir = $(libdir)/sh/net/server
 
-pkglib_DATA = 
+pkgsh_DATA = 
 EXTRA_DIST =
 
 CONFIG_MAINTAINERCLEAN_FILES = Makefile.in

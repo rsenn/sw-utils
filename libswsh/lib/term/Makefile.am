@@ -7,7 +7,7 @@ INPUT_FILES = color.sh.in screen.sh.in
 
 pkgshdir = $(libdir)/sh/term
 
-pkglib_DATA = color.sh screen.sh
+pkgsh_DATA = color.sh screen.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 
