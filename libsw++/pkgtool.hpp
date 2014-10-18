@@ -30,6 +30,7 @@
 #include <stdexcept>
 #include <cerrno>
 #include <cstring>
+#include <stdint.h>
 #include <sys/types.h>
 #include <dirent.h>
 #include <libtar.h>
@@ -81,7 +82,7 @@ public:
 void assert_argument(char** argv, int argc, int index);
 string itos(unsigned int value);
 string mtos(mode_t mode);
-int unistd_gzopen(char* pathname, int flags, mode_t mode);
+intptr_t unistd_gzopen(char* pathname, int flags, mode_t mode);
 ssize_t unistd_bz2open(char* pathname, int flags, mode_t mode);
 string trim_filename(const string& filename);
 bool file_exists(const string& filename);

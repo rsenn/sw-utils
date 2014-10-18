@@ -130,7 +130,7 @@ am__CONFIG_DISTCLEAN_FILES = config.log config.status
 EXTRA_DIST_FILES = \
   configure \
   Makefile.in \
-  config.sub \
+  depcomp \
   aclocal.m4 \
 	cfg.sh
 
@@ -140,6 +140,7 @@ BUILD_DIST_FILES = \
   build/debian/control \
   build/debian/rules \
   build/gnu/autogen.sh \
+  build/gnu/ltmain.sh \
 	build/gnu/libtool.m4 \
   build/gnu/ltoptions.m4 \
   build/gnu/ltsugar.m4 \
@@ -147,6 +148,9 @@ BUILD_DIST_FILES = \
   build/gnu/lt~obsolete.m4 \
   build/gnu/install-sh \
   build/gnu/config.guess \
+  build/gnu/config.sub \
+  build/gnu/depcomp \
+  build/gnu/missing \
 	m4/libtar.m4 \
 	m4/zlib.m4 \
 	m4/bzlib.m4 \
