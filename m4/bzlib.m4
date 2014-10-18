@@ -34,7 +34,7 @@ AC_HELP_STRING([--without-bzlib],[disable use of bzlib]),
   # let the user specify a non-standard library path
   AC_ARG_WITH([bzlib-lib-dir],
     AC_HELP_STRING([--with-bzlib-lib-dir=PATH],[search for bzlib libraries in PATH]),
-      [BZLIB_LIB_DIR="$withval"], [BZLIB_LIB_DIR="$BZLIB_DIR/lib"])
+      [BZLIB_LIB_DIR="$withval"], [BZLIB_LIB_DIR="yes"])
 
   # reset bzlib dir if none was specified
   if test "$BZLIB_DIR" = "yes"; then
@@ -56,6 +56,17 @@ AC_HELP_STRING([--without-bzlib],[disable use of bzlib]),
     BZLIB_CFLAGS="-I$BZLIB_INC_DIR"
   fi
   
+  if test ! -d "$BZLIB_LIB_DIR" -o "$BZLIB_LIB_DIR" = yes; then
+
+    for DIR in $BZLIB_DIR/lib64 $BZLIB_DIR/lib/x86_64-linux-gnu $BZLIB_DIR/lib/i386-linux-gnu $BZLIB_DIR/lib; do
+      test -d "$DIR" && {
+        BZLIB_LIB_DIR="$DIR"
+        break
+      }
+    done
+    test -d "$BZLIB_LIB_DIR" || unset BZLIB_LIB_DIR
+  fi
+
   # set lib dir if specified
   if test -n "$BZLIB_LIB_DIR"; then
     BZLIB_LIBS="-L$BZLIB_LIB_DIR"
