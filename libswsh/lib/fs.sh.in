@@ -34,7 +34,7 @@ fs_ls()
   ls -1 -d -n --time-style="${TIME_STYLE:-+%s}" --color=no -la "$@"
 }
 
-# fs_lseval <cmd> <path...> 
+# fs_lseval <cmd> <path...>
 # -------------------------------------------------------------------------
 fs_lseval()
 {
@@ -45,10 +45,10 @@ fs_lseval()
   fs_ls "$@" |
 
   while read -r PERM N USR GRP SIZE TIME P; do
- 
+
     eval "$CMD"
 
-  done 
+  done
 
 }
 
@@ -59,7 +59,7 @@ fs_lscol()
   (IFS=" "
    COL="$1" N=
    CMD= PFX=
-  shift  
+  shift
    [ -n "$COL" ] && N=`expr ${COL:-1} - 1`
    if [ -n "$N"  ] ; then
       [ "$N" -gt 0 ] && CMD="shift $N${CMD:+; $CMD}"
@@ -68,13 +68,13 @@ fs_lscol()
      CMD="${CMD:+$CMD; }OUTPUT=\"\$1\""
    else
      CMD="${CMD:+$CMD; }OUTPUT=\"\$*\""
-   fi  
+   fi
 
  if [ $# -gt 1 ]; then
    N=`expr 6 -  ${N}`
    if [ "$N" -gt 0 ]; then
       [ "$N" -gt 0 ] && CMD="${CMD:+$CMD; }shift $N"
-   fi 
+   fi
    CMD="${CMD:+$CMD; }FILENAME=\"\$*\""
  else
    CMD="${CMD:+$CMD; }unset FILENAME"
@@ -82,7 +82,7 @@ fi
    CMD="${CMD:+$CMD; }echo \"\${FILENAME:+\$FILENAME: }\${OUTPUT}\""
 
    CMD="fs_ls \"\$@\" |
-     while read -r P; do 
+     while read -r P; do
      (set -- \$P
       $CMD
       )
@@ -280,7 +280,7 @@ fs_recurse()
       *) break ;;
     esac
     shift
-  done 
+  done
 
   for ENTRY in ${*:-*}; do
     case $ENTRY in
@@ -288,13 +288,13 @@ fs_recurse()
     esac
 
     if test -d "$ENTRY"; then
-      $FS_dir ${CMD:-"echo"} "$ENTRY/" && 
-      test -x "$ENTRY/" && 
+      $FS_dir ${CMD:-"echo"} "$ENTRY/" &&
+      test -x "$ENTRY/" &&
 #     for ENTRY in $ENTRY/*; do
         fs_recurse ${FS_file:+-f} $ARGS $ENTRY/*
 #     done
     elif test -e "$ENTRY"; then
-      test -d "$ENTRY" && $FS_dir ${CMD:-echo} "$ENTRY" || 
+      test -d "$ENTRY" && $FS_dir ${CMD:-echo} "$ENTRY" ||
       $FS_file ${CMD:-echo} "$ENTRY"
     fi
   done)
@@ -402,8 +402,8 @@ fs_siblings()
 }
 
 # -----------------------------------------------------------------------------
-fs_avail () 
-{ 
+fs_avail ()
+{
  (unset OPTS
   while :; do
     case "$1" in
@@ -419,7 +419,7 @@ fs_avail ()
   do
 					eval "$CMD"
   done
-	)	
+	)
 }
 # --- eof ---------------------------------------------------------------------
 lib_fs_sh=:;}
