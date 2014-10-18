@@ -1121,7 +1121,7 @@ m4_defun([_LT_DARWIN_LINKER_FEATURES],
 # ----------------------------------
 # Links a minimal program and checks the executable
 # for the system default hardcoded library path. In most cases,
-# this is /usr/lib64:/lib, but when the MPI compilers are used
+# this is /usr/lib:/lib, but when the MPI compilers are used
 # the location of the communication and MPI libs are included too.
 # If we don't find anything, use the default library path according
 # to the aix ld manual.
@@ -1147,7 +1147,7 @@ else
     _LT_TAGVAR([lt_cv_aix_libpath_], [$1])=`dump -HX64 conftest$ac_exeext 2>/dev/null | $SED -n -e "$lt_aix_libpath_sed"`
   fi],[])
   if test -z "$_LT_TAGVAR([lt_cv_aix_libpath_], [$1])"; then
-    _LT_TAGVAR([lt_cv_aix_libpath_], [$1])="/usr/lib64:/lib"
+    _LT_TAGVAR([lt_cv_aix_libpath_], [$1])="/usr/lib:/lib"
   fi
   ])
   aix_libpath=$_LT_TAGVAR([lt_cv_aix_libpath_], [$1])
@@ -2229,7 +2229,7 @@ BEGIN {RS=" "; FS="/|\n";} {
   esac
   sys_lib_search_path_spec=`$ECHO "$lt_search_path_spec" | $lt_NL2SP`
 else
-  sys_lib_search_path_spec="/lib /usr/lib64 /usr/local/lib"
+  sys_lib_search_path_spec="/lib /usr/lib /usr/local/lib"
 fi])
 library_names_spec=
 libname_spec='lib$name'
@@ -2243,7 +2243,7 @@ shlibpath_var=
 shlibpath_overrides_runpath=unknown
 version_type=none
 dynamic_linker="$host_os ld.so"
-sys_lib_dlsearch_path_spec="/lib /usr/lib64"
+sys_lib_dlsearch_path_spec="/lib /usr/lib"
 need_lib_prefix=unknown
 hardcode_into_libs=no
 
@@ -2333,8 +2333,8 @@ bsdi[[45]]*)
   soname_spec='${libname}${release}${shared_ext}$major'
   finish_cmds='PATH="\$PATH:/sbin" ldconfig $libdir'
   shlibpath_var=LD_LIBRARY_PATH
-  sys_lib_search_path_spec="/shlib /usr/lib64 /usr/X11/lib /usr/contrib/lib /lib /usr/local/lib"
-  sys_lib_dlsearch_path_spec="/shlib /usr/lib64 /usr/local/lib"
+  sys_lib_search_path_spec="/shlib /usr/lib /usr/X11/lib /usr/contrib/lib /lib /usr/local/lib"
+  sys_lib_dlsearch_path_spec="/shlib /usr/lib /usr/local/lib"
   # the default ld.so.conf also contains /usr/contrib/lib and
   # /usr/X11R6/lib (/usr/X11 is a link to /usr/X11R6), but let us allow
   # libtool to hard-code these into programs
@@ -2370,7 +2370,7 @@ cygwin* | mingw* | pw32* | cegcc*)
       # Cygwin DLLs use 'cyg' prefix rather than 'lib'
       soname_spec='`echo ${libname} | sed -e 's/^lib/cyg/'``echo ${release} | $SED -e 's/[[.]]/-/g'`${versuffix}${shared_ext}'
 m4_if([$1], [],[
-      sys_lib_search_path_spec="$sys_lib_search_path_spec /usr/lib64/w32api"])
+      sys_lib_search_path_spec="$sys_lib_search_path_spec /usr/lib/w32api"])
       ;;
     mingw* | cegcc*)
       # MinGW DLLs use traditional 'lib' prefix
@@ -2462,7 +2462,7 @@ darwin* | rhapsody*)
   shrext_cmds='`test .$module = .yes && echo .so || echo .dylib`'
 m4_if([$1], [],[
   sys_lib_search_path_spec="$sys_lib_search_path_spec /usr/local/lib"])
-  sys_lib_dlsearch_path_spec='/usr/local/lib /lib /usr/lib64'
+  sys_lib_dlsearch_path_spec='/usr/local/lib /lib /usr/lib'
   ;;
 
 dgux*)
@@ -2558,9 +2558,9 @@ hpux9* | hpux10* | hpux11*)
     library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}$major $libname${shared_ext}'
     soname_spec='${libname}${release}${shared_ext}$major'
     if test "X$HPUX_IA64_MODE" = X32; then
-      sys_lib_search_path_spec="/usr/lib64/hpux32 /usr/local/lib/hpux32 /usr/local/lib"
+      sys_lib_search_path_spec="/usr/lib/hpux32 /usr/local/lib/hpux32 /usr/local/lib"
     else
-      sys_lib_search_path_spec="/usr/lib64/hpux64 /usr/local/lib/hpux64"
+      sys_lib_search_path_spec="/usr/lib/hpux64 /usr/local/lib/hpux64"
     fi
     sys_lib_dlsearch_path_spec=$sys_lib_search_path_spec
     ;;
@@ -2572,7 +2572,7 @@ hpux9* | hpux10* | hpux11*)
     shlibpath_overrides_runpath=yes # Unless +noenvvar is specified.
     library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}$major $libname${shared_ext}'
     soname_spec='${libname}${release}${shared_ext}$major'
-    sys_lib_search_path_spec="/usr/lib64/pa20_64 /usr/ccs/lib/pa20_64"
+    sys_lib_search_path_spec="/usr/lib/pa20_64 /usr/ccs/lib/pa20_64"
     sys_lib_dlsearch_path_spec=$sys_lib_search_path_spec
     ;;
   *)
@@ -2634,8 +2634,8 @@ irix5* | irix6* | nonstopux*)
   esac
   shlibpath_var=LD_LIBRARY${shlibsuff}_PATH
   shlibpath_overrides_runpath=no
-  sys_lib_search_path_spec="/usr/lib64${libsuff} /lib${libsuff} /usr/local/lib${libsuff}"
-  sys_lib_dlsearch_path_spec="/usr/lib64${libsuff} /lib${libsuff}"
+  sys_lib_search_path_spec="/usr/lib${libsuff} /lib${libsuff} /usr/local/lib${libsuff}"
+  sys_lib_dlsearch_path_spec="/usr/lib${libsuff} /lib${libsuff}"
   hardcode_into_libs=yes
   ;;
 
@@ -2676,7 +2676,7 @@ linux* | k*bsd*-gnu | kopensolaris*-gnu)
   hardcode_into_libs=yes
 
   # Add ABI-specific directories to the system library path.
-  sys_lib_dlsearch_path_spec="/lib64 /usr/lib64 /lib /usr/lib64"
+  sys_lib_dlsearch_path_spec="/lib64 /usr/lib64 /lib /usr/lib"
 
   # Append ld.so.conf contents to the search path
   if test -f /etc/ld.so.conf; then
@@ -2733,7 +2733,7 @@ newsos6)
 
 openbsd*)
   version_type=sunos
-  sys_lib_dlsearch_path_spec="/usr/lib64"
+  sys_lib_dlsearch_path_spec="/usr/lib"
   need_lib_prefix=no
   # Some older versions of OpenBSD (3.3 at least) *do* need versioned libs.
   case $host_os in
@@ -2773,7 +2773,7 @@ osf3* | osf4* | osf5*)
   soname_spec='${libname}${release}${shared_ext}$major'
   library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}$major $libname${shared_ext}'
   shlibpath_var=LD_LIBRARY_PATH
-  sys_lib_search_path_spec="/usr/shlib /usr/ccs/lib /usr/lib64/cmplrs/cc /usr/lib64 /usr/local/lib /var/shlib"
+  sys_lib_search_path_spec="/usr/shlib /usr/ccs/lib /usr/lib/cmplrs/cc /usr/lib /usr/local/lib /var/shlib"
   sys_lib_dlsearch_path_spec="$sys_lib_search_path_spec"
   ;;
 
@@ -2824,7 +2824,7 @@ sysv4 | sysv4.3*)
       need_lib_prefix=no
       need_version=no
       shlibpath_overrides_runpath=no
-      sys_lib_search_path_spec='/lib /usr/lib64 /usr/ccs/lib'
+      sys_lib_search_path_spec='/lib /usr/lib /usr/ccs/lib'
       ;;
   esac
   ;;
@@ -2848,16 +2848,16 @@ sysv5* | sco3.2v5* | sco5v6* | unixware* | OpenUNIX* | sysv4*uw2*)
   shlibpath_overrides_runpath=yes
   hardcode_into_libs=yes
   if test "$with_gnu_ld" = yes; then
-    sys_lib_search_path_spec='/usr/local/lib /usr/gnu/lib /usr/ccs/lib /usr/lib64 /lib'
+    sys_lib_search_path_spec='/usr/local/lib /usr/gnu/lib /usr/ccs/lib /usr/lib /lib'
   else
-    sys_lib_search_path_spec='/usr/ccs/lib /usr/lib64'
+    sys_lib_search_path_spec='/usr/ccs/lib /usr/lib'
     case $host_os in
       sco3.2v5*)
         sys_lib_search_path_spec="$sys_lib_search_path_spec /lib"
 	;;
     esac
   fi
-  sys_lib_dlsearch_path_spec='/usr/lib64'
+  sys_lib_dlsearch_path_spec='/usr/lib'
   ;;
 
 tpf*)
@@ -3245,7 +3245,7 @@ freebsd* | dragonfly*)
       # Let's accept both of them until this is cleared up.
       lt_cv_deplibs_check_method='file_magic (FreeBSD|OpenBSD|DragonFly)/i[[3-9]]86 (compact )?demand paged shared library'
       lt_cv_file_magic_cmd=/usr/bin/file
-      lt_cv_file_magic_test_file=`echo /usr/lib64/libc.so.*`
+      lt_cv_file_magic_test_file=`echo /usr/lib/libc.so.*`
       ;;
     esac
   else
@@ -3266,15 +3266,15 @@ hpux10.20* | hpux11*)
   case $host_cpu in
   ia64*)
     lt_cv_deplibs_check_method='file_magic (s[[0-9]][[0-9]][[0-9]]|ELF-[[0-9]][[0-9]]) shared object file - IA64'
-    lt_cv_file_magic_test_file=/usr/lib64/hpux32/libc.so
+    lt_cv_file_magic_test_file=/usr/lib/hpux32/libc.so
     ;;
   hppa*64*)
     [lt_cv_deplibs_check_method='file_magic (s[0-9][0-9][0-9]|ELF[ -][0-9][0-9])(-bit)?( [LM]SB)? shared object( file)?[, -]* PA-RISC [0-9]\.[0-9]']
-    lt_cv_file_magic_test_file=/usr/lib64/pa20_64/libc.sl
+    lt_cv_file_magic_test_file=/usr/lib/pa20_64/libc.sl
     ;;
   *)
     lt_cv_deplibs_check_method='file_magic (s[[0-9]][[0-9]][[0-9]]|PA-RISC[[0-9]]\.[[0-9]]) shared library'
-    lt_cv_file_magic_test_file=/usr/lib64/libc.sl
+    lt_cv_file_magic_test_file=/usr/lib/libc.sl
     ;;
   esac
   ;;
@@ -3310,7 +3310,7 @@ netbsd*)
 newos6*)
   lt_cv_deplibs_check_method='file_magic ELF [[0-9]][[0-9]]*-bit [[ML]]SB (executable|dynamic lib)'
   lt_cv_file_magic_cmd=/usr/bin/file
-  lt_cv_file_magic_test_file=/usr/lib64/libnls.so
+  lt_cv_file_magic_test_file=/usr/lib/libnls.so
   ;;
 
 *nto* | *qnx*)
@@ -3345,7 +3345,7 @@ sysv4 | sysv4.3*)
   case $host_vendor in
   motorola)
     lt_cv_deplibs_check_method='file_magic ELF [[0-9]][[0-9]]*-bit [[ML]]SB (shared object|dynamic lib) M[[0-9]][[0-9]]* Version [[0-9]]'
-    lt_cv_file_magic_test_file=`echo /usr/lib64/libc.so*`
+    lt_cv_file_magic_test_file=`echo /usr/lib/libc.so*`
     ;;
   ncr)
     lt_cv_deplibs_check_method=pass_all
@@ -5078,7 +5078,7 @@ _LT_EOF
         _LT_TAGVAR(archive_expsym_cmds, $1)='$CC -o $output_objdir/$soname $libobjs $deplibs '"\${wl}$no_entry_flag"' $compiler_flags `if test "x${allow_undefined_flag}" != "x"; then func_echo_all "${wl}${allow_undefined_flag}"; else :; fi` '"\${wl}$exp_sym_flag:\$export_symbols $shared_flag"
       else
 	if test "$host_cpu" = ia64; then
-	  _LT_TAGVAR(hardcode_libdir_flag_spec, $1)='${wl}-R $libdir:/usr/lib64:/lib'
+	  _LT_TAGVAR(hardcode_libdir_flag_spec, $1)='${wl}-R $libdir:/usr/lib:/lib'
 	  _LT_TAGVAR(allow_undefined_flag, $1)="-z nodefs"
 	  _LT_TAGVAR(archive_expsym_cmds, $1)="\$CC $shared_flag"' -o $output_objdir/$soname $libobjs $deplibs '"\${wl}$no_entry_flag"' $compiler_flags ${wl}${allow_undefined_flag} '"\${wl}$exp_sym_flag:\$export_symbols"
 	else
@@ -5203,7 +5203,7 @@ _LT_EOF
     # does not break anything, and helps significantly (at the cost of a little
     # extra space).
     freebsd2.2*)
-      _LT_TAGVAR(archive_cmds, $1)='$LD -Bshareable -o $lib $libobjs $deplibs $linker_flags /usr/lib64/c++rt0.o'
+      _LT_TAGVAR(archive_cmds, $1)='$LD -Bshareable -o $lib $libobjs $deplibs $linker_flags /usr/lib/c++rt0.o'
       _LT_TAGVAR(hardcode_libdir_flag_spec, $1)='-R$libdir'
       _LT_TAGVAR(hardcode_direct, $1)=yes
       _LT_TAGVAR(hardcode_shlibpath_var, $1)=no
@@ -5375,7 +5375,7 @@ _LT_EOF
       ;;
 
     openbsd*)
-      if test -f /usr/lib64exec/ld.so; then
+      if test -f /usr/libexec/ld.so; then
 	_LT_TAGVAR(hardcode_direct, $1)=yes
 	_LT_TAGVAR(hardcode_shlibpath_var, $1)=no
 	_LT_TAGVAR(hardcode_direct_absolute, $1)=yes
@@ -6077,7 +6077,7 @@ if test "$_lt_caught_CXX_error" != yes; then
           _LT_TAGVAR(archive_expsym_cmds, $1)='$CC -o $output_objdir/$soname $libobjs $deplibs '"\${wl}$no_entry_flag"' $compiler_flags `if test "x${allow_undefined_flag}" != "x"; then func_echo_all "${wl}${allow_undefined_flag}"; else :; fi` '"\${wl}$exp_sym_flag:\$export_symbols $shared_flag"
         else
           if test "$host_cpu" = ia64; then
-	    _LT_TAGVAR(hardcode_libdir_flag_spec, $1)='${wl}-R $libdir:/usr/lib64:/lib'
+	    _LT_TAGVAR(hardcode_libdir_flag_spec, $1)='${wl}-R $libdir:/usr/lib:/lib'
 	    _LT_TAGVAR(allow_undefined_flag, $1)="-z nodefs"
 	    _LT_TAGVAR(archive_expsym_cmds, $1)="\$CC $shared_flag"' -o $output_objdir/$soname $libobjs $deplibs '"\${wl}$no_entry_flag"' $compiler_flags ${wl}${allow_undefined_flag} '"\${wl}$exp_sym_flag:\$export_symbols"
           else
@@ -6583,7 +6583,7 @@ if test "$_lt_caught_CXX_error" != yes; then
 	;;
 
       openbsd*)
-	if test -f /usr/lib64exec/ld.so; then
+	if test -f /usr/libexec/ld.so; then
 	  _LT_TAGVAR(hardcode_direct, $1)=yes
 	  _LT_TAGVAR(hardcode_shlibpath_var, $1)=no
 	  _LT_TAGVAR(hardcode_direct_absolute, $1)=yes
