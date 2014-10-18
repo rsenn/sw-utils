@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = libtar.la
+noinst_LTLIBRARIES = libtar.la
 
 AM_CPPFLAGS = \
   -I$(srcdir) \
