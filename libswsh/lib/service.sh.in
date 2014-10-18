@@ -1,8 +1,8 @@
 #!
 #
 # service.sh: Functions for dealing with services supervised by daemontools.
-#  They modify or extract info from /usr/local/services 
-#  respectively /usr/local/etc/services, either directly or 
+#  They modify or extract info from /usr/local/services
+#  respectively /usr/local/etc/services, either directly or
 #  trought "svc" & "svstat" (daemontools).
 #
 # $Id: service.sh.in 722 2008-10-02 03:40:28Z enki $
