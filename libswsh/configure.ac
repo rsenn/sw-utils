@@ -1,11 +1,12 @@
 dnl Initialize autoconf and automake
 AC_INIT([libswsh],[0.9.7])
+
 AC_CANONICAL_TARGET
 AC_CONFIG_AUX_DIR([build/gnu])
 AC_CONFIG_MACRO_DIR([build/gnu])
 AC_CONFIG_SRCDIR([lib/util.sh.in])
-AM_INIT_AUTOMAKE
 
+AM_INIT_AUTOMAKE
 dnl AM_MAINTAINER_MODE
 dnl AM_DEP_TRACK
 

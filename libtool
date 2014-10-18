@@ -2,7 +2,7 @@
 
 # libtool - Provide generalized library-building support services.
 # Generated automatically by config.status (sw-utils) 0.9.7
-# Libtool was configured on host localhost.localdomain:
+# Libtool was configured on host crowdguardprime:
 # NOTE: Changes made to this file will be lost: look at ltmain.sh.
 #
 #   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005,
@@ -120,7 +120,7 @@ to_host_file_cmd=func_convert_file_noop
 to_tool_file_cmd=func_convert_file_noop
 
 # An object symbol dumper.
-OBJDUMP="objdump"
+OBJDUMP="x86_64-redhat-linux-objdump"
 
 # Method to check whether dependent libraries are shared objects.
 deplibs_check_method="pass_all"
@@ -141,7 +141,7 @@ DLLTOOL="false"
 sharedlib_from_linklib_cmd="printf %s\\n"
 
 # The archiver.
-AR="ar"
+AR="x86_64-redhat-linux-ar"
 
 # Flags to create an archive.
 AR_FLAGS="cru"
@@ -150,10 +150,10 @@ AR_FLAGS="cru"
 archiver_list_spec="@"
 
 # A symbol stripping program.
-STRIP="strip"
+STRIP="x86_64-redhat-linux-strip"
 
 # Commands used to install an old-style archive.
-RANLIB="ranlib"
+RANLIB="x86_64-redhat-linux-ranlib"
 old_postinstall_cmds="chmod 644 \$oldlib~\$RANLIB \$tool_oldlib"
 old_postuninstall_cmds=""
 
@@ -275,7 +275,7 @@ hardcode_into_libs=yes
 sys_lib_search_path_spec="/usr/lib/gcc/x86_64-redhat-linux/4.8.3 /usr/lib64 /lib64 "
 
 # Run-time system search path for libraries.
-sys_lib_dlsearch_path_spec="/lib64 /usr/lib64 /lib /usr/lib /usr/lib/atlas /usr/lib64/atlas /usr/lib64/mysql /usr/lib64/dyninst /usr/lib64/freetype-infinality /usr/lib/iscsi /usr/lib64/iscsi /usr/lib/llvm /usr/lib64/llvm /usr/local/lib64 /usr/local/lib /usr/lib64/mysql /usr/lib64/nvidia-304xx /usr/lib64/octave/3.6.4 /usr/lib64/OGRE /usr/lib64/qt-3.3/lib /opt/Qt5.3.1/5.3/gcc_64/lib /usr/lib64/root /usr/lib64/tcl8.5 /usr/lib64/tracker-0.16 /usr/lib/wine/ /usr/lib64/wine/ /usr/lib64/xulrunner "
+sys_lib_dlsearch_path_spec="/lib64 /usr/lib64 /lib /usr/lib /usr/lib64/atlas /usr/lib64/mysql /usr/lib64/dyninst /usr/lib64/iscsi /usr/lib/llvm /usr/lib64/llvm /usr/local/lib /usr/local/lib64 /usr/lib64/mysql /usr/lib64/qt-3.3/lib /usr/lib64/tcl8.5 /usr/lib64/tracker-0.16 /usr/lib64/wine/ "
 
 # Whether dlopen is supported.
 dlopen_support=unknown
@@ -287,8 +287,8 @@ dlopen_self=unknown
 dlopen_self_static=unknown
 
 # Commands to strip libraries.
-old_striplib="strip --strip-debug"
-striplib="strip --strip-unneeded"
+old_striplib=""
+striplib=""
 
 
 # The linker used to build libraries.
