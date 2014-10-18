@@ -56,7 +56,7 @@ AC_HELP_STRING([--without-bzlib],[disable use of bzlib]),
     BZLIB_CFLAGS="-I$BZLIB_INC_DIR"
   fi
   
-  if test ! -d "$BZLIB_LIB_DIR"; then
+  if test ! -d "$BZLIB_LIB_DIR" -o "$BZLIB_LIB_DIR" = yes; then
 
     for DIR in $BZLIB_DIR/lib64 $BZLIB_DIR/lib/x86_64-linux-gnu $BZLIB_DIR/lib/i386-linux-gnu $BZLIB_DIR/lib; do
       test -d "$DIR" && {
@@ -64,6 +64,7 @@ AC_HELP_STRING([--without-bzlib],[disable use of bzlib]),
         break
       }
     done
+    test -d "$BZLIB_LIB_DIR" || unset BZLIB_LIB_DIR
   fi
 
   # set lib dir if specified
