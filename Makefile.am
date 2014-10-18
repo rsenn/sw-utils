@@ -84,9 +84,9 @@ DEFS = -DPKG_DIR=\"$(PKG_DIR)\" \
        -DLIBDIR=\"$(libdir)\"
 
 if SYSTEM_LIBTAR
-INCLUDES = -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/libsw++ $(LIBTAR_CFLAGS)
+AM_CPPFLAGS += -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/libsw++ $(LIBTAR_CFLAGS)
 else
-INCLUDES = \
+AM_CPPFLAGS += \
   -I$(top_builddir) \
   -I$(top_srcdir) \
   -I$(top_srcdir)/libsw++ \
