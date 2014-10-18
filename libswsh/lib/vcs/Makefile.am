@@ -4,9 +4,9 @@ GENERATED_FILES = svn.sh
 INPUT_FILES = svn.sh.in
 
 
-pkglibdir = $(libdir)/sh/vcs
+pkgshdir = $(libdir)/sh/vcs
 
-pkglib_DATA = svn.sh
+pkgsh_DATA = svn.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

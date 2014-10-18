@@ -5,9 +5,9 @@ INPUT_FILES = deb.sh.in
 DISTRIBUTED_FILES = spec.sh
 
 
-pkglibdir = $(libdir)/sh/ports
+pkgshdir = $(libdir)/sh/ports
 
-pkglib_DATA = deb.sh spec.sh
+pkgsh_DATA = deb.sh spec.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(DISTRIBUTED_FILES) $(INPUT_FILES)
 

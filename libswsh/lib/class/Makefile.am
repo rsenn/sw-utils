@@ -4,9 +4,9 @@ GENERATED_FILES = cache.sh tempfile.sh
 INPUT_FILES = cache.sh.in tempfile.sh.in
 
 
-pkglibdir = $(libdir)/sh/class
+pkgshdir = $(libdir)/sh/class
 
-pkglib_DATA = cache.sh tempfile.sh
+pkgsh_DATA = cache.sh tempfile.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

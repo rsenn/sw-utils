@@ -4,9 +4,9 @@ GENERATED_FILES = freshmeat.sh gnu.sh googlecode.sh kernel.sh rubyforge.sh sourc
 INPUT_FILES = freshmeat.sh.in gnu.sh.in googlecode.sh.in kernel.sh.in rubyforge.sh.in sourceforge.sh.in
 
 
-pkglibdir = $(libdir)/sh/web
+pkgshdir = $(libdir)/sh/web
 
-pkglib_DATA = freshmeat.sh gnu.sh googlecode.sh kernel.sh rubyforge.sh sourceforge.sh
+pkgsh_DATA = freshmeat.sh gnu.sh googlecode.sh kernel.sh rubyforge.sh sourceforge.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

@@ -39,7 +39,7 @@ sed_minuso='s/.* -o \([^ ]*\).*/\1/p'
 if test -f configure.ac; then
   configure_ac=configure.ac
 else
-  configure_ac=configure.in
+  configure_ac=configure.ac
 fi
 
 msg="missing on your system"
