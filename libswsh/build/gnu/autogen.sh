@@ -68,7 +68,7 @@ done | sort -u | {
     echo "$MY_NAME: creating ${dir#./}/Makefile.am" 1>&2
 
     case $subdir in
-      lib*) scriptdir="pkglib" targetdir="libdir" targetsubdir="sh${subdir#lib}" target="DATA" ;;
+      lib*) scriptdir="pkgsh" targetdir="libdir" targetsubdir="sh${subdir#lib}" target="DATA" ;;
       src*) scriptdir="bin" targetdir= targetsubdir= target="SCRIPTS" ;;
     esac
 

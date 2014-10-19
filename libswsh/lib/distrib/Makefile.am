@@ -4,9 +4,9 @@ GENERATED_FILES = centos.sh cygwin.sh debian.sh gentoo.sh lsb.sh mandrake.sh min
 INPUT_FILES = centos.sh.in cygwin.sh.in debian.sh.in gentoo.sh.in lsb.sh.in mandrake.sh.in mingw.sh.in msys.sh.in redhat.sh.in slackware.sh.in ubuntu.sh.in
 
 
-pkglibdir = $(libdir)/sh/distrib
+pkgshdir = $(libdir)/sh/distrib
 
-pkglib_DATA = centos.sh cygwin.sh debian.sh gentoo.sh lsb.sh mandrake.sh mingw.sh msys.sh redhat.sh slackware.sh ubuntu.sh
+pkgsh_DATA = centos.sh cygwin.sh debian.sh gentoo.sh lsb.sh mandrake.sh mingw.sh msys.sh redhat.sh slackware.sh ubuntu.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

@@ -6,9 +6,9 @@ INPUT_FILES = runit.sh.in
 DISTRIBUTED_FILES = runsv.sh
 
 
-pkglibdir = $(libdir)/sh/service
+pkgshdir = $(libdir)/sh/service
 
-pkglib_DATA = runit.sh runsv.sh
+pkgsh_DATA = runit.sh runsv.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(DISTRIBUTED_FILES) $(INPUT_FILES)
 

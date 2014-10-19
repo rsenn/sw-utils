@@ -5,9 +5,9 @@ GENERATED_FILES = compiler.sh patch.sh scan.sh srcdist.sh toolchain.sh triplet.s
 INPUT_FILES = compiler.sh.in patch.sh.in scan.sh.in srcdist.sh.in toolchain.sh.in triplet.sh.in
 
 
-pkglibdir = $(libdir)/sh/devel
+pkgshdir = $(libdir)/sh/devel
 
-pkglib_DATA = compiler.sh patch.sh scan.sh srcdist.sh toolchain.sh triplet.sh
+pkgsh_DATA = compiler.sh patch.sh scan.sh srcdist.sh toolchain.sh triplet.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

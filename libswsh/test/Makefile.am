@@ -11,7 +11,7 @@ check_SCRIPTS = \
 
 TESTS_OPTIONS = -e
 TESTS_ENVIRONMENT = SHELLS="$(SHELLS)" ECHO_N="@ECHO_N@" srcdir="$(srcdir)" builddir="." shlibdir="../lib" $(srcdir)/run-test-suite $(TESTS_OPTIONS)
-TESTS = $(check_SCRIPTS)
+#TESTS = $(check_SCRIPTS)
 
 EXTRA_DIST = run-test-suite $(check_SCRIPTS)
 

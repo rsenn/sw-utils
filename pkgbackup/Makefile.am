@@ -2,7 +2,7 @@ bin_PROGRAMS = pkgbackup
 
 DEFS = -DSYSCONFDIR=\"$(sysconfdir)\"
 
-INCLUDES = -I..
+AM_CPPFLAGS = -I..
 
 pkgbackup_SOURCES = \
   main.cpp main.h \

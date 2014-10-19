@@ -4,9 +4,9 @@ GENERATED_FILES = dpkg.sh rpm.sh
 INPUT_FILES = dpkg.sh.in rpm.sh.in
 
 
-pkglibdir = $(libdir)/sh/pkgmgr
+pkgshdir = $(libdir)/sh/pkgmgr
 
-pkglib_DATA = dpkg.sh rpm.sh
+pkgsh_DATA = dpkg.sh rpm.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

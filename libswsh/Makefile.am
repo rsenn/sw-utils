@@ -19,8 +19,8 @@ pkgdocdir = ${docdir}
 #
 pkgdoc_DATA = README AUTHORS $(DEVTODO_OUTPUT)
 
-pkglib_shdir = ${libdir}/sh
-pkglib_sh_DATA = 
+pkgsh_shdir = ${libdir}/sh
+pkgsh_sh_DATA = 
 
 #if DEVTODO
 ##$(srcdir)/.todo:

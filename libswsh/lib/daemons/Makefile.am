@@ -4,9 +4,9 @@ GENERATED_FILES = crontab.sh httpd.sh named.sh
 INPUT_FILES = crontab.sh.in httpd.sh.in named.sh.in
 
 
-pkglibdir = $(libdir)/sh/daemons
+pkgshdir = $(libdir)/sh/daemons
 
-pkglib_DATA = crontab.sh httpd.sh named.sh
+pkgsh_DATA = crontab.sh httpd.sh named.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

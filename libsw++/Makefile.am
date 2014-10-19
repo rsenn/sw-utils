@@ -1,7 +1,7 @@
 if SYSTEM_LIBTAR
-INCLUDES = -I$(top_builddir) $(LIBTAR_CFLAGS) $(BZLIB_CFLAGS) $(ZLIB_CFLAGS)
+AM_CPPFLAGS = -I$(top_builddir) $(LIBTAR_CFLAGS) $(BZLIB_CFLAGS) $(ZLIB_CFLAGS)
 else
-INCLUDES = \
+AM_CPPFLAGS = \
   -I$(top_builddir) \
   -I$(top_srcdir)/libtar \
   -I$(top_srcdir)/libtar/lib \

@@ -5,9 +5,9 @@ INPUT_FILES = fmt.sh.in
 DISTRIBUTED_FILES = combine.sh escape.sh
 
 
-pkglibdir = $(libdir)/sh/algorithm
+pkgshdir = $(libdir)/sh/algorithm
 
-pkglib_DATA = combine.sh escape.sh fmt.sh
+pkgsh_DATA = combine.sh escape.sh fmt.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(DISTRIBUTED_FILES) $(INPUT_FILES)
 

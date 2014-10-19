@@ -294,12 +294,12 @@ archive_unpack()
       tar)
         IFS="$newline" \
         eval "tar ${strip:+--strip-components=\"\$strip\"} ${exclude} --no-same-owner -xv${d:+|sed -e "s:^:${d%/}/:"}" \
-          2>/dev/null 
+          2>/dev/null
       ;;
       *) errormsg "No such container type $cont." ;;
     esac
   }
-  
+
   )
 }
 

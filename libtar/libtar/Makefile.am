@@ -1,6 +1,6 @@
 bin_PROGRAMS = libtar
 
-INCLUDES = \
+AM_CPPFLAGS = \
   -I$(srcdir)/.. \
   -I$(srcdir)/../compat \
   -I.. \

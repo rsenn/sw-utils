@@ -232,7 +232,7 @@ libtar 1.1.b0 - 7/10/00
   - updated list/hash code to new interface
 
 - autoconf changes:
-  - added aclocal.m4 to clean up configure.in
+  - added aclocal.m4 to clean up configure.ac
   - minor portability fixes related to lib/fnmatch.c
 
 - fixed a bug in tar_open() where the result of open() was being

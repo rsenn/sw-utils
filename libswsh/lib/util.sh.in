@@ -46,6 +46,11 @@ readonly space newline tabstop nl ifs digit xdigit upper lower alpha alnum
 
 : ${verbosity=0}
 
+is_name()
+{
+ (IFS="${alnum}-_"
+ test "$1" != "${1#[A-Za-z]}" && set -- $1 && test -z "$1")
+}
 # pushv <var> [values...]
 #
 # Appends the given values to $var.
@@ -116,7 +121,7 @@ verbose()
   if [ "$#" = 1 ]; then
     a=1
   fi
-  
+
   if ! [ "$a" -ge 0 ]; then
     a=0
   fi 2>/dev/null 1>/dev/null
@@ -563,7 +568,7 @@ index_of()
 
 # ---------------------------------------------------------------------------
 is_true()
-{ 
+{
   case "$*" in
     true | ":" | "${FLAGS_TRUE-0}" | yes | enabled | on) return 0 ;;
   esac
@@ -577,7 +582,7 @@ is_pattern()
   case "$*" in
     *'['*']'* | *'*'* | *'?'*) return 0 ;;
   esac
- 
+
   return 1
 }
 
@@ -658,12 +663,12 @@ implode()
 
 # inputf <commands>
 #
-# Reads input from stdin and 
+# Reads input from stdin and
 # ---------------------------------------------------------------------------
 inputf()
 {
   local __line__ __cmds__
-  
+
   __line__=$IFS
   __cmds__="( set -- \$__line__; $*; )"
 
@@ -700,7 +705,7 @@ decompress()
 {
   local mime="$(file -bi "$1")"
 
-  case $mime in 
+  case $mime in
     application/x-bzip2) bzip2 -dc "$1" ;;
     application/x-gzip) gzip -dc "$1" ;;
     *) cat "$1" ;;
@@ -822,7 +827,7 @@ random_acquire()
 rand()
 {
   local rot=$(( ${random_seed:-0xdeadbeef} & 0x1f ))
-  local xor=`expr ${random_seed:-0xdeadbeef} \* (${random_seed:-0xdeadbeef} "<<" $rot)` 
+  local xor=`expr ${random_seed:-0xdeadbeef} \* (${random_seed:-0xdeadbeef} "<<" $rot)`
 
   random_seed=$(( ( $(bitrotate "${random_seed:-0xdeadbeef}" "$rot") ^ $xor) & 0xffffffff ))
 
@@ -919,7 +924,7 @@ require()
   for mask in \
     $shlibdir/$script.sh \
     $shlibdir/*/${script%.sh}.sh \
-    $shlibdir/*/*/${script%.sh}.sh 
+    $shlibdir/*/*/${script%.sh}.sh
   do
     if test -r "$mask"; then
       if test "$cmd" = echo && test -n "$pre"; then
@@ -946,7 +951,7 @@ reload()
     esac
     shift
   done
-  
+
   script=$(require -p -n ${1%.sh})
   name=${script%.sh}_sh
   var=$(echo lib/$name | sed -e s,/,_,g)
@@ -1004,7 +1009,7 @@ http_head()
  (HOST=${1%%:*}
   PORT=80
   TIMEOUT=30
-  
+
   if [ "$HOST" != "$1" ]; then
     PORT=${1#$HOST:}
   fi
@@ -1014,8 +1019,8 @@ http_head()
   elif type lynx >/dev/null 2>/dev/null; then
     lynx -head -source "http://$HOST:$PORT$2"
   else
-    { 
-      echo -e "HEAD ${2} HTTP/1.1\r\nHost: ${1}\r\nConnection: close\r\n\r" 
+    {
+      echo -e "HEAD ${2} HTTP/1.1\r\nHost: ${1}\r\nConnection: close\r\n\r"
       sleep $TIMEOUT
     } | nc $HOST $PORT | sed "s/\r//g"
   fi)
@@ -1040,7 +1045,7 @@ multiline_list()
     cat
   else
     echo "$*"
-  fi | 
+  fi |
   while read item; do
     echo " \\"
     echo -n "$indent$item"
@@ -1054,7 +1059,7 @@ multiline_list()
 rcat()
 {
   local opts= args=
-  
+
   while test -n "$1"; do
     case $1 in
       *) pushv args "$1" ;;
@@ -1074,7 +1079,7 @@ modules()
   local abs="no" ext="no" dir modules= IFS="
 "
   require "fs"
-  
+
   while :; do
     case $1 in
       -a) abs="yes" ;;
@@ -1095,7 +1100,7 @@ modules()
     set --
     while read module; do
       case $module in
-        *.sh | *.bash) 
+        *.sh | *.bash)
           if test "$ext" = no; then
             module="${module%.*}"
           fi
@@ -1116,8 +1121,8 @@ modules()
 blksize()
 {
  (SIZE=`fdisk -s "$1"`
-  
-  [ -n "$SIZE" ] && expr "$SIZE" \* 512 / ${2-512}) 
+
+  [ -n "$SIZE" ] && expr "$SIZE" \* 512 / ${2-512})
 }
 
 # fn2re <pattern>
@@ -1135,7 +1140,7 @@ fn2re()
 
 
 # regexp_to_fnmatch <pattern>
-# 
+#
 # Converts a regular expression into an fnmatch()-style pattern
 # ---------------------------------------------------------------------------
 regexp_to_fnmatch()

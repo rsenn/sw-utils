@@ -40,12 +40,12 @@ pkgmgr_list()
 pkgmgr_detect()
 {
   PKGMGR_distrib=`distrib_detect`
-  
+
   if [ -n "$PKGMGR_distrib" ]; then
     require "distrib/$PKGMGR_distrib"
-  
+
     PKGMGR_impl=`${PKGMGR_distrib}_pkgmgr`
-  
+
     if [ -n "$PKGMGR_impl" ]; then
       echo "$PKGMGR_impl"
       return 0

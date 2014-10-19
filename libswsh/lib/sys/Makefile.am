@@ -4,9 +4,9 @@ GENERATED_FILES = proc.sh
 INPUT_FILES = proc.sh.in
 
 
-pkglibdir = $(libdir)/sh/sys
+pkgshdir = $(libdir)/sh/sys
 
-pkglib_DATA = proc.sh
+pkgsh_DATA = proc.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 
