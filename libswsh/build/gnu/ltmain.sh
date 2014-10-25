@@ -5851,9 +5851,10 @@ func_mode_link ()
       # -tp=*                Portland pgcc target processor selection
       # --sysroot=*          for sysroot support
       # -O*, -flto*, -fwhopr*, -fuse-linker-plugin GCC link-time optimization
+      # -stdlib=*            select c++ std lib with clang
       -64|-mips[0-9]|-r[0-9][0-9]*|-xarch=*|-xtarget=*|+DA*|+DD*|-q*|-m*| \
       -t[45]*|-txscale*|-p|-pg|--coverage|-fprofile-*|-F*|@*|-tp=*|--sysroot=*| \
-      -O*|-flto*|-fwhopr*|-fuse-linker-plugin)
+      -O*|-flto*|-fwhopr*|-fuse-linker-plugin|-stdlib=*)
         func_quote_for_eval "$arg"
 	arg="$func_quote_for_eval_result"
         func_append compile_command " $arg"
@@ -6513,7 +6514,7 @@ func_mode_link ()
 	# Find the relevant object directory and library name.
 	if test "X$installed" = Xyes; then
 	  if test ! -f "$lt_sysroot$libdir/$linklib" && test -f "$abs_ladir/$linklib"; then
-	    #func_warning "library \`$lib' was moved."
+	    func_warning "library \`$lib' was moved."
 	    dir="$ladir"
 	    absdir="$abs_ladir"
 	    libdir="$abs_ladir"
@@ -7080,8 +7081,8 @@ func_mode_link ()
 		  eval libdir=`${SED} -n -e 's/^libdir=\(.*\)$/\1/p' $deplib`
 		  test -z "$libdir" && \
 		    func_fatal_error "\`$deplib' is not a valid libtool archive"
-		  #test "$absdir" != "$libdir" && \
-		  #  func_warning "\`$deplib' seems to be moved"
+		  test "$absdir" != "$libdir" && \
+		    func_warning "\`$deplib' seems to be moved"
 
 		  path="-L$absdir"
 		fi
