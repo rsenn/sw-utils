@@ -1,7 +1,7 @@
 dnl ### Normal initialization. ######################################
-AC_INIT
+AC_INIT([libtar], [1.2.11])
 AC_CONFIG_AUX_DIR([autoconf])
-AM_INIT_AUTOMAKE([libtar], [1.2.11])
+AM_INIT_AUTOMAKE
 AC_PREREQ([2.57])
 AC_CONFIG_HEADERS([config.h])
 AC_COPYRIGHT([[

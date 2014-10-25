@@ -113,7 +113,7 @@ distrib_get()
 distrib_canonical()
 {
   local id release
-  
+
   id=`distrib_get id`
 
 	if [ "$(type -t "${id}_canonical")" = function ]; then
@@ -130,7 +130,7 @@ distrib_canonical()
 # ---------------------------------------------------------------------------
 distrib_mirrors()
 {
-  { test -n "$DISTRIB_this" || DISTRIB_this=`distrib_detect`; } && 
+  { test -n "$DISTRIB_this" || DISTRIB_this=`distrib_detect`; } &&
   { require "distrib/$DISTRIB_this" || return $?; }
 
   ${DISTRIB_this}_mirrors "$@"

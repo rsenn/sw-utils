@@ -1,6 +1,6 @@
-lib_LTLIBRARIES = libtar.la
+noinst_LTLIBRARIES = libtar.la
 
-INCLUDES = \
+AM_CPPFLAGS = \
   -I$(srcdir) \
   -I$(builddir) \
   -I$(srcdir)/.. \

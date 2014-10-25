@@ -581,9 +581,9 @@ port_meta()
 # -------------------------------------------------------------------------
 port_unpack()
 {
- (IFS="$nl" 
+ (IFS="$nl"
   cat=`port_category "$1"`
-  dir=${2-${SRC:-$pkgsrc/$cat}} 
+  dir=${2-${SRC:-$pkgsrc/$cat}}
 
  (cd "$dir" && fs_remove `port_rootdir "$1"`) 2>/dev/null
 
@@ -606,7 +606,7 @@ port_unpack()
   for download in `port_downloads "$1"`; do
    (dir_enter "$dir"
     subdir=${download##*/}
-    case "$download" in 
+    case "$download" in
       git://* | svn*://*)
         #if [ -n "$subdir" -a -d "$subdir" ]; then
         #  msg "Removing working directory $subdir"
@@ -703,10 +703,10 @@ port_property()
 port_get()
 {
   local pf pp pv
-  
+
   pf=`port_pkgfile "$1"`
   pp=`port_property "$2"`
-  
+
   case $pp in
     section)
       section=`port_header "$pf" | info_get Section`
@@ -716,7 +716,7 @@ port_get()
     *ategory*)
         port_category "$pf"
     ;;
-    
+
     # Property from comment header
     *:)
 
@@ -742,12 +742,12 @@ port_get()
           p; q
         }
       }" "$pf")
-      
+
 #      eval "set -- `escape_noquote $pv`"
-      
+
 #      (echo "$*")
       port_eval "$1" "set -- \${${2%'[@]'}[@]} && echo \"\$*\""
-      
+
     ;;
    esac
 }
@@ -759,7 +759,7 @@ port_get()
 port_set()
 {
   local opts pkgf prop IFS="
-" 
+"
   while :; do
     case $1 in
       -*) pushv opts "$1" ;;
@@ -770,19 +770,19 @@ port_set()
 
   pkgf=`port_pkgfile "$1"`
   prop=`port_property "$2"`
-  
+
   shift 2
- 
+
   xval=`info_value "$@"`
   pval=`echo "$xval" | sed "1! s,^,#  ,"`
-  
+
   case $prop in
     *:)
       local mark replace
-      
+
       mark="#\s\?${prop%:}:"
       replace="# $prop `escape_sed "$pval"`"
-    
+
       sed $opts \
         -n -e ":st; {
           /^$mark/ {
@@ -1153,7 +1153,7 @@ port_modify()
   PKG=`mktemp -d /tmp/$name#$version.XXXXXX`
   ROOT="$PKG${prefix+/}${prefix#/}"
 
-  require script 
+  require script
 
   BUILDFN=`script_getfn "build" <$pf`
 
@@ -1281,7 +1281,7 @@ port_create()
 #  msg port_create "$@"
 
   # Determine port identity
-  id=`port_id "$1"` 
+  id=`port_id "$1"`
   dir=`port_dir "$1"`
 
   if is_port "$1"; then
@@ -1292,7 +1292,7 @@ port_create()
 #  var_dump id dir source
 
   # Create the port and its directory
-  vars=`port_new "$@" 2>/dev/null | head -n1` 
+  vars=`port_new "$@" 2>/dev/null | head -n1`
   pf=$dir/Pkgfile
 
   if ! mkdir -p "$dir"; then
@@ -1391,7 +1391,7 @@ port_create()
 
         value=`
           str_ucfirst "$head"
-          echo "$*" | html_text - | text_wrap - | 
+          echo "$*" | html_text - | text_wrap - |
           sed -e 's,^\s*$,.,' | sed -e 's,^,#  ,'
         `
         value=`html_dequote "$value"`
@@ -1490,7 +1490,7 @@ port_recheck()
  (source /etc/pkgmk.conf.d/mirrors.conf
 
   for PORT; do
-    IFS="$nl" pf=`port_pkgfile "$PORT"` 
+    IFS="$nl" pf=`port_pkgfile "$PORT"`
 
     for src in `port_downloads "$pf"`; do
       proto=${src%%://*}
@@ -1637,20 +1637,20 @@ port_deb()
   local depends=`port_deps $port`
   local source=`port_get $port name`
   local version=`port_get $port "Version:"`
-  
+
   test -z "$package" && package=`port_name $port`
   test -z "$source" && package=`port_name $source`
   test -z "$section" && section=`port_category $port`
   test -z "$depends" && depends=`port_deps $port`
   test -z "$version" && version=`port_version $port`-`port_get $port release`
- 
+
   case $version in
     *:) version="$version`port_version "$port"`-`port_get "$port" release`" ;;
   esac
 
 #  if test -n "$version"; then
 #    version="$version"
-#  fi      
+#  fi
 
 
   match_some 'package=*' "$@" || set -- "$@" package="$package"
