@@ -1,0 +1,108 @@
+#!/bin/sh
+#
+# pkgtool/yum.sh: yum package tool abstraction
+#
+# $Id: yum.sh.in 936 2009-03-28 07:48:41Z enki $
+# -------------------------------------------------------------------------
+test $lib_pkgtool_yum_sh || {
+
+# Set any directory variable needed and not yet set
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# Load dependency modules
+# -------------------------------------------------------------------------
+. $shlibdir/util.sh
+. $shlibdir/std/array.sh
+
+# yum_list
+#
+# List all known packages...
+# -------------------------------------------------------------------------
+yum_list()
+{
+  yum_search ".*"
+}
+
+# yum_search [-q] <search-tokens...>
+#
+# Search for a package...
+# -------------------------------------------------------------------------
+yum_search()
+{
+ (filter="cat" IFS=" "
+  case $1 in
+    -q) 
+      filter="sed s/\s\+:\s\+.*//"
+      shift 
+    ;;
+  esac
+	yum search "$@" | $filter)
+}
+
+# yum_match <search-token>
+#
+# Search for a package by name.
+# -------------------------------------------------------------------------
+yum_match()
+{
+  : 
+}
+
+# yum_install <package-masks...>
+# -------------------------------------------------------------------------
+yum_install()
+(
+  :
+)
+
+# yum_info <package-names...>
+#
+# Search for a package by name.
+# -------------------------------------------------------------------------
+yum_info()
+{
+	:
+}
+
+# yum_dep_cache 
+#
+# Show dependency cache
+# -------------------------------------------------------------------------
+yum_dep_cache()
+{
+	:
+}
+
+# yum_rdeps <package-names...>
+#
+# Show reverse dependencies
+# -------------------------------------------------------------------------
+yum_rdeps()
+{
+	:
+}
+
+# yum_deps <package-name>
+#
+# Show dependencies
+# -------------------------------------------------------------------------
+yum_deps()
+{
+	:
+}
+
+# yum_deps_recursive <package-names...>
+#
+# Show dependencies
+# -------------------------------------------------------------------------
+yum_deps_recursive()
+{ 
+	:
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_pkgtool_yum_sh=:;}
