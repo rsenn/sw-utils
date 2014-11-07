@@ -16,7 +16,7 @@ ABSPATH="$ABSDIR/$MYNAME"
 LOGFILE="cfg.log"
 
 finish() {
-	if [ "$SIG" = 1 ]; then
+	if [ -n "$SIG" ]; then
 		echo $SIG: `tail -n1 "$LOGFILE"` 1>&2
 		exit 127
 	elif [ "$R" != 0 ]; then
