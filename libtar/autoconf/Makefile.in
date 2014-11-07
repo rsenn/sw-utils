@@ -79,7 +79,7 @@ build_triplet = @build@
 host_triplet = @host@
 subdir = autoconf
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am compile \
-	config.guess config.sub depcomp install-sh missing ltmain.sh
+	config.guess config.sub install-sh missing ltmain.sh
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/autoconf/libtool.m4 \
 	$(top_srcdir)/autoconf/ltoptions.m4 \
