@@ -1,4 +1,4 @@
-ACLOCAL_AMFLAGS = -I build/gnu -I m4
+ACLOCAL_AMFLAGS = -Ibuild/gnu -Im4 
 AUTOMAKE_AMFLAGS = --add-missing --foreign --copy
 
 # programs that need to be compiled
