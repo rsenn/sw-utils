@@ -13,6 +13,20 @@ MYDIR=`dirname "$0"`
 MYNAME=`basename "$0"`
 ABSDIR=`cd "$MYDIR" && pwd`
 ABSPATH="$ABSDIR/$MYNAME"
+LOGFILE="cfg.log"
+
+finish() {
+	if [ "$SIG" = 1 ]; then
+		echo $SIG: `tail -n1 "$LOGFILE"` 1>&2
+		exit 127
+	elif [ "$R" != 0 ]; then
+		echo "ERROR: $CMD" 1>&2
+		tail "$LOGFILE"
+		exit $R
+	else
+		echo "SUCCESS" 1>&2
+	fi
+}
 
 for NAME in bash dash ash ksh; do
   for DIR in $PATH; do
@@ -67,14 +81,15 @@ set "$MYDIR/configure" \
     --localstatedir="${localstatedir=$PREFIX/var}" \
     "$@"
 IFS=" "
-CMD="$*  >cfg.log 2>&1"
+CMD="$*  >$LOGFILE 2>&1"
 echo "+ $CMD" 1>&2
 #set -x 
-trap 'R=99; INT=1' INT TERM EXIT QUIT
+for S in INT TERM QUIT; do
+	trap "SIG=$S" $S
+done
+trap 'finish' EXIT
+
+
 eval "$CMD; R=\$?"
 
-if [ "$R" != 0 -a "$INT" != 1 ]; then
-	echo "ERROR: $CMD"
-	tail cfg.log
-	exit $R
-fi
+
