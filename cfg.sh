@@ -47,7 +47,8 @@ echo 1>&2
 case $PREFIX in 
   "/usr") sysconfdir="/etc" localstatedir="/var" bindir="/bin" ;;
 esac
-depdendency_tracking="disable"
+silent_rules="disable"
+dependency_tracking="disable"
 maintainer_mode="disable"
 
 set -x 
@@ -56,7 +57,8 @@ exec ${BASH:+"$BASH"} "$MYDIR/configure" \
     --program-prefix="" \
     --program-suffix="" \
     --disable-debug \
-    --${depdendency_tracking:-enable}-dependency-tracking \
+    --${silent_rules:-enable}-silent-rules \
+    --${dependency_tracking:-enable}-dependency-tracking \
     --${maintainer_mode:-enable}-maintainer-mode \
     --host="$HOST" \
     --build="${build=$HOST}" \
