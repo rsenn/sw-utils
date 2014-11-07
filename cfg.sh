@@ -70,9 +70,10 @@ IFS=" "
 CMD="$*  >cfg.log 2>&1"
 echo "+ $CMD" 1>&2
 #set -x 
+trap 'R=99; INT=1' INT TERM EXIT QUIT
 eval "$CMD; R=\$?"
 
-if [ "$R" != 0 ]; then
+if [ "$R" != 0 -a "$INT" != 1 ]; then
 	echo "ERROR: $CMD"
 	tail cfg.log
 	exit $R
