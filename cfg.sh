@@ -51,8 +51,7 @@ silent_rules="disable"
 dependency_tracking="disable"
 maintainer_mode="disable"
 
-set -x 
-exec ${BASH:+"$BASH"} "$MYDIR/configure" \
+set "$MYDIR/configure" \
     --with-shell="$SHELL" \
     --program-prefix="" \
     --program-suffix="" \
@@ -67,4 +66,14 @@ exec ${BASH:+"$BASH"} "$MYDIR/configure" \
     --sysconfdir="${sysconfdir=$PREFIX/etc}" \
     --localstatedir="${localstatedir=$PREFIX/var}" \
     "$@"
-    
+IFS=" "
+CMD="$*  >cfg.log 2>&1"
+echo "+ $CMD" 1>&2
+#set -x 
+eval "$CMD; R=\$?"
+
+if [ "$R" != 0 ]; then
+	echo "ERROR: $CMD"
+	tail cfg.log
+	exit $R
+fi
