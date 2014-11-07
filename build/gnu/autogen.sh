@@ -37,8 +37,10 @@ subdir() {
 		(cd "$1" && exec ${BASH:-sh} ${2-autogen.sh} .) || RET=$?
 		echo "Leaving directory $1 ..." 1>&2
   fi
-	return ${RET-1}
+	return ${RET-0}
 }
+R=0
+subdir libtar autogen.sh || R=`expr $R + $?`
+subdir libswsh build/gnu/autogen.sh || R=`expr $R + $?`
 
-subdir libtar ../build/gnu/autogen.sh || exit $?
-subdir libswsh build/gnu/autogen.sh || exit $?
+exit $R
