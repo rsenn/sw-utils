@@ -33,7 +33,7 @@ opensuse_relfile()
 # ---------------------------------------------------------------------------
 opensuse_release() 
 {
-	cat "$(opensuse_relfile)"
+	sed "s|VERSION_ID=|release=| ;; s|ID=|id=|" "$(opensuse_relfile)"
 }
 
 # opensuse_pkgmgr
