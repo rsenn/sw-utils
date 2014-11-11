@@ -15,15 +15,7 @@ test $lib_distrib_opensuse_sh || {
 # ---------------------------------------------------------------------------
 is_opensuse()
 {
-  for rf in `opensuse_relfile "$@"`
-  do
-    test -r "$rf" &&
-    case `<$rf` in
-      [Mm]andriva* | [Mm]andrake*) return 0 ;;
-    esac
-  done
-
-  return 1
+	grep -q NAME=openSUSE "$(opensuse_relfile)"
 }
 
 # opensuse_relfile [opensuse-release-file]
@@ -32,7 +24,7 @@ is_opensuse()
 # ---------------------------------------------------------------------------
 opensuse_relfile()
 {
-  echo $ROOT/etc/{opensuse,mandriva,redhat}-release
+  echo $ROOT/etc/os-release
 }
 
 # opensuse_release [opensuse-release-file]
@@ -41,27 +33,7 @@ opensuse_relfile()
 # ---------------------------------------------------------------------------
 opensuse_release() 
 {
-  local rf=`opensuse_relfile "$@"` IFS="="
-
-  if test -r "$rf"
-  then
-   (IFS="
- "  release=`<$rf`
-    case $release in
-      *' 'release' '*' ('*')')
-        set -- ${release%")"}
-        echo "id=$1"
-        echo "release=$3"
-        case $4 in
-          *' '*) echo "codename=\"${4#"("}\"" ;;
-              *) echo "codename=${4#"("}" ;;
-        esac
-        echo "description=\"$1 $3\""
-        ;;
-    esac)
-  else
-    errormsg "Cannot read $rf"
-  fi
+	cat "$(opensuse_relfile)"
 }
 
 # opensuse_pkgmgr

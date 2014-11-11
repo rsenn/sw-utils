@@ -87,7 +87,7 @@ DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(srcdir)/lsb.sh.in $(srcdir)/mandrake.sh.in \
 	$(srcdir)/mingw.sh.in $(srcdir)/msys.sh.in \
 	$(srcdir)/redhat.sh.in $(srcdir)/slackware.sh.in \
-	$(srcdir)/ubuntu.sh.in
+	$(srcdir)/ubuntu.sh.in $(srcdir)/opensuse.sh.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/build/gnu/define-dir.m4 \
 	$(top_srcdir)/build/gnu/find.m4 $(top_srcdir)/configure.ac
@@ -95,7 +95,8 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES = centos.sh cygwin.sh debian.sh gentoo.sh lsb.sh \
-	mandrake.sh mingw.sh msys.sh redhat.sh slackware.sh ubuntu.sh
+	mandrake.sh mingw.sh msys.sh redhat.sh slackware.sh ubuntu.sh \
+	opensuse.sh
 CONFIG_CLEAN_VPATH_FILES =
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -277,10 +278,10 @@ templatedir = @templatedir@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-GENERATED_FILES = centos.sh cygwin.sh debian.sh gentoo.sh lsb.sh mandrake.sh mingw.sh msys.sh redhat.sh slackware.sh ubuntu.sh
-INPUT_FILES = centos.sh.in cygwin.sh.in debian.sh.in gentoo.sh.in lsb.sh.in mandrake.sh.in mingw.sh.in msys.sh.in redhat.sh.in slackware.sh.in ubuntu.sh.in
+GENERATED_FILES = centos.sh cygwin.sh debian.sh gentoo.sh lsb.sh mandrake.sh mingw.sh msys.sh redhat.sh slackware.sh ubuntu.sh opensuse.sh
+INPUT_FILES = centos.sh.in cygwin.sh.in debian.sh.in gentoo.sh.in lsb.sh.in mandrake.sh.in mingw.sh.in msys.sh.in redhat.sh.in slackware.sh.in ubuntu.sh.in opensuse.sh.in
 pkgshdir = $(libdir)/sh/distrib
-pkgsh_DATA = centos.sh cygwin.sh debian.sh gentoo.sh lsb.sh mandrake.sh mingw.sh msys.sh redhat.sh slackware.sh ubuntu.sh
+pkgsh_DATA = centos.sh cygwin.sh debian.sh gentoo.sh lsb.sh mandrake.sh mingw.sh msys.sh redhat.sh slackware.sh ubuntu.sh opensuse.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 CLEANFILES = $(GENERATED_FILES) stamp-init
@@ -339,6 +340,8 @@ redhat.sh: $(top_builddir)/config.status $(srcdir)/redhat.sh.in
 slackware.sh: $(top_builddir)/config.status $(srcdir)/slackware.sh.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 ubuntu.sh: $(top_builddir)/config.status $(srcdir)/ubuntu.sh.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+opensuse.sh: $(top_builddir)/config.status $(srcdir)/opensuse.sh.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 install-pkgshDATA: $(pkgsh_DATA)
 	@$(NORMAL_INSTALL)
