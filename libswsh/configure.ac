@@ -377,6 +377,7 @@ lib/pkgmgr/rpm.sh
 lib/pkgtool/Makefile
 lib/pkgtool/apt.sh
 lib/pkgtool/yum.sh
+lib/pkgtool/zypper.sh
 lib/ports/Makefile
 lib/ports/deb.sh
 lib/service/Makefile
