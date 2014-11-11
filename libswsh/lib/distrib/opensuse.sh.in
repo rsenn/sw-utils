@@ -1,0 +1,77 @@
+#!/bin/sh
+#
+# distrib/opensuse.sh: openSUSE based distribution detection.
+#
+# $Id: opensuse.sh.in 655 2008-09-12 00:21:46Z enki $
+# ------------------------------------------------------------------------- 
+test $lib_distrib_opensuse_sh || {
+
+: ${prefix:="@prefix@"}
+: ${sysconfdir:="@sysconfdir@"}
+
+# is_opensuse [opensuse-release-file]
+#
+# Checks whether the underlying distribution is a opensuse based one.
+# ---------------------------------------------------------------------------
+is_opensuse()
+{
+  for rf in `opensuse_relfile "$@"`
+  do
+    test -r "$rf" &&
+    case `<$rf` in
+      [Mm]andriva* | [Mm]andrake*) return 0 ;;
+    esac
+  done
+
+  return 1
+}
+
+# opensuse_relfile [opensuse-release-file]
+#
+# Prints the opensuse release file name.
+# ---------------------------------------------------------------------------
+opensuse_relfile()
+{
+  echo $ROOT/etc/{opensuse,mandriva,redhat}-release
+}
+
+# opensuse_release [opensuse-release-file]
+#
+# Reads information from a opensuse release file (/etc/opensuse-release).
+# ---------------------------------------------------------------------------
+opensuse_release() 
+{
+  local rf=`opensuse_relfile "$@"` IFS="="
+
+  if test -r "$rf"
+  then
+   (IFS="
+ "  release=`<$rf`
+    case $release in
+      *' 'release' '*' ('*')')
+        set -- ${release%")"}
+        echo "id=$1"
+        echo "release=$3"
+        case $4 in
+          *' '*) echo "codename=\"${4#"("}\"" ;;
+              *) echo "codename=${4#"("}" ;;
+        esac
+        echo "description=\"$1 $3\""
+        ;;
+    esac)
+  else
+    errormsg "Cannot read $rf"
+  fi
+}
+
+# opensuse_pkgmgr
+#
+# The kind of package manager used by opensuse based distributions.
+# ---------------------------------------------------------------------------
+opensuse_pkgmgr()
+{
+  echo 'rpm'
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_distrib_opensuse_sh=:;}
