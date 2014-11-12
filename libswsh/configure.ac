@@ -347,10 +347,10 @@ lib/distrib/lsb.sh
 lib/distrib/mandrake.sh
 lib/distrib/mingw.sh
 lib/distrib/msys.sh
+lib/distrib/opensuse.sh
 lib/distrib/redhat.sh
 lib/distrib/slackware.sh
 lib/distrib/ubuntu.sh
-lib/distrib/opensuse.sh
 lib/djb/Makefile
 lib/djb/buffer.sh
 lib/fs/Makefile

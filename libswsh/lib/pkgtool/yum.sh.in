@@ -24,7 +24,7 @@ test $lib_pkgtool_yum_sh || {
 # -------------------------------------------------------------------------
 yum_list()
 {
-  yum_search all
+  yum list all | sed 's,^\([^.]\+\)\.\([^ \t]\+\)[ \t]\+\([^ \t]\+\)[ \t].*,\1-\3.\2,'
 }
 
 # yum_search [-q] <search-tokens...>
