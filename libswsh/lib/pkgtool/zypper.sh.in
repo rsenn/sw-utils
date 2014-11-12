@@ -24,7 +24,7 @@ test $lib_pkgtool_zypper_sh || {
 # -------------------------------------------------------------------------
 zypper_list()
 {
-  :
+   zypper packages |(IFS="|"; while read -r P REPO NAME VERSION ARCH; do  (IFS=" ";  set -- $NAME $VERSION $ARCH; printf "%s-%s.%s\n" "$1" "$2" "$3"); done)
 }
 
 # zypper_search [-q] <search-tokens...>
