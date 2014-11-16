@@ -3,6 +3,7 @@
 while [ "$#" -gt 0 ]; do
   case $1 in
     --prefix) PREFIX="$2" ; shift ;; --prefix=*) PREFIX="${1#*=}" ;;
+	*) break ;;
   esac
   shift
 done
