@@ -112,7 +112,12 @@ yum_rdeps()
 # -------------------------------------------------------------------------
 yum_deps()
 {
-	:
+	yum deplist "$@" | sed -n "1d
+  s/^/$SPACE/
+  s/ [^ ]*$//
+  s/package: //p
+  s/provider: //p 
+" | uniq
 }
 
 # yum_deps_recursive <package-names...>
@@ -121,7 +126,12 @@ yum_deps()
 # -------------------------------------------------------------------------
 yum_deps_recursive()
 { 
-	:
+	yum_deps "$@" | (IFS="
+"; while read -r DEP; do
+     SPACE=${DEP%%[! ]}
+     echo "$DEP"
+     yum_deps "${DEP#$SPACE}"
+   done)
 }
 
 # --- eof ---------------------------------------------------------------------
