@@ -77,7 +77,7 @@ set "$MYDIR/configure" \
     --host="$HOST" \
     --build="${build=$HOST}" \
     --target="${target=$HOST}" \
-    --prefix="$PREFIX" \
+    --prefix="${PREFIX:-/usr}" \
     --sysconfdir="${sysconfdir=$PREFIX/etc}" \
     --localstatedir="${localstatedir=$PREFIX/var}" \
     "$@"
