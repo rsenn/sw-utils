@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/sh
 
 # libtool - Provide generalized library-building support services.
 # Generated automatically by config.status (sw-utils) 0.9.7
@@ -56,7 +56,7 @@ pic_mode=default
 fast_install=needless
 
 # Shell to use when invoking shell scripts.
-SHELL="/bin/bash"
+SHELL="/bin/sh"
 
 # An echo program that protects backslashes.
 ECHO="printf %s\\n"
@@ -65,32 +65,32 @@ ECHO="printf %s\\n"
 PATH_SEPARATOR=":"
 
 # The host system.
-host_alias=x86_64-apple-darwin13.4.0
+host_alias=
 host=x86_64-apple-darwin13.4.0
 host_os=darwin13.4.0
 
 # The build system.
-build_alias=x86_64-apple-darwin13.4.0
+build_alias=
 build=x86_64-apple-darwin13.4.0
 build_os=darwin13.4.0
 
 # A sed program that does not truncate output.
-SED="/opt/local/bin/gsed"
+SED="/opt/local/bin/sed"
 
 # Sed that helps us avoid accidentally triggering echo(1) options like -n.
 Xsed="$SED -e 1s/^X//"
 
 # A grep program that handles long lines.
-GREP="/usr/bin/grep"
+GREP="/usr/local/bin/grep"
 
 # An ERE matcher.
-EGREP="/usr/bin/grep -E"
+EGREP="/usr/local/bin/grep -E"
 
 # A literal string matcher.
-FGREP="/usr/bin/grep -F"
+FGREP="/usr/local/bin/grep -F"
 
 # A BSD- or MS-compatible name lister.
-NM="/usr/bin/nm"
+NM="/opt/local/bin/nm"
 
 # Whether we need soft or hard links.
 LN_S="ln -s"
@@ -1274,7 +1274,7 @@ exec_cmd=
 # Append VALUE to the end of shell variable VAR.
 func_append ()
 {
-eval "${1}+=\${2}"
+    eval "${1}+=\${2}"
 } # Extended-shell func_append implementation
 
 # func_append_quoted var value
@@ -1290,7 +1290,7 @@ func_append_quoted ()
 # func_arith arithmetic-term...
 func_arith ()
 {
-func_arith_result=$(( $* ))
+    func_arith_result=$(( $* ))
 } # Extended-shell func_arith implementation
 
 
@@ -1298,7 +1298,7 @@ func_arith_result=$(( $* ))
 # STRING may not start with a hyphen.
 func_len ()
 {
-func_len_result=${#1}
+    func_len_result=${#1}
 } # Extended-shell func_len implementation
 
 
@@ -1315,7 +1315,7 @@ func_lo2o ()
 # func_xform libobj-or-source
 func_xform ()
 {
-func_xform_result=${1%.*}.lo
+    func_xform_result=${1%.*}.lo
 } # Extended-shell func_xform implementation
 
 

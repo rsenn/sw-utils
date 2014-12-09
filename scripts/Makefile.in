@@ -89,14 +89,14 @@ DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(srcdir)/pkgstrip.in $(srcdir)/pkgupdate.in \
 	$(srcdir)/mkservice.in $(srcdir)/pkg2rpm.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/build/gnu/libtool.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/m4/bzlib.m4 $(top_srcdir)/m4/db.m4 \
+	$(top_srcdir)/m4/libtar.m4 $(top_srcdir)/m4/pkgsrc.m4 \
+	$(top_srcdir)/m4/zlib.m4 $(top_srcdir)/build/gnu/libtool.m4 \
 	$(top_srcdir)/build/gnu/ltoptions.m4 \
 	$(top_srcdir)/build/gnu/ltsugar.m4 \
 	$(top_srcdir)/build/gnu/ltversion.m4 \
 	$(top_srcdir)/build/gnu/lt~obsolete.m4 \
-	$(top_srcdir)/m4/bzlib.m4 $(top_srcdir)/m4/db.m4 \
-	$(top_srcdir)/m4/libtar.m4 $(top_srcdir)/m4/pkgsrc.m4 \
-	$(top_srcdir)/m4/zlib.m4 $(top_srcdir)/configure.in
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d

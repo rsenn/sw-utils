@@ -13,14 +13,15 @@ cmd() {
 }
 cd "${1-$topdir}"
 
+includedirs=$(for DIR in build/gnu ../build/gnu m4 ../m4; do test -d "$DIR/" && echo -I "$DIR"; done)
 set -x
 type glibtoolize 2>/dev/null >/dev/null && LIBTOOLIZE=glibtoolize || LIBTOOLIZE=libtoolize
 $LIBTOOLIZE --force --copy --automake
-rm -f aclocal.m4; aclocal  -I m4 -I build/gnu
+rm -f aclocal.m4; aclocal $includedirs
 autoheader --force
 automake --force --copy --foreign --add-missing --foreign
-rm -f aclocal.m4; aclocal -I m4 -I build/gnu
-autoconf --force -I m4 -I build/gnu
+rm -f aclocal.m4; aclocal $includedirs
+autoconf --force $includedirs
 
 subdir() {
 	if [ -d "$1" -a -f "$1/$2" ]; then
