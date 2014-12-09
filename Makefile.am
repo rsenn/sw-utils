@@ -1,4 +1,5 @@
-ACLOCAL_AMFLAGS = -I build/gnu -I m4
+ACLOCAL_AMFLAGS = -I build/gnu
+ACLOCAL_AMFLAGS += -I m4 
 AUTOMAKE_AMFLAGS = --add-missing --foreign --copy
 
 # programs that need to be compiled
@@ -68,9 +69,11 @@ DISTCLEANFILES = \
   $(target)-wrap
 
 if SYSTEM_LIBTAR
-pkgadd_LDADD = libsw++/libsw++.la $(LIBTAR_LIBS) $(BZLIB_LIBS) -lz
+pkgadd_LDADD = $(LIBTAR_LIBS) $(BZLIB_LIBS) -lz
+pkgadd_LIBS = libsw++/libsw++.la 
 else
-pkgadd_LDADD = libsw++/libsw++.la libtar/lib/libtar.la $(BZLIB_LIBS) -lz
+pkgadd_LDADD = libtar/lib/libtar.la $(BZLIB_LIBS) -lz
+pkgadd_LIBS = libsw++/libsw++.la 
 endif
 #$(LIBTAR_LIBS) $(BZLIB_LIBS) $(ZLIB_LIBS)
 

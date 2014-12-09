@@ -347,6 +347,7 @@ lib/distrib/lsb.sh
 lib/distrib/mandrake.sh
 lib/distrib/mingw.sh
 lib/distrib/msys.sh
+lib/distrib/opensuse.sh
 lib/distrib/redhat.sh
 lib/distrib/slackware.sh
 lib/distrib/ubuntu.sh
@@ -376,6 +377,8 @@ lib/pkgmgr/dpkg.sh
 lib/pkgmgr/rpm.sh
 lib/pkgtool/Makefile
 lib/pkgtool/apt.sh
+lib/pkgtool/yum.sh
+lib/pkgtool/zypper.sh
 lib/ports/Makefile
 lib/ports/deb.sh
 lib/service/Makefile

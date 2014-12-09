@@ -1,8 +1,10 @@
 dnl Initialize autoconf and automake
 AC_INIT([sw-utils],[0.9.7])
 AC_CANONICAL_TARGET
-AC_CONFIG_AUX_DIR([build/gnu])
+dnl AC_CONFIG_MACRO_DIR([m4])
+dnl AC_CONFIG_AUX_DIR_DEFAULT([build/gnu])
 AM_INIT_AUTOMAKE
+AC_CONFIG_AUX_DIRS([build/gnu])
 AC_CONFIG_SRCDIR([libsw++/pkgtool.cpp])
 
 

@@ -2,6 +2,7 @@
 #
 # 20090427
 
+set -x
 
 type glibtoolize 2>/dev/null >/dev/null && LIBTOOLIZE=glibtoolize || LIBTOOLIZE=libtoolize
 $LIBTOOLIZE --force --copy --automake

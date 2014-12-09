@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# distrib/opensuse.sh: openSUSE based distribution detection.
+#
+# $Id: opensuse.sh.in 655 2008-09-12 00:21:46Z enki $
+# ------------------------------------------------------------------------- 
+test $lib_distrib_opensuse_sh || {
+
+: ${prefix:="@prefix@"}
+: ${sysconfdir:="@sysconfdir@"}
+
+# is_opensuse [opensuse-release-file]
+#
+# Checks whether the underlying distribution is a opensuse based one.
+# ---------------------------------------------------------------------------
+is_opensuse()
+{
+	grep -q NAME=openSUSE "$(opensuse_relfile)"
+}
+
+# opensuse_relfile [opensuse-release-file]
+#
+# Prints the opensuse release file name.
+# ---------------------------------------------------------------------------
+opensuse_relfile()
+{
+  echo $ROOT/etc/os-release
+}
+
+# opensuse_release [opensuse-release-file]
+#
+# Reads information from a opensuse release file (/etc/opensuse-release).
+# ---------------------------------------------------------------------------
+opensuse_release() 
+{
+	sed "s|VERSION_ID=|release=| ;; s|ID=|id=|" "$(opensuse_relfile)"
+}
+
+# opensuse_pkgmgr
+#
+# The kind of package manager used by opensuse based distributions.
+# ---------------------------------------------------------------------------
+opensuse_pkgmgr()
+{
+  echo 'rpm'
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_distrib_opensuse_sh=:;}
