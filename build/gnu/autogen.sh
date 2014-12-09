@@ -12,6 +12,9 @@ cmd() {
 	eval "$CMD")
 }
 
+<<<<<<< HEAD
+includedirs=$(for DIR in build/gnu ../build/gnu m4 ../m4; do test -d "$DIR/" && echo -I "$DIR"; done)
+=======
 m4find() {
   for dir in {,../}{build/gnu,autoconf,m4}; do
     [ -d "$dir" ] && echo "-I
@@ -21,15 +24,24 @@ $dir"
 
 cd "${1-$topdir}"
 m4dirs=`m4find`
+>>>>>>> 0c1d5e08979f2e302086aa91bce9cf2d5b5c8ea2
 set -x
 
 type glibtoolize 2>/dev/null >/dev/null && LIBTOOLIZE=glibtoolize || LIBTOOLIZE=libtoolize
 $LIBTOOLIZE --force --copy --automake
+<<<<<<< HEAD
+rm -f aclocal.m4; aclocal $includedirs
+autoheader --force
+automake --force --copy --foreign --add-missing --foreign
+rm -f aclocal.m4; aclocal $includedirs
+autoconf --force $includedirs
+=======
 rm -f aclocal.m4; aclocal  $m4dirs
 autoheader --force
 automake --force --copy --foreign --add-missing --foreign
 rm -f aclocal.m4; aclocal $m4dirs
 autoconf --force $m4dirs
+>>>>>>> 0c1d5e08979f2e302086aa91bce9cf2d5b5c8ea2
 
 subdir() {
 	if [ -d "$1" -a -f "$1/$2" ]; then

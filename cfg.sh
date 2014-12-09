@@ -3,6 +3,7 @@
 while [ "$#" -gt 0 ]; do
   case $1 in
     --prefix) PREFIX="$2" ; shift ;; --prefix=*) PREFIX="${1#*=}" ;;
+	*) break ;;
   esac
   shift
 done
@@ -76,7 +77,7 @@ set "$MYDIR/configure" \
     --host="$HOST" \
     --build="${build=$HOST}" \
     --target="${target=$HOST}" \
-    --prefix="$PREFIX" \
+    --prefix="${PREFIX:-/usr}" \
     --sysconfdir="${sysconfdir=$PREFIX/etc}" \
     --localstatedir="${localstatedir=$PREFIX/var}" \
     "$@"

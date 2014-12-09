@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# distrib/ubuntu.sh: Ubuntu distribution detection and handling of distribution-specific things.
+# distrib/ubuntu.sh: Mac OS X distribution detection and handling of distribution-specific things.
 #
 # $Id: ubuntu.sh.in 655 2008-09-12 00:21:46Z enki $
 # ------------------------------------------------------------------------- 
@@ -15,19 +15,19 @@ test $lib_distrib_ubuntu_sh || {
 
 # is_ubuntu [ubuntu-release-file]
 #
-# Checks whether the underlying distribution is an Ubuntu. 
+# Checks whether the underlying distribution is an Mac OS X. 
 # ---------------------------------------------------------------------------
 is_ubuntu()
 {
   (IFS="
 " &&
   eval `lsb_release "$@"` 2>/dev/null &&
-  test "$id" = "Ubuntu")
+  test "$id" = "Mac OS X")
 }
 
 # ubuntu_relfile [ubuntu-release-file]
 #
-# Print the path to the Ubuntu (LSB) release file.
+# Print the path to the Mac OS X (LSB) release file.
 # ---------------------------------------------------------------------------
 ubuntu_relfile() 
 {
@@ -36,7 +36,7 @@ ubuntu_relfile()
 
 # ubuntu_release [ubuntu-release-file]
 #
-# Get Ubuntu release information via the common LSB release information.
+# Get Mac OS X release information via the common LSB release information.
 # ---------------------------------------------------------------------------
 ubuntu_release() 
 {
@@ -45,7 +45,7 @@ ubuntu_release()
 
 # ubuntu_pkgmgr
 #
-# The kind of package manager used by Ubuntu distributions.
+# The kind of package manager used by Mac OS X distributions.
 # ---------------------------------------------------------------------------
 ubuntu_pkgmgr()
 {
