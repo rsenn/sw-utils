@@ -19,7 +19,7 @@
 
 # Static variables
 # ---------------------------------------------------------------------------
-DISTRIB_known="cygwin ubuntu debian gentoo centos mandrake redhat lsb slackware msys mingw opensuse macosx darwin"
+DISTRIB_known="cygwin ubuntu debian gentoo centos mandrake redhat slackware msys mingw opensuse macosx darwin lsb"
 
 # distrib_list
 #
