@@ -43,17 +43,14 @@ lsb_relfile()
 # ---------------------------------------------------------------------------
 lsb_release()
 {
-  local rf=`lsb_relfile "$@"` IFS="="
-
-  if test -r "$rf"
-  then
-   (while read key value
-    do
-      echo "`str_tolower "${key#*_}"`=$value"
-    done <$rf)
-  else
-    errormsg "Cannot read $rf"
-  fi
+	command lsb_release ${@:-"-a"} |
+	sed \
+		-e 's,:\s\+\(.*\),="\1",' \
+		-e 's,LSB Version,lsb_version,' \
+		-e 's,Distributor ID,id,' \
+		-e 's,Description,description,' \
+		-e 's,Release,release,' \
+		-e 's,Codename,codename,'
 }
 
 # --- eof ---------------------------------------------------------------------
