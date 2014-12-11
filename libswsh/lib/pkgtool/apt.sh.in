@@ -24,7 +24,15 @@ test $lib_pkgtool_apt_sh || {
 # -------------------------------------------------------------------------
 apt_list()
 {
-  apt_search ".*"
+	apt-cache dump | sed -n '/^Package:/ {
+		s,^Package:\s*,,
+		N
+		/Version:/! { s,\n[^\n]*$,, }
+		/Version:/ { s,\(:[^:]*\)\?\n\s*Version:\s*\(.*\),-\2\1, }
+		p
+  }'
+
+  #apt_search ".*"
 }
 
 # apt_search [-q] <search-tokens...>
