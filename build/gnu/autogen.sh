@@ -24,6 +24,9 @@ cd "${1-$topdir}"
 m4dirs=`m4find`
 set -x
 
+AUTOMAKE_VERSION=` automake --version | sed -n '1 s,.*) ,,p' `
+cp -vf /usr/share/automake-$AUTOMAKE_VERSION/install-sh .
+
 type glibtoolize 2>/dev/null >/dev/null && LIBTOOLIZE=glibtoolize || LIBTOOLIZE=libtoolize
 $LIBTOOLIZE --force --copy --automake
 rm -f aclocal.m4; aclocal $includedirs
