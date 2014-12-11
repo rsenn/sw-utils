@@ -24,7 +24,7 @@ cd "${1-$topdir}"
 m4dirs=`m4find`
 set -x
 
-AUTOMAKE_VERSION=` automake --version | sed -n '1 { s,.*) ,, ; s,\([0-9]\+\)\.\(0-9]\+\).*,\1.\2, ; p }' `
+AUTOMAKE_VERSION=` automake --version | sed -n '1 { s,.*) ,, ; s,\([0-9]\+\)\.\([0-9]\+\).*,\1.\2, ; p }' `
 cp -vf /usr/share/automake-$AUTOMAKE_VERSION/install-sh .
 
 type glibtoolize 2>/dev/null >/dev/null && LIBTOOLIZE=glibtoolize || LIBTOOLIZE=libtoolize
