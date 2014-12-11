@@ -65,7 +65,7 @@ distrib_detect()
  (distrib=
   IFS=" ""
 "
-  for name in `distrib_list`
+  for name in $DISTRIB_known #`distrib_list`
   do
     . $shlibdir/distrib/$name.sh
 
