@@ -24,14 +24,20 @@ test $lib_pkgtool_yum_sh || {
 # -------------------------------------------------------------------------
 yum_list()
 {
-  yum list all 2>/dev/null | (IFS=" $tabstop"
+  (case "$1" in
+		-V | --no-version*) NOVER=true; shift ;;
+	  *) break ;;
+  esac
+  yum list "${@:-all}" 2>/dev/null | (IFS=" $tabstop"
   while read -r NAME VERSION INFO; do
     ARCH=${NAME##*.}
     NAME=${NAME%.*}
     #var_dump NAME VERSION ARCH 1>&2
     [ "$NAME" = "Loaded" -a "$VERSION" = "plugins:" -a "$ARCH" = "Loaded" ] && continue
-    printf "%s-%s.%s\n" "$NAME" "$VERSION" "$ARCH"
-  done)
+		[ "$NOVER" = true ] &&
+      printf "%s.%s\n" "$NAME" "$ARCH" ||
+      printf "%s-%s.%s\n" "$NAME" "$VERSION" "$ARCH"
+  done) )
 }
 
 # yum_search [-q] <search-tokens...>
