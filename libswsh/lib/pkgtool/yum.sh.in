@@ -30,9 +30,12 @@ yum_list()
   esac
   yum list "${@:-all}" 2>/dev/null | (IFS=" $tabstop"
   while read -r NAME VERSION INFO; do
+
+		[ -z "$VERSION" -a -z "$INFO" ] && read -r VERSION INFO
     ARCH=${NAME##*.}
     NAME=${NAME%.*}
     #var_dump NAME VERSION ARCH 1>&2
+    [ "$NAME" = "$ARCH" ] && continue
     [ "$NAME" = "Loaded" -a "$VERSION" = "plugins:" -a "$ARCH" = "Loaded" ] && continue
 		[ "$NOVER" = true ] &&
       printf "%s.%s\n" "$NAME" "$ARCH" ||
