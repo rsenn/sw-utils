@@ -24,10 +24,10 @@ test $lib_pkgtool_yum_sh || {
 # -------------------------------------------------------------------------
 yum_list()
 {
-  (case "$1" in
+  (while :; do case "$1" in
 		-V | --no-version*) NOVER=true; shift ;;
 	  *) break ;;
-  esac
+  esac; done
   yum list "${@:-all}" 2>/dev/null | (IFS=" $tabstop"
   while read -r NAME VERSION INFO; do
 
