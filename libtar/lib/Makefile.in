@@ -82,22 +82,12 @@ subdir = lib
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/autoconf/depcomp
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-<<<<<<< HEAD
-am__aclocal_m4_deps = $(top_srcdir)/m4/zlib.m4 \
-	$(top_srcdir)/../build/gnu/libtool.m4 \
-	$(top_srcdir)/../build/gnu/ltoptions.m4 \
-	$(top_srcdir)/../build/gnu/ltsugar.m4 \
-	$(top_srcdir)/../build/gnu/ltversion.m4 \
-	$(top_srcdir)/../build/gnu/lt~obsolete.m4 \
-	$(top_srcdir)/compat/module.ac \
-=======
 am__aclocal_m4_deps = $(top_srcdir)/autoconf/libtool.m4 \
 	$(top_srcdir)/autoconf/ltoptions.m4 \
 	$(top_srcdir)/autoconf/ltsugar.m4 \
 	$(top_srcdir)/autoconf/ltversion.m4 \
 	$(top_srcdir)/autoconf/lt~obsolete.m4 \
 	$(top_srcdir)/autoconf/zlib.m4 $(top_srcdir)/compat/module.ac \
->>>>>>> 0c1d5e08979f2e302086aa91bce9cf2d5b5c8ea2
 	$(top_srcdir)/listhash/module.ac $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
