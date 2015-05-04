@@ -24,15 +24,26 @@ test $lib_pkgtool_apt_sh || {
 # -------------------------------------------------------------------------
 apt_list()
 {
-	apt-cache dump | sed -n '/^Package:/ {
+ (CMD='apt-cache dump | sed -n "/^Package:/ {
 		s,^Package:\s*,,
 		N
-		/Version:/! { s,\n[^\n]*$,, }
+		/Version:/! { s,\n[^\n]*\$,, }
 		/Version:/ { s,\(:[^:]*\)\?\n\s*Version:\s*\(.*\),-\2\1, }
 		p
-  }'
+  }"'
 
-  #apt_search ".*"
+	while :; do
+		case "$1" in
+			-V | --noversion) VERSION="false"; shift ;;
+			*) break ;;
+		esac
+	done
+
+	[ "$VERSION" = false ] && CMD="$CMD | sed '
+	/:[^-.:]\+\$/  s,-[0-9]\+:\?[^-:]*-\?[^-:]*:\([^-.:]\+\)\$,:\1, 
+	/:[^-.:]\+\$/! s,-[0-9]\+:\?[^-:]*-\?[^-:]*\$,,'"
+
+	eval "$CMD")
 }
 
 # apt_search [-q] <search-tokens...>
