@@ -2,7 +2,7 @@
 # ### BEGIN LIBTOOL TAG CONFIG: CXX
 
 # The linker used to build libraries.
-LD="/usr/bin/ld"
+LD="/usr/bin/ld -m elf_x86_64"
 
 # How to create reloadable object files.
 reload_flag=" -r"
@@ -12,7 +12,7 @@ reload_cmds="\$LD\$reload_flag -o \$output\$reload_objs"
 old_archive_cmds="\$AR \$AR_FLAGS \$oldlib\$oldobjs~\$RANLIB \$tool_oldlib"
 
 # A language specific compiler.
-CC="i686-pc-linux-gnu-g++"
+CC="x86_64-linux-gnu-g++"
 
 # Is the compiler the GNU compiler?
 with_gcc=yes
@@ -39,10 +39,10 @@ build_libtool_need_lc=no
 allow_libtool_libs_with_static_runtimes=no
 
 # Compiler flag to allow reflexive dlopens.
-export_dynamic_flag_spec="\$wl--export-dynamic"
+export_dynamic_flag_spec="\${wl}--export-dynamic"
 
 # Compiler flag to generate shared objects directly from archives.
-whole_archive_flag_spec="\$wl--whole-archive\$convenience \$wl--no-whole-archive"
+whole_archive_flag_spec="\${wl}--whole-archive\$convenience \${wl}--no-whole-archive"
 
 # Whether the compiler copes with passing no objects directly.
 compiler_needs_object="no"
@@ -54,8 +54,8 @@ old_archive_from_new_cmds=""
 old_archive_from_expsyms_cmds=""
 
 # Commands used to build a shared archive.
-archive_cmds="\$CC \$pic_flag -shared -nostdlib \$predep_objects \$libobjs \$deplibs \$postdep_objects \$compiler_flags \$wl-soname \$wl\$soname -o \$lib"
-archive_expsym_cmds="\$CC \$pic_flag -shared -nostdlib \$predep_objects \$libobjs \$deplibs \$postdep_objects \$compiler_flags \$wl-soname \$wl\$soname \$wl-retain-symbols-file \$wl\$export_symbols -o \$lib"
+archive_cmds="\$CC \$pic_flag -shared -nostdlib \$predep_objects \$libobjs \$deplibs \$postdep_objects \$compiler_flags \${wl}-soname \$wl\$soname -o \$lib"
+archive_expsym_cmds="\$CC \$pic_flag -shared -nostdlib \$predep_objects \$libobjs \$deplibs \$postdep_objects \$compiler_flags \${wl}-soname \$wl\$soname \${wl}-retain-symbols-file \$wl\$export_symbols -o \$lib"
 
 # Commands used to build a loadable module if different from building
 # a shared archive.
@@ -73,18 +73,18 @@ no_undefined_flag=""
 
 # Flag to hardcode $libdir into a binary during linking.
 # This must work even if $libdir does not exist
-hardcode_libdir_flag_spec="\$wl-rpath \$wl\$libdir"
+hardcode_libdir_flag_spec="\${wl}-rpath \${wl}\$libdir"
 
 # Whether we need a single "-rpath" flag with a separated argument.
 hardcode_libdir_separator=""
 
-# Set to "yes" if using DIR/libNAME$shared_ext during linking hardcodes
+# Set to "yes" if using DIR/libNAME${shared_ext} during linking hardcodes
 # DIR into the resulting binary.
 hardcode_direct=no
 
-# Set to "yes" if using DIR/libNAME$shared_ext during linking hardcodes
+# Set to "yes" if using DIR/libNAME${shared_ext} during linking hardcodes
 # DIR into the resulting binary and the resulting library dependency is
-# "absolute",i.e impossible to change by setting $shlibpath_var if the
+# "absolute",i.e impossible to change by setting ${shlibpath_var} if the
 # library is relocated.
 hardcode_direct_absolute=no
 
@@ -106,7 +106,7 @@ hardcode_automatic=no
 inherit_rpath=no
 
 # Whether libtool must link a program against all its dependency libraries.
-link_all_deplibs=unknown
+link_all_deplibs=no
 
 # Set to "yes" if exported symbols are required.
 always_export_symbols=no
@@ -133,17 +133,17 @@ file_list_spec=""
 hardcode_action=immediate
 
 # The directories searched by this compiler when creating a shared library.
-compiler_lib_search_dirs="/usr/lib/gcc/i686-pc-linux-gnu/4.9.2 /usr/lib/gcc/i686-pc-linux-gnu/4.9.2/../../.."
+compiler_lib_search_dirs="/usr/lib/gcc/x86_64-linux-gnu/4.9 /usr/lib/gcc/x86_64-linux-gnu/4.9/../../../x86_64-linux-gnu /usr/lib/gcc/x86_64-linux-gnu/4.9/../../../../lib /lib/x86_64-linux-gnu /lib/../lib /usr/lib/x86_64-linux-gnu /usr/lib/../lib /usr/lib/gcc/x86_64-linux-gnu/4.9/../../.."
 
 # Dependencies to place before and after the objects being linked to
 # create a shared library.
-predep_objects="/usr/lib/gcc/i686-pc-linux-gnu/4.9.2/../../../crti.o /usr/lib/gcc/i686-pc-linux-gnu/4.9.2/crtbeginS.o"
-postdep_objects="/usr/lib/gcc/i686-pc-linux-gnu/4.9.2/crtendS.o /usr/lib/gcc/i686-pc-linux-gnu/4.9.2/../../../crtn.o"
+predep_objects="/usr/lib/gcc/x86_64-linux-gnu/4.9/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/4.9/crtbeginS.o"
+postdep_objects="/usr/lib/gcc/x86_64-linux-gnu/4.9/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/4.9/../../../x86_64-linux-gnu/crtn.o"
 predeps=""
 postdeps="-lstdc++ -lm -lgcc_s -lc -lgcc_s"
 
 # The library search path used internally by the compiler when linking
 # a shared library.
-compiler_lib_search_path="-L/usr/lib/gcc/i686-pc-linux-gnu/4.9.2 -L/usr/lib/gcc/i686-pc-linux-gnu/4.9.2/../../.."
+compiler_lib_search_path="-L/usr/lib/gcc/x86_64-linux-gnu/4.9 -L/usr/lib/gcc/x86_64-linux-gnu/4.9/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.9/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.9/../../.."
 
 # ### END LIBTOOL TAG CONFIG: CXX
