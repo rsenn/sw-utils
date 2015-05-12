@@ -116,7 +116,7 @@ str_random()
   while [ ${count} -gt 0 ]
   do
     local rand=$((RANDOM % alen))
-    out="${out}`str_index "$alphabet" ${rand}`"
+    out="${out}`str_index ${rand} "$alphabet"`"
     count=$((count - 1))
   done
 
