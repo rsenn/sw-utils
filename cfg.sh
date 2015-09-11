@@ -66,7 +66,7 @@ silent_rules="disable"
 dependency_tracking="disable"
 maintainer_mode="disable"
 
-set "$MYDIR/configure" \
+set bash "$MYDIR/configure" \
     --with-shell="$SHELL" \
     --program-prefix="" \
     --program-suffix="" \
