@@ -18,6 +18,8 @@ test $lib_pkgtool_yum_sh || {
 . $shlibdir/util.sh
 . $shlibdir/std/array.sh
 
+YUM_cmd="yum"
+
 # yum_list
 #
 # List all known packages...
@@ -28,7 +30,7 @@ yum_list()
 		-V | --no-version*) NOVER=true; shift ;;
 	  *) break ;;
   esac; done
-  yum list "${@:-all}" 2>/dev/null | (IFS=" $tabstop"
+  $YUM_cmd list "${@:-all}" 2>/dev/null | (IFS=" $tabstop"
   while read -r NAME VERSION INFO; do
 
 		[ -z "$VERSION" -a -z "$INFO" ] && read -r VERSION INFO
@@ -69,7 +71,7 @@ yum_search()
 	\\|^\\s*\$|d
 	\$ d"
 	[ -z "$*" ] && set -- all
-	yum search "$@" | sed "$filter")
+	$YUM_cmd search "$@" | sed "$filter")
 }
 
 # yum_match <search-token>
@@ -121,7 +123,7 @@ yum_rdeps()
 # -------------------------------------------------------------------------
 yum_deps()
 {
-	yum deplist "$@" | sed -n "1d
+	$YUM_cmd deplist "$@" | sed -n "1d
   s/^/$SPACE/
   s/ [^ ]*$//
   s/package: //p

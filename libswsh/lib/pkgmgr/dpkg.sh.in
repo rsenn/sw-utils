@@ -74,13 +74,17 @@ dpkg_is_installed()
 # -------------------------------------------------------------------------
 dpkg_list()
 {
-  local flags
-  
-  case $1 in
+ (case $1 in
     -a) flags="[a-z][a-z]" && shift ;;
   esac
 
-  dpkg --list "$@" | sed -n -e "s,^${flags:-ii}  \([^ ]\+\) .*\$,\1,p"
+	case ${MACHINE:-`uname -m`} in
+		x86_64) ARCH=amd64 ;;
+	  i[456]86) ARCH=i386 ;;
+  esac
+
+	dpkg --list "$@" | sed -n -e "s|:${ARCH} | |" -e "s,^${flags:-ii}  \([^ ]\+\) .*\$,\1,p"
+ )
 }
 
 # dpkg_dump
