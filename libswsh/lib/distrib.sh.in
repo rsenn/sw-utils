@@ -116,8 +116,10 @@ distrib_canonical()
 
   id=`distrib_get id`
 
-	if [ "$(type -t "${id}_canonical")" = function ]; then
-					${id}_canonical "$@"
+  i=$(str_tolower "$id")
+
+	if [ "$(type -t "${i}_canonical")" = function ]; then
+					${i}_canonical "$@"
 	else
 
 					release=`distrib_get release | sed 's,[^.0-9A-Za-z],-,g'`
