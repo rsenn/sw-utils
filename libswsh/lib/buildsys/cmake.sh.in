@@ -72,7 +72,7 @@ cmake_clean()
     dir=$1; shift; cmake_check "$dir" || continue
     set -- `cmake_subdirs "$dir"` "$@"
    (cd "$dir"
-    grep -q '^# CMAKE' Makefile 2>/dev/null && rm -f Makefile
+    ${GREP-grep} -q '^# CMAKE' Makefile 2>/dev/null && rm -f Makefile
     IFS="
  $IFS"
     for file in $cmake_generated; do
@@ -96,7 +96,7 @@ cmake_check()
   case $1 in
     -p | --project) 
       set -f
-      cmd="grep -E ^[^#]*[Pp][Rr][Oo][Jj][Ee][Cc][Tt][\s\t]*\\([^)]+\\)"
+      cmd="${GREP-grep} -E ^[^#]*[Pp][Rr][Oo][Jj][Ee][Cc][Tt][\s\t]*\\([^)]+\\)"
       shift
     ;;
 

@@ -749,7 +749,7 @@ runit_install()
     cp "$rcfile" "$rcfile.backup"
   fi
 
-  if ! grep -q "^$entry_search$" $rcfile
+  if ! ${GREP-grep} -q "^$entry_search$" $rcfile
   then
     case $target in
       *freebsd*)
@@ -759,7 +759,7 @@ runit_install()
         text_append "$comment_add$newline$entry_add" $rcfile
         ;;
       *)
-        if ! grep -q "^$end_of_search$" $rcfile; then
+        if ! ${GREP-grep} -q "^$end_of_search$" $rcfile; then
           text_append "$comment_add$newline$entry_add" $rcfile
         else
           text_insert_before "$comment_add$newline$entry_add" "^$end_of_search$" ${rcfile}
@@ -782,7 +782,7 @@ runit_uninstall()
 
   runit_rcfile
 
-  if grep -q "^${entry_search}$" "$rcfile"
+  if ${GREP-grep} -q "^${entry_search}$" "$rcfile"
   then
     text_remove "^${entry_search}$" "$rcfile"
     text_remove "^${comment_search}$" "$rcfile"
@@ -798,7 +798,7 @@ runit_uninstall()
 
 runit_mustbeinstalled()
 {
-  if ! grep -q "^${entry_search}$" "$rcfile"
+  if ! ${GREP-grep} -q "^${entry_search}$" "$rcfile"
   then
     msg "svscanboot not in ${rcfile}, use nexsvc --install"
     return 1
@@ -809,7 +809,7 @@ runit_mustbeinstalled()
 
 runit_isinstalled()
 {
-  grep -q "^${entry_search}$" "$rcfile"
+  ${GREP-grep} -q "^${entry_search}$" "$rcfile"
 }
 
 # rehash init [1]

@@ -118,7 +118,7 @@ local file=$1
   while test "$#" -gt 1
   do
     shift
-    if ! grep -q "^$v:" "$1"
+    if ! ${GREP-grep} -q "^$v:" "$1"
     then
       return 1
     fi

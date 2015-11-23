@@ -81,7 +81,7 @@ named_module_list()
 # -------------------------------------------------------------------------
 named_module_isloaded()
 {
-  named_conf_read ${2+"$2"} | grep -q "LoadModule[ \t]\+${1+.*$1.*}$"
+  named_conf_read ${2+"$2"} | ${GREP-grep} -q "LoadModule[ \t]\+${1+.*$1.*}$"
 }
 
 # named_module_file <module> [config...]
@@ -94,8 +94,8 @@ named_module_file()
 
   shift
 
-  grep -H "LoadModule[ \t]\+${module+.*$module.*}$" `named_conf_files "$@"` | \
-    grep -v ':[ \t]*#' | \
+  ${GREP-grep} -H "LoadModule[ \t]\+${module+.*$module.*}$" `named_conf_files "$@"` | \
+    ${GREP-grep} -v ':[ \t]*#' | \
     ${SED-sed} 's,:.*,,' | sort -u | tail -n1
 }
 
@@ -134,7 +134,7 @@ named_module_dso()
 named_module_ctor()
 {
   $bindir/objdump -T ${1+"$1"} | \
-    grep 'g.*DO.*\.data.*00000064.*Base' | \
+    ${GREP-grep} 'g.*DO.*\.data.*00000064.*Base' | \
     ${SED-sed} 's,^.*Base[ \t]\+,,'
 }
 
@@ -166,8 +166,8 @@ named_module_add()
 named_vhost_list()
 {
   named_conf_read ${1+"$1"} | \
-    grep -v '^[ \t]*#' | \
-    grep '<VirtualHost[ \t]\+' | \
+    ${GREP-grep} -v '^[ \t]*#' | \
+    ${GREP-grep} '<VirtualHost[ \t]\+' | \
     ${SED-sed} 's,<VirtualHost[ \t]\+\(.*\)>,\1,'
 }
 
@@ -178,8 +178,8 @@ named_vhost_list()
 named_listen_list()
 {
   named_conf_read ${1+"$1"} | \
-    grep -v '^[ \t]*#' | \
-    grep 'Listen[ \t]\+' | \
+    ${GREP-grep} -v '^[ \t]*#' | \
+    ${GREP-grep} 'Listen[ \t]\+' | \
     ${SED-sed} 's,Listen[ \t]\+\(.*\),\1,'
 }
 
@@ -189,7 +189,7 @@ named_listen_list()
 # -------------------------------------------------------------------------
 named_listen_exists()
 {
-  named_listen_list $2 | grep -q "^$1\$"
+  named_listen_list $2 | ${GREP-grep} -q "^$1\$"
 }
 
 # named_listen_add <config> <listener>
@@ -211,8 +211,8 @@ named_listen_add()
 named_servername_list()
 {
   named_conf_read ${1+"$1"} | \
-    grep -v '^[ \t]*#' | \
-    grep 'ServerName[ \t]\+' | \
+    ${GREP-grep} -v '^[ \t]*#' | \
+    ${GREP-grep} 'ServerName[ \t]\+' | \
     ${SED-sed} 's,ServerName[ \t]\+\(.*\),\1,'
 }
 
@@ -222,7 +222,7 @@ named_servername_list()
 # -------------------------------------------------------------------------
 named_servername_exists()
 {
-  named_servername_list "$2" | grep -q "^$1\$"
+  named_servername_list "$2" | ${GREP-grep} -q "^$1\$"
 }
 
 # named_vhost_exists <vhost> [config]
@@ -231,7 +231,7 @@ named_servername_exists()
 # -------------------------------------------------------------------------
 named_vhost_exists()
 {
-  named_vhost_list "$2" | grep -q "^$1\$"
+  named_vhost_list "$2" | ${GREP-grep} -q "^$1\$"
 }
 
 # named_vhost_file <vhost> [config...]
@@ -242,8 +242,8 @@ named_vhost_file()
 {
   local vhost=$1
   shift
-  grep -H "<VirtualHost[ \t]\+$1>" `named_conf_files "$@"` | \
-    grep -v ':[ \t]*#' | \
+  ${GREP-grep} -H "<VirtualHost[ \t]\+$1>" `named_conf_files "$@"` | \
+    ${GREP-grep} -v ':[ \t]*#' | \
     ${SED-sed} 's,:.*,,'
 }
 
@@ -416,7 +416,7 @@ named_section_exists()
 {
   local pattern=`named_section_pattern "$1"`
   shift
-  grep -q "^$pattern\$" `named_conf_files "$@"`
+  ${GREP-grep} -q "^$pattern\$" `named_conf_files "$@"`
 }
 
 # named_section_list [config]

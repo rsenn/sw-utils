@@ -60,7 +60,7 @@ swsh_load()
   do
     name=${script##*/}
 
-    if test -f "$script" && grep -q "^${name%.sh}_[^\s]\+()" "$script"
+    if test -f "$script" && ${GREP-grep} -q "^${name%.sh}_[^\s]\+()" "$script"
     then
       array_push_unique swsh_scripts "${script#$shlibdir/}" #&& msg "Detected script library '$name'."
     fi

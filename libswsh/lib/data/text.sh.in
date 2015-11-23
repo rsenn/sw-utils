@@ -27,7 +27,7 @@ text_append()
 text_replace()
 {
   local multiline=`echo "$1" | ${SED-sed} 's,$,\\,'`
-  if grep -q "$2" ${3+"$3"}; then
+  if ${GREP-grep} -q "$2" ${3+"$3"}; then
     ${SED-sed} ${3+'-i'} "\\\\$2\\ { a \\${multiline%\\}
     d; :lp; n; b lp; q }" ${3+"$3"}
     return 0
@@ -40,7 +40,7 @@ text_replace()
 text_insert_before()
 {
   local multiline=`echo "$1" | ${SED-sed} 's,$,\\,'`
-  if grep -q "$2" ${3+"$3"}; then
+  if ${GREP-grep} -q "$2" ${3+"$3"}; then
     ${SED-sed} ${3+'-i'} "\\\\$2\\ { i \\${multiline%\\}
   :lp; n; b lp; q }" ${3+"$3"}
     return 0
@@ -53,7 +53,7 @@ text_insert_before()
 text_insert_after()
 {
   local multiline=`echo "$1" | ${SED-sed} 's,$,\\,'`
-  if grep -q "$2" ${3+"$3"}; then
+  if ${GREP-grep} -q "$2" ${3+"$3"}; then
     ${SED-sed} ${3+'-i'} "\\\\$2\\ { a \\\\${multiline%\\}
     :lp; n; b lp; q }" ${3+"$3"}
     return 0
@@ -68,7 +68,7 @@ text_insert_after()
 text_add()
 {
   local multiline=`echo "$1" | ${SED-sed} 's,$,\\,'`
-  if grep -q "$2" ${3+"$3"}; then
+  if ${GREP-grep} -q "$2" ${3+"$3"}; then
     ${SED-sed} ${3+'-i'} "\\\\$2\\ { a \\\\${multiline%\\}
     :lp; n; b lp; q }; $ a\\\\${multiline%\\}
     " ${3+"$3"}

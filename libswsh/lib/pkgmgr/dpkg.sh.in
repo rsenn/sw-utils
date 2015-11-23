@@ -54,7 +54,7 @@ dpkg_is_installed()
 
  (for ARG; do
 
-  OUTPUT=$( dpkg --list "$ARG"  2>/dev/null | (IFS="|$IFS "; grep -E  "^ii\\s+($ARG)\\s") )
+  OUTPUT=$( dpkg --list "$ARG"  2>/dev/null | (IFS="|$IFS "; ${GREP-grep} -E  "^ii\\s+($ARG)\\s") )
 
    if [ -n "$OUTPUT" ]; then
      if [ $# -gt 1 ]; then
@@ -109,7 +109,7 @@ dpkg_match()
       s,\.\*,*,g
     }')
   } | {
-    IFS="|" && grep -E "($*)"
+    IFS="|" && ${GREP-grep} -E "($*)"
   }
 }
 

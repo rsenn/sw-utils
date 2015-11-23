@@ -94,7 +94,7 @@ template_strip()
 template_vars()
 {
   template_mustexist "$1" &&
-  grep "^[0-9A-Za-z_]\+_[0-9A-Za-z_]\+=" "$template_dir/$1"
+  ${GREP-grep} "^[0-9A-Za-z_]\+_[0-9A-Za-z_]\+=" "$template_dir/$1"
 }
 
 # template_pkglist <name> [tree]
@@ -134,9 +134,9 @@ template_contains()
 {
   template_mustexist "$1" &&
   if test -n "$3"; then
-    echo "$3" | grep -qP "^\t*${2%/*}/${2#*/}\$"
+    echo "$3" | ${GREP-grep} -qP "^\t*${2%/*}/${2#*/}\$"
   else
-    grep -qP "^\t*${2%/*}/${2#*/}\$" "$template_dir/$1"
+    ${GREP-grep} -qP "^\t*${2%/*}/${2#*/}\$" "$template_dir/$1"
   fi
 }
 

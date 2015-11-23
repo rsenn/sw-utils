@@ -616,7 +616,7 @@ port_unpack()
         #url_download "$download"
 
         if [ -n "$subdir" ]; then
-          find "${subdir##*:}" | grep -v '/\.'
+          find "${subdir##*:}" | ${GREP-grep} -v '/\.'
         fi
       ;;
     esac)

@@ -66,7 +66,7 @@ apt_match()
   esac
     for tok
     do
-      (apt_search ${arg+"$arg"} "$tok" | grep "$tok")
+      (apt_search ${arg+"$arg"} "$tok" | ${GREP-grep} "$tok")
     done
 
  #(for pkg; do apt_search $arg "$pkg"; done) | (IFS="|"; egrep "($*)")

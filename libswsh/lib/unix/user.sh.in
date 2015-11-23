@@ -39,7 +39,7 @@ user_uids()
 # -------------------------------------------------------------------------
 user_name()
 {
-  grep "^.*:x:$1:" ${user_file} | ${SED-sed} 's,:.*,,'
+  ${GREP-grep} "^.*:x:$1:" ${user_file} | ${SED-sed} 's,:.*,,'
 }
 
 # gets group names of a user
@@ -70,7 +70,7 @@ user_gid()
 # -------------------------------------------------------------------------
 user_exists()
 {
-  grep -q "^$1:" ${user_file}
+  ${GREP-grep} -q "^$1:" ${user_file}
 }
 
 # checks if a user is available

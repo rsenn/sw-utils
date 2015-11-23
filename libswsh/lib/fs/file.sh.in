@@ -179,8 +179,8 @@ file_grep()
     # Quote the filename once.
     file=`escape_dquote "$file"`
 
-    # Create the grep command line.
-    cmd="grep $opts \"$expr\" \"$file\""
+    # Create the ${GREP-grep} command line.
+    cmd="${GREP-grep} $opts \"$expr\" \"$file\""
 
     # Execute the command
     if ! cmd_exec "$cmd" ${host+"$host"}; then

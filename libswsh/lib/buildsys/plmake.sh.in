@@ -134,7 +134,7 @@ plmake_commands()
 #        ${SED-sed} -e 's,\$,\\$,g' |
 #        ${SED-sed} -e 's,^\([^=]*\)=\(.\+\),\1=\"\2\",' |
 #        sort -u |
-#        grep -E '(^INSTALLSITE|PREFIX=|MAN)'
+#        ${GREP-grep} -E '(^INSTALLSITE|PREFIX=|MAN)'
 #      )
       local makevars changevars=$(
          cd "$dir" &&
@@ -142,12 +142,12 @@ plmake_commands()
          make_variables .
       )
       
-      if isin 'INSTALLDIRS' $changevars  #echo "$changevars" | grep -q '^INSTALLDIRS$'
+      if isin 'INSTALLDIRS' $changevars  #echo "$changevars" | ${GREP-grep} -q '^INSTALLDIRS$'
       then
         pushv makevars "INSTALLDIRS=\"vendor\""
       fi
 
-      if isin 'PREFIX' $changevars #echo "$changevars" | grep -q '^PREFIX$'
+      if isin 'PREFIX' $changevars #echo "$changevars" | ${GREP-grep} -q '^PREFIX$'
       then
         pushv makevars "PREFIX=\"\$prefix\""
       fi

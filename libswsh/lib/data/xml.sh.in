@@ -36,7 +36,7 @@ xml_xattr()
 # ---------------------------------------------------------------------------
 is_xml()
 {
- (cmd="grep -q '^<?xml'"
+ (cmd="${GREP-grep} -q '^<?xml'"
   
   if test "${1+set}" = set; then
     cmd="echo \"$1\" | $cmd"

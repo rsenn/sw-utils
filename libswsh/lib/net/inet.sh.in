@@ -232,7 +232,7 @@ inet_bound()
 {
   for af in $INET_protocols; do
     netstat -nl -A "$af"
-  done | grep -q "^$1[ \t]\+[0-9]\+[ \t]\+[0-9]\+[ \t]\+$2[ \t]"
+  done | ${GREP-grep} -q "^$1[ \t]\+[0-9]\+[ \t]\+[0-9]\+[ \t]\+$2[ \t]"
 }
 
 # check if the specified address is conflicts with addresses which are bound
@@ -331,7 +331,7 @@ inet_any2local()
 # -------------------------------------------------------------------------
 inet_list()
 {
-  ifconfig -a | grep 'inet addr:' | ${SED-sed} 's,.*inet addr:\([0-9\.]\+\) .*,\1,'
+  ifconfig -a | ${GREP-grep} 'inet addr:' | ${SED-sed} 's,.*inet addr:\([0-9\.]\+\) .*,\1,'
 }
 
 # inet_hostname

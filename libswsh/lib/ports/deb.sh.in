@@ -492,7 +492,7 @@ deb_buildpkg()
 
 
   # check for binaries
-  elf_files=$(find "$dir" -type f -exec file '{}' ';' | grep -E ':.* (ELF |current ar archive$)')
+  elf_files=$(find "$dir" -type f -exec file '{}' ';' | ${GREP-grep} -E ':.* (ELF |current ar archive$)')
   
   if test -z "$elf_files"; then
     arch="all"
@@ -671,7 +671,7 @@ deb_buildpkgdir()
 #    *-perl)
 #      msg "Launching perl debhelper..."#
 #     (cd $dir/../../.. && set -x
-#       strace -s 1024 -f dh_perl 2>&1 | grep -E '^(open|chdir|stat|mmap)\("[^/]' 1>&2
+#       strace -s 1024 -f dh_perl 2>&1 | ${GREP-grep} -E '^(open|chdir|stat|mmap)\("[^/]' 1>&2
 #      cat debian/control 1>&2
 #      ls -la debian 1>&2)
 #      ;;
@@ -679,11 +679,11 @@ deb_buildpkgdir()
 
   find "$dir/.." -type f -name "compat" -exec rm -f "{}" ";" 2>/dev/null
 
-#  grep -R "compat" "$dir/.." 1>&2
+#  ${GREP-grep} -R "compat" "$dir/.." 1>&2
 
   pkgname=${package}_${version##*:}_${arch}.deb  
 
-  dpkg-deb --build "$dir" "$pkgname" 2>&1 | grep -v '^grep: debian/control: No such file or directory' 1>&2 && echo "$pkgname"
+  dpkg-deb --build "$dir" "$pkgname" 2>&1 | ${GREP-grep} -v '^${GREP-grep}: debian/control: No such file or directory' 1>&2 && echo "$pkgname"
 }
 
 # --- eof ---------------------------------------------------------------------

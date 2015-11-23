@@ -271,7 +271,7 @@ sourceforge_url()
   install -d $ROOT/share/doc/squashfs-tools
   install -m 644 INSTALL PERFORMANCE.README README COPYING CHANGES ACKNOWLEDGEMENTS $ROOT/share/doc/squashfs-tools
   install -m 644 INSTALL PERFORMANCE.README README COPYING CHANGES ACKNOWLEDGEMENTS $ROOT/share/doc/squashfs-tools
-        url=`sourceforge_files "$project" | grep -iE '(tgz|tar\.gz)'`
+        url=`sourceforge_files "$project" | ${GREP-grep} -iE '(tgz|tar\.gz)'`
       ;;
       showfiles)
         gid=`sourceforge_gid "$project"`

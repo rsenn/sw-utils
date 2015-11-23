@@ -65,7 +65,7 @@ script_isname()
 # -------------------------------------------------------------------------
 script_keyword()
 {
-  echo "$1" | grep -qE "^($script_keywords)$"
+  echo "$1" | ${GREP-grep} -qE "^($script_keywords)$"
 }
 
 # script_comments <script>
@@ -150,7 +150,7 @@ script_identifiers()
     then
       echo "$token"
     fi
-  done | grep -vE "^($script_keywords)$"
+  done | ${GREP-grep} -vE "^($script_keywords)$"
 }
 
 # changes/sets a variable in a shell script
@@ -172,7 +172,7 @@ script_setvar()
 script_changevar()
 {
   (VALUE=`echo "$3" | ${SED-sed} "s,|,,g"`
-  if grep -q "^$2=" "$1"; then
+  if ${GREP-grep} -q "^$2=" "$1"; then
     ${SED-sed} -i "/^$2=/ { s|=.*$|=$VALUE|; :lp1; n; b lp1; q }" "$1"
   else
     exit 1
@@ -185,9 +185,9 @@ script_changevar()
 # -------------------------------------------------------------------------
 script_appendvar()
 {
-  if ! grep -q "^$2=" "$1"
+  if ! ${GREP-grep} -q "^$2=" "$1"
   then
-    if test -n "$4" && grep -q "$4" "$1"
+    if test -n "$4" && ${GREP-grep} -q "$4" "$1"
     then
       ${SED-sed} -i "/$4/ { a\\$2=$3
               :lp2; n; b lp2; q }" "$1"

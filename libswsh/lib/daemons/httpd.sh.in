@@ -82,7 +82,7 @@ httpd_module_list()
 # -------------------------------------------------------------------------
 httpd_module_isloaded()
 {
-  httpd_conf_read ${2+"$2"} | grep -q "LoadModule[ \t]\+${1+.*$1.*}$"
+  httpd_conf_read ${2+"$2"} | ${GREP-grep} -q "LoadModule[ \t]\+${1+.*$1.*}$"
 }
 
 # httpd_module_file <module> [config...]
@@ -95,8 +95,8 @@ httpd_module_file()
 
   shift
 
-  grep -H "LoadModule[ \t]\+${module+.*$module.*}$" `httpd_conf_files "$@"` | \
-    grep -v ':[ \t]*#' | \
+  ${GREP-grep} -H "LoadModule[ \t]\+${module+.*$module.*}$" `httpd_conf_files "$@"` | \
+    ${GREP-grep} -v ':[ \t]*#' | \
     ${SED-sed} 's,:.*,,' | sort -u | tail -n1
 }
 
@@ -135,7 +135,7 @@ httpd_module_dso()
 httpd_module_ctor()
 {
   $bindir/objdump -T ${1+"$1"} | \
-    grep 'g.*DO.*\.data.*00000064.*Base' | \
+    ${GREP-grep} 'g.*DO.*\.data.*00000064.*Base' | \
     ${SED-sed} 's,^.*Base[ \t]\+,,'
 }
 
@@ -167,8 +167,8 @@ httpd_module_add()
 httpd_vhost_list()
 {
   httpd_conf_read ${1+"$1"} | \
-    grep -v '^[ \t]*#' | \
-    grep '<VirtualHost[ \t]\+' | \
+    ${GREP-grep} -v '^[ \t]*#' | \
+    ${GREP-grep} '<VirtualHost[ \t]\+' | \
     ${SED-sed} 's,<VirtualHost[ \t]\+\(.*\)>,\1,'
 }
 
@@ -179,8 +179,8 @@ httpd_vhost_list()
 httpd_listen_list()
 {
   httpd_conf_read ${1+"$1"} | \
-    grep -v '^[ \t]*#' | \
-    grep 'Listen[ \t]\+' | \
+    ${GREP-grep} -v '^[ \t]*#' | \
+    ${GREP-grep} 'Listen[ \t]\+' | \
     ${SED-sed} 's,Listen[ \t]\+\(.*\),\1,'
 }
 
@@ -190,7 +190,7 @@ httpd_listen_list()
 # -------------------------------------------------------------------------
 httpd_listen_exists()
 {
-  httpd_listen_list $2 | grep -q "^$1\$"
+  httpd_listen_list $2 | ${GREP-grep} -q "^$1\$"
 }
 
 # httpd_listen_add <config> <listener>
@@ -212,8 +212,8 @@ httpd_listen_add()
 httpd_servername_list()
 {
   httpd_conf_read ${1+"$1"} | \
-    grep -v '^[ \t]*#' | \
-    grep 'ServerName[ \t]\+' | \
+    ${GREP-grep} -v '^[ \t]*#' | \
+    ${GREP-grep} 'ServerName[ \t]\+' | \
     ${SED-sed} 's,ServerName[ \t]\+\(.*\),\1,'
 }
 
@@ -223,7 +223,7 @@ httpd_servername_list()
 # -------------------------------------------------------------------------
 httpd_servername_exists()
 {
-  httpd_servername_list "$2" | grep -q "^$1\$"
+  httpd_servername_list "$2" | ${GREP-grep} -q "^$1\$"
 }
 
 # httpd_vhost_exists <vhost> [config]
@@ -232,7 +232,7 @@ httpd_servername_exists()
 # -------------------------------------------------------------------------
 httpd_vhost_exists()
 {
-  httpd_vhost_list "$2" | grep -q "^$1\$"
+  httpd_vhost_list "$2" | ${GREP-grep} -q "^$1\$"
 }
 
 # httpd_vhost_file <vhost> [config...]
@@ -243,8 +243,8 @@ httpd_vhost_file()
 {
   local vhost=$1
   shift
-  grep -H "<VirtualHost[ \t]\+$1>" `httpd_conf_files "$@"` | \
-    grep -v ':[ \t]*#' | \
+  ${GREP-grep} -H "<VirtualHost[ \t]\+$1>" `httpd_conf_files "$@"` | \
+    ${GREP-grep} -v ':[ \t]*#' | \
     ${SED-sed} 's,:.*,,'
 }
 
@@ -417,7 +417,7 @@ httpd_section_exists()
 {
   local pattern=`httpd_section_pattern "$1"`
   shift
-  grep -q "^$pattern\$" `httpd_conf_files "$@"`
+  ${GREP-grep} -q "^$pattern\$" `httpd_conf_files "$@"`
 }
 
 # httpd_section_list [config]

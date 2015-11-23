@@ -38,14 +38,14 @@ group_gids()
 # ----------------------------------------------------------------------------
 group_name()
 {
-  grep "^.*:x:$1:" ${group_file} | ${SED-sed} 's,:.*,,'
+  ${GREP-grep} "^.*:x:$1:" ${group_file} | ${SED-sed} 's,:.*,,'
 }
 
 # checks if a group exists
 # -------------------------------------------------------------------------
 group_exists()
 {
-  grep -q "^$1:" ${group_file}
+  ${GREP-grep} -q "^$1:" ${group_file}
 }
 
 # searches /etc/group for groups matching the supplied masks

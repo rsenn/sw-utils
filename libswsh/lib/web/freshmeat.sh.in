@@ -209,13 +209,13 @@ freshmeat_url()
           xml_get "li [^>]*" | 
           case "$1" in
             archive|pkg) egrep ">(Tar/.*|Zip)<" ;;
-            t*bz*) grep ">Tar/BZ2<" ;;
-            t*gz*) grep ">Tar/GZ<" ;;
-            zip) grep ">Zip<" ;;
-            [Cc]hangelog) grep ">Changelog<" ;;
-            [Ww]ebsite | [Hh]ome*) grep ">Website<" ;;
-            [Cc][Vv][Ss]*) grep ">CVS tree<" ;;
-            [Mm]ore* | [Ii]nfo*) grep ">More Information<" ;;
+            t*bz*) ${GREP-grep} ">Tar/BZ2<" ;;
+            t*gz*) ${GREP-grep} ">Tar/GZ<" ;;
+            zip) ${GREP-grep} ">Zip<" ;;
+            [Cc]hangelog) ${GREP-grep} ">Changelog<" ;;
+            [Ww]ebsite | [Hh]ome*) ${GREP-grep} ">Website<" ;;
+            [Cc][Vv][Ss]*) ${GREP-grep} ">CVS tree<" ;;
+            [Mm]ore* | [Ii]nfo*) ${GREP-grep} ">More Information<" ;;
           esac
         ;;
       esac |
