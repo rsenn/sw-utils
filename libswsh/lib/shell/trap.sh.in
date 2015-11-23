@@ -93,8 +93,8 @@ trap_list()
 "
   for t in \
     $(traps=`trap -p` && echo "$traps" |
-    #sed -e "/\\\\'/" |
-    sed -e "/'/ {
+    #${SED-sed} -e "/\\\\'/" |
+    ${SED-sed} -e "/'/ {
       :lp
       /'.*'/! {
         N

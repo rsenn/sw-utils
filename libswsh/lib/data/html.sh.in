@@ -32,7 +32,7 @@ html_text()
          -nobold \
          -nocolor \
          -nounderline \
-         -width="${html_width:-16384}" | sed \
+         -width="${html_width:-16384}" | ${SED-sed} \
     -e '1 {
           :lp; /^\s*\$/ { N; b lp; }
           s,^\s*,,
@@ -44,7 +44,7 @@ html_text()
 # -------------------------------------------------------------------------
 html_dequote()
 {
-  echo "$*" | sed \
+  echo "$*" | ${SED-sed} \
     -e 's|&quot;|"|g' \
     -e 's|&amp;|\&|g' \
     -e 's|&lt;|<|g' \

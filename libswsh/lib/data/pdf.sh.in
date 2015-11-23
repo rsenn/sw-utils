@@ -19,7 +19,7 @@ test $lib_pdf_sh || {
 pdf_info()
 {
   local k v
-  pdfinfo "$1" 2>/dev/null | sed \
+  pdfinfo "$1" 2>/dev/null | ${SED-sed} \
        -e 's,\([a-z]\)\([A-Z]\),\1-\2,' \
        -e 's,^\([^:]*\)\s\([^:]*\):,\1-\2:,' \
        -e 's,:\s*, ,' | {

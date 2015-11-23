@@ -69,7 +69,7 @@ yum_search()
 	\\|^\\s*\$|d
 	\$ d"
 	[ -z "$*" ] && set -- all
-	yum search "$@" | sed "$filter")
+	yum search "$@" | ${SED-sed} "$filter")
 }
 
 # yum_match <search-token>
@@ -121,7 +121,7 @@ yum_rdeps()
 # -------------------------------------------------------------------------
 yum_deps()
 {
-	yum deplist "$@" | sed -n "1d
+	yum deplist "$@" | ${SED-sed} -n "1d
   s/^/$SPACE/
   s/ [^ ]*$//
   s/package: //p

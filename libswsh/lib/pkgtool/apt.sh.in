@@ -24,7 +24,7 @@ test $lib_pkgtool_apt_sh || {
 # -------------------------------------------------------------------------
 apt_list()
 {
-	apt-cache dump | sed -n '/^Package:/ {
+	apt-cache dump | ${SED-sed} -n '/^Package:/ {
 		s,^Package:\s*,,
 		N
 		/Version:/! { s,\n[^\n]*$,, }
@@ -44,7 +44,7 @@ apt_search()
  (filter="cat" IFS=" "
   case $1 in
     -q) 
-      filter="sed s/\s.*//"
+      filter="${SED-sed} s/\s.*//"
       shift 
     ;;
   esac
@@ -158,7 +158,7 @@ apt_rdeps()
     pp='s/^[^ ]*: //; s/ /\n/g; p'
   fi
 
-  apt-cache rdepends "$@" | sed -n -e "/^[^ ]/ {
+  apt-cache rdepends "$@" | ${SED-sed} -n -e "/^[^ ]/ {
     :st
     N
     /\\nReverse Depends:[^\\n]*\$/ {
@@ -186,11 +186,11 @@ apt_deps()
     if info=`apt-cache show "$pkg" 2>/dev/null` &&
        test -n "$info"
     then
-      echo "$info" | sed -n "/^Depends:/ {
+      echo "$info" | ${SED-sed} -n "/^Depends:/ {
         s/^Depends:\s*//
         s/, /\n/g
         p
-      }" | sed "s/\s.*//"
+      }" | ${SED-sed} "s/\s.*//"
     else
       errormsg "Unable to locate package $pkg"
     fi

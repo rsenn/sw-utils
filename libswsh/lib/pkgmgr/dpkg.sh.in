@@ -27,7 +27,7 @@ dpkg_files()
   case "$1" in
     *.deb)
       dpkg-deb --contents "$1" | \
-        sed 's,^[^ ]\+ [^ ]\+ \+[0-9]\+ [^ ]\+ [^ ]\+ \.,,'
+        ${SED-sed} 's,^[^ ]\+ [^ ]\+ \+[0-9]\+ [^ ]\+ [^ ]\+ \.,,'
       ;;
     *)
       dpkg -L "$@"
@@ -41,7 +41,7 @@ dpkg_files()
 # -------------------------------------------------------------------------
 dpkg_locate()
 {
-  dpkg -S "$@" 2>&1 | sed -e '/^dpkg: .* not found\./ { 
+  dpkg -S "$@" 2>&1 | ${SED-sed} -e '/^dpkg: .* not found\./ { 
     s,^dpkg: ,-: ,
     s, not found\.$,,
   }'
@@ -80,7 +80,7 @@ dpkg_list()
     -a) flags="[a-z][a-z]" && shift ;;
   esac
 
-  dpkg --list "$@" | sed -n -e "s,^${flags:-ii}  \([^ ]\+\) .*\$,\1,p"
+  dpkg --list "$@" | ${SED-sed} -n -e "s,^${flags:-ii}  \([^ ]\+\) .*\$,\1,p"
 }
 
 # dpkg_dump
@@ -101,7 +101,7 @@ dpkg_match()
   local IFS="
 "
   { set -f
-    dpkg_list $(echo "$*" | sed -e '/^-/! {
+    dpkg_list $(echo "$*" | ${SED-sed} -e '/^-/! {
       /^\^/! s/^/*/
       /\$$/! s/$/*/
       s,^\^,,
@@ -121,7 +121,7 @@ dpkg_installed()
 {
   local st
 
-  st=`dpkg --status "$@" | sed -n -e '/^Status:\s.*\snot-installed/p'`
+  st=`dpkg --status "$@" | ${SED-sed} -n -e '/^Status:\s.*\snot-installed/p'`
   
   test -z "$st"
 }
@@ -155,7 +155,7 @@ dpkg_get()
 # -------------------------------------------------------------------------
 dpkg_depends()
 {
-  dpkg_info "$@" | sed -n -e "/^Depends: / {
+  dpkg_info "$@" | ${SED-sed} -n -e "/^Depends: / {
     s/^Depends: //
     s/, /\n/g
     p
@@ -168,7 +168,7 @@ dpkg_depends()
 # -------------------------------------------------------------------------
 dpkg_list_files()
 {
-  ar p "$1" ${2-data}.tar.gz | tar -tz | sed -e 's,^\./,,' -e '/^$/d'
+  ar p "$1" ${2-data}.tar.gz | tar -tz | ${SED-sed} -e 's,^\./,,' -e '/^$/d'
 }
 
 # dpkg_control_files [packages...]

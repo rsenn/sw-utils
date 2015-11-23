@@ -110,7 +110,7 @@ file_write()
 
 # file_sed <script> [files-to-process...]
 #
-# Run a sed-script on several (remote) files.
+# Run a ${SED-sed}-script on several (remote) files.
 # ---------------------------------------------------------------------------
 file_sed()
 {
@@ -140,8 +140,8 @@ file_sed()
     # Quote the filename once.
     file=`escape_dquote "$file"`
 
-    # Create the sed command line.
-    cmd="sed -e \"$script\" $opts \"$file\""
+    # Create the ${SED-sed} command line.
+    cmd="${SED-sed} -e \"$script\" $opts \"$file\""
 
     # Execute the command
     if ! cmd_exec "$cmd" ${host+"$host"}; then
@@ -152,7 +152,7 @@ file_sed()
 
 # file_grep [options] <expression> [files-to-process...]
 #
-# Run a sed-script on several (remote) files.
+# Run a ${SED-sed}-script on several (remote) files.
 # ---------------------------------------------------------------------------
 file_grep()
 {

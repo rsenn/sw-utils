@@ -55,14 +55,14 @@ log_touch()
 # -------------------------------------------------------------------------
 log_time()
 {
-  exec tai64nlocal | exec sed "s,^\([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\) \([0-2][0-9]:[0-5][0-9]:[0-5][0-9]\).[0-9]* ,$1\1 \2 ,"
+  exec tai64nlocal | exec ${SED-sed} "s,^\([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\) \([0-2][0-9]:[0-5][0-9]:[0-5][0-9]\).[0-9]* ,$1\1 \2 ,"
 }
 
 # pipe logs through this function to strip date/time
 # -------------------------------------------------------------------------
 log_notime()
 {
-  sed "s,@[0-9a-z]* ,$1,"
+  ${SED-sed} "s,@[0-9a-z]* ,$1,"
 }
 
 # log_follow <service>
@@ -110,7 +110,7 @@ log_follow()
     tail --lines=${lines} --follow=name --sleep-interval=0.005 ${pid:+--pid=${pid}} \
          $logfile | \
     while read line; do
-      line=`echo "$line" | sed "s,^@*[0-9a-z]* *,,"`
+      line=`echo "$line" | ${SED-sed} "s,^@*[0-9a-z]* *,,"`
 
       test -n "$line" || continue
 
@@ -134,7 +134,7 @@ log_follow()
     done
   else
     tail --lines=${lines} --follow=name --sleep-interval=0.005 ${pid:+--pid=${pid}} \
-         $logfile | sed "s,@[0-9a-z]* ,$1: ," #tai64nlocal
+         $logfile | ${SED-sed} "s,@[0-9a-z]* ,$1: ," #tai64nlocal
 #    exec tail --lines=0 --follow=name --sleep-interval=0.005 ${pid:+--pid=${pid}} \
 #         `log_file $1`
   fi

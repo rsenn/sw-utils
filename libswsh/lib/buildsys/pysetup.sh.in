@@ -24,7 +24,7 @@ pysetup_files="setup.py"
 # -------------------------------------------------------------------------
 pysetup_scan()
 {
-  pysetup_find "$@" | sed -e "s,/[^/]\+$,," | sort -u
+  pysetup_find "$@" | ${SED-sed} -e "s,/[^/]\+$,," | sort -u
 }
 
 # pysetup_find [directories...]
@@ -35,7 +35,7 @@ pysetup_find()
 {
  (set -f
   IFS=" "
-  find "${@:-.}" -type f -iname setup.py | sed -e "s,^\.\/,,")
+  find "${@:-.}" -type f -iname setup.py | ${SED-sed} -e "s,^\.\/,,")
 }
 
 # -------------------------------------------------------------------------

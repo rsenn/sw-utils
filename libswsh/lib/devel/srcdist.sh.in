@@ -159,7 +159,7 @@ srcdist_mime()
     if ! var_isset 'srcdist_mime'; then
       srcdist_mime=$(
         cd $srcdist_dir && 
-	find * -print0 | xargs -0 file -i | sed -e 's,:\s\+,:,'
+	find * -print0 | xargs -0 file -i | ${SED-sed} -e 's,:\s\+,:,'
       )
     fi
 

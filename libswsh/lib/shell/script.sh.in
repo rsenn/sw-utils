@@ -74,7 +74,7 @@ script_keyword()
 # -------------------------------------------------------------------------
 script_comments()
 {
-  sed -n -e "/^#/ p" "$@"
+  ${SED-sed} -n -e "/^#/ p" "$@"
 }
 
 # script_nocomments [scripts...]
@@ -83,14 +83,14 @@ script_comments()
 # -------------------------------------------------------------------------
 script_nocomments()
 {
-  sed -n -e "/^\s*#/! p" "$@"
+  ${SED-sed} -n -e "/^\s*#/! p" "$@"
 }
 
 # script_varparam [scripts...]
 # -------------------------------------------------------------------------
 script_varparam()
 {
-  sed -n \
+  ${SED-sed} -n \
       "$@" \
       -e '/^\s*#.*/d' \
       -e '/\\\$/ s,\\\$,\\\£,g' \
@@ -120,14 +120,14 @@ script_varparam()
 # -------------------------------------------------------------------------
 script_vars()
 {
-  sed \
+  ${SED-sed} \
       -e 's,\${\([A-Za-z_][0-9A-Za-z_]*\?\)\([^}]*\)},${\1}\n\2,g' \
     "$@" |
   script_varparam \
       -e 's,^\${\([A-Za-z_][0-9A-Za-z_]*\?\)\([^}]*\)}$,${\1}\n\2,g' \
       -e 's,^\$\([A-Za-z_][0-9A-Za-z_]*\?\)$,$\1,' \
     - |
-  sed \
+  ${SED-sed} \
       -e 's,^\${\?,,' \
       -e 's,}$,,'
 }
@@ -141,7 +141,7 @@ script_identifiers()
   local shifu
 
   # split
-  set -- `echo "$@" | sed 's,\#.*$,,'` && IFS="$script_ifs"
+  set -- `echo "$@" | ${SED-sed} 's,\#.*$,,'` && IFS="$script_ifs"
 
   # iterate through tokens
   for token in $*
@@ -171,9 +171,9 @@ script_setvar()
 # -------------------------------------------------------------------------
 script_changevar()
 {
-  (VALUE=`echo "$3" | sed "s,|,,g"`
+  (VALUE=`echo "$3" | ${SED-sed} "s,|,,g"`
   if grep -q "^$2=" "$1"; then
-    sed -i "/^$2=/ { s|=.*$|=$VALUE|; :lp1; n; b lp1; q }" "$1"
+    ${SED-sed} -i "/^$2=/ { s|=.*$|=$VALUE|; :lp1; n; b lp1; q }" "$1"
   else
     exit 1
   fi)
@@ -189,10 +189,10 @@ script_appendvar()
   then
     if test -n "$4" && grep -q "$4" "$1"
     then
-      sed -i "/$4/ { a\\$2=$3
+      ${SED-sed} -i "/$4/ { a\\$2=$3
               :lp2; n; b lp2; q }" "$1"
     else
-      sed -i "$ a\\$2=$3" "$1"
+      ${SED-sed} -i "$ a\\$2=$3" "$1"
     fi
   else
     return 1
@@ -217,7 +217,7 @@ script_fnlist()
 {
  (expr="\\([A-Za-z_][-A-Za-z0-9_]*\\)\\s*()" ob='{' cb='}'
 
-  script_nocomments "$@" | sed -n "/$expr/ {
+  script_nocomments "$@" | ${SED-sed} -n "/$expr/ {
       s/^.*[^-\$_0-9A-Za-z]$expr/\1/
       
       /^$expr/ {
@@ -237,7 +237,7 @@ script_getfn()
 {
   local fn=$1
   shift
-  sed -n \
+  ${SED-sed} -n \
       -e "/$fn\s*()/ {
               s,$fn\s*(),$fn(),
             s,^, ,
@@ -268,7 +268,7 @@ script_getfn()
 # ----------------------------------------------------------------------------
 script_readfn()
 {
-  script_getfn "$@" | sed -n -e '1 {
+  script_getfn "$@" | ${SED-sed} -n -e '1 {
     :lp1
     N
 

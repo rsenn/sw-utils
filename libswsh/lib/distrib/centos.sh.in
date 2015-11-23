@@ -70,7 +70,7 @@ centos_pkgmgr()
 centos_mirrors()
 {
   http_get "http://mirror-status.centos.org/" | 
-  xml_get A HREF | sed -n '/:\/\/.*\/.*[Cc]ent[Oo][Ss]/p'
+  xml_get A HREF | ${SED-sed} -n '/:\/\/.*\/.*[Cc]ent[Oo][Ss]/p'
 }
 
 # --- eof ---------------------------------------------------------------------

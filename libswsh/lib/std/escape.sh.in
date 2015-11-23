@@ -47,7 +47,7 @@ escape_dquote()
 # ---------------------------------------------------------------------------
 escape_squote()
 {
-  echo "$1" | sed "s,','\\\\'',g"
+  echo "$1" | ${SED-sed} "s,','\\\\'',g"
 }
 
 # escape_echo <string>
@@ -66,11 +66,11 @@ escape_echo()
 
 # escape_sed <string>
 #
-# Escape for use within sed-script
+# Escape for use within ${SED-sed}-script
 # ---------------------------------------------------------------------------
 escape_sed()
 {
-  echo "$1" | sed \
+  echo "$1" | ${SED-sed} \
     -e ':lp; N; $! b lp' \
     -e 's,\\,\\\\,g' \
     -e 's,\n,\\n,g' \

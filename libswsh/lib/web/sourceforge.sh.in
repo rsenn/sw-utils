@@ -61,7 +61,7 @@ sourceforge_rss()
 {
   local group_id=$(
     dlynx "http://sourceforge.net/projects/$1" |
-    sed -n 's,.*project.php.*group_id=\([0-9]\+\).*,\1,p' | 
+    ${SED-sed} -n 's,.*project.php.*group_id=\([0-9]\+\).*,\1,p' | 
     head -n1
   )
   
@@ -74,7 +74,7 @@ sourceforge_rss()
 sourceforge_description()
 {
   sourceforge_dump "$@" 2>&1 |
-  sed -n -e '/^     \*$/ {
+  ${SED-sed} -n -e '/^     \*$/ {
     n
     n
     /^     \*$/ {
@@ -109,7 +109,7 @@ sourceforge_files()
   require "www"
  (url=`sourceforge_url "$1" download`
   lftp "${url%/}" -e "find ${url%/}; exit;" 2>/dev/null
-  #www_links "$url/" | sed \
+  #www_links "$url/" | ${SED-sed} \
   #  -e '\,/$,d' \
   #  -e "\\,^${url%/*}\$,d" \
   #  -e "\\,^${url}/?,d"
@@ -149,7 +149,7 @@ sourceforge_gid()
 
       curl_get "$URL" |
       xml_get a href |
-      sed -n "\,/showfiles.php?group_id=, { s,.*group_id=\\([0-9]\+\\).*,\\1, ; p ; q }"
+      ${SED-sed} -n "\,/showfiles.php?group_id=, { s,.*group_id=\\([0-9]\+\\).*,\\1, ; p ; q }"
     ;;
   esac)
 }
@@ -326,7 +326,7 @@ sourceforge_info()
 Project: $1
 Description: `sourceforge_description "$1" short`
 `sourceforge_description "$1" full |
-sed -e "s,^\s*\$,.," -e "s,^, ,"`
+${SED-sed} -e "s,^\s*\$,.," -e "s,^, ,"`
 Homepage: `sourceforge_url "$1"`
 Package: `sourceforge_url "$1" tgz bz2 zip`
 Author: `sourceforge_get "$1" author_name`

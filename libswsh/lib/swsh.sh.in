@@ -71,7 +71,7 @@ swsh_load()
 # ---------------------------------------------------------------------------
 swsh_locate()
 {
-  (cd "$shlibdir" && find * -name "$1.sh" -not -type d) | sed -e 's,\.sh$,,'
+  (cd "$shlibdir" && find * -name "$1.sh" -not -type d) | ${SED-sed} -e 's,\.sh$,,'
 }
 
 # swsh_help
@@ -132,7 +132,7 @@ swsh_help()
            set -- $fn
            IFS=" ${IFS#_}"
 
-           comment=$(shdoc_lookup "$fn" $shlibdir/$script.sh | sed -e '1d ; 2d' | head -n1)
+           comment=$(shdoc_lookup "$fn" $shlibdir/$script.sh | ${SED-sed} -e '1d ; 2d' | head -n1)
 
 #           if test "$script" = "$1" ||
 #              test "$script" = "$2"
@@ -455,7 +455,7 @@ swsh_find()
   (cd "$path" &&
    case $mode in
      ports)
-       find * -follow -type f -name "${arg:-Pkgfile}" -not -wholename '*/.*/*' | sed "s,/$default$,,"
+       find * -follow -type f -name "${arg:-Pkgfile}" -not -wholename '*/.*/*' | ${SED-sed} "s,/$default$,,"
        ;;
      *)
        find * -follow -type f -not -wholename '*/.*/*' ${arg:+-name "$arg"}
@@ -614,7 +614,7 @@ swsh_sync()
     pull)
       (set -x
        rsync --dry-run --update --compress --prune-empty-dirs "$2" |
-         sed -e 's, [^ ]\+$, file')
+         ${SED-sed} -e 's, [^ ]\+$, file')
 
       ;;
 
@@ -644,7 +644,7 @@ msg "Updating from '$url'..."
 (#set -x
 #--progress
           rsync -r --progress --update --compress --prune-empty-dirs "$url" ${dest+"${dest%/*}"} 2>"$errfile"
-          #| sed -e "\,/, { s| [^ ]\+$| $url|; }" -e "s| \+| |g"
+          #| ${SED-sed} -e "\,/, { s| [^ ]\+$| $url|; }" -e "s| \+| |g"
           )
           local errors=$(cat $errfile 2>/dev/null)
           rm -f $errfile
@@ -664,8 +664,8 @@ msg "Updating from '$url'..."
             local url="$svc://$host/$share/$dir${1+/$1}"
             local errfile=$(tempnam)
 
-# echo     rsync --list-only "$url" '|' sed -e "s| [^ ]\+$| $url|" -e "s| \+| |g"
-      rsync --list-only "$url" 2>"$errfile" | sed -e "s| [^ ]\+$| $url|" -e "s| \+| |g"
+# echo     rsync --list-only "$url" '|' ${SED-sed} -e "s| [^ ]\+$| $url|" -e "s| \+| |g"
+      rsync --list-only "$url" 2>"$errfile" | ${SED-sed} -e "s| [^ ]\+$| $url|" -e "s| \+| |g"
 
             local errors=$(<$errfile)
             rm -f "$errfile"

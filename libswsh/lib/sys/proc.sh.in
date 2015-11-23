@@ -56,7 +56,7 @@ proc_parent()
 proc_children()
 {
   while [ "$#" -gt 0 ]; do
-    grep -E "^PPid:[	 ]+$1\$" /proc/[0-9]*/status 2>/dev/null | sed 's,^/proc/,,;;s,/.*,,'
+    grep -E "^PPid:[	 ]+$1\$" /proc/[0-9]*/status 2>/dev/null | ${SED-sed} 's,^/proc/,,;;s,/.*,,'
     shift
   done
 }

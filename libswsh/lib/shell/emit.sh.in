@@ -58,7 +58,7 @@ emit_comment()
 {
   local IFS="$newline" line
 
-  for line in $(echo "$@" | sed -e "s|^\([^#]\)|# \1|"); do
+  for line in $(echo "$@" | ${SED-sed} -e "s|^\([^#]\)|# \1|"); do
     emit_println "$line"
   done
 }

@@ -29,12 +29,12 @@ INET_getip_hosts="checkip.dyndns.org www.getip.com whatismyip.com www.ip-adress.
 inet_interfaces()
 {
   if test -f $INET_proc/dev; then
-    sed -e \
+    ${SED-sed} -e \
     '1d
      2d
      s,^[ \t]\+\(.*\):.*,\1,' $INET_proc/dev
   else
-    ifconfig -a | sed -n \
+    ifconfig -a | ${SED-sed} -n \
       -e '/^$/d' \
       -e '/^[ \t]\+/! {
             s,[ \t:]\+.*,,
@@ -48,7 +48,7 @@ inet_interfaces()
 _inet_ifacelist()
 {
   ifconfig ${1:-'-a'} | 
-  sed -n -e '/inet addr:/ {
+  ${SED-sed} -n -e '/inet addr:/ {
     s,^[ \t]\+inet addr:\([.0-9]\+\),\1,
     s,[ \t]\+Bcast:[.0-9]\+[ \t]\+,,
     s,[ \t]*Mask:\([.0-9]\+\), \1,
@@ -60,7 +60,7 @@ _inet_ifacelist()
 # -------------------------------------------------------------------------
 inet_netmask()
 {
-  ifconfig ${1:-'-a'} | sed -n -e '/inet addr:/ {
+  ifconfig ${1:-'-a'} | ${SED-sed} -n -e '/inet addr:/ {
     s,^[ \t]\+inet addr:\([.0-9]\+\),,
     s,[ \t]\+Bcast:[.0-9]\+[ \t]\+,,
     s,[ \t]*Mask:\([.0-9]\+\),\1,
@@ -72,7 +72,7 @@ inet_netmask()
 # -------------------------------------------------------------------------
 inet_address()
 {
-  ifconfig ${1:-'-a'} | sed -n \
+  ifconfig ${1:-'-a'} | ${SED-sed} -n \
   '/inet addr:/ {
     s,^[ \t]\+inet addr:\([.0-9]\+\),\1,
     s,[ \t]\+Bcast:[.0-9]\+[ \t]\+,,
@@ -91,7 +91,7 @@ inet_extip()
     msg "Checking $host..."
 
     myip=$(lynx -dump "$host" |
-           sed -n -e "/${e_nn}127.0.0.1${e_nn}/ d" \
+           ${SED-sed} -n -e "/${e_nn}127.0.0.1${e_nn}/ d" \
                   -e "/${e_nn}192.168\./ d" \
                   -e "/${e_nn}10\./ d" \
                   -e "/$e_ip/ {
@@ -128,7 +128,7 @@ inet_scan_tcp()
   local ports=$1
   shift
   nmap --open -oG - -sS -P0 -p"$ports" "$@" |
-  sed -n -e '\|^Host:| {
+  ${SED-sed} -n -e '\|^Host:| {
     s|^Host:\s\+||
     s|\s*([^)]*)\s*[A-Z][a-z]\+:||
     s|/open||g
@@ -145,7 +145,7 @@ inet_scan_udp()
   local ports=$1
   shift
   nmap --open -oG - -sU -P0 -p"$ports" "$@" |
-  sed -n -e '\|Ports:.*/open| {
+  ${SED-sed} -n -e '\|Ports:.*/open| {
     s,^Host: \([0-9.]\+\).*,\1,
     p
   }'
@@ -156,7 +156,7 @@ inet_scan_udp()
 inet_hwaddr()
 {
   ifconfig ${1:--a} | {
-    sed -n -e '/HWaddr/ {
+    ${SED-sed} -n -e '/HWaddr/ {
       s,^.*\([0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]\).*$,\1,i
       p
     }' | \
@@ -168,7 +168,7 @@ inet_hwaddr()
 # -------------------------------------------------------------------------
 inet_iface_by_ip()
 {
-  ifconfig -a | sed -n '{
+  ifconfig -a | ${SED-sed} -n '{
     :lp
     /\\n\$/! N
     /\\n\$/ { d; b lp; }
@@ -331,7 +331,7 @@ inet_any2local()
 # -------------------------------------------------------------------------
 inet_list()
 {
-  ifconfig -a | grep 'inet addr:' | sed 's,.*inet addr:\([0-9\.]\+\) .*,\1,'
+  ifconfig -a | grep 'inet addr:' | ${SED-sed} 's,.*inet addr:\([0-9\.]\+\) .*,\1,'
 }
 
 # inet_hostname
@@ -344,7 +344,7 @@ inet_hostname()
   if test -z "$name" || test "$name" = localhost; then
     local addr
     for addr in `inet_list`; do
-      name=$(sed -n "/^[ \t]*${addr}/ s,.*${addr}[ \t]\+\([-_0-9a-z]\+\).*,\1,i p" $INET_hosts)
+      name=$(${SED-sed} -n "/^[ \t]*${addr}/ s,.*${addr}[ \t]\+\([-_0-9a-z]\+\).*,\1,i p" $INET_hosts)
       test "$name" && test "$name" != localhost && break
     done
   fi
@@ -365,7 +365,7 @@ inet_domainname()
   if test -z "$name" || test "$name" = localhost; then
     local addr
     for addr in `inet_list`; do
-      name=$(sed -n "/^[ \t]*$addr/ s,.*$addr[ \t]\+[-_0-9a-z]\+\.\([-_0-9a-z\.]\+\).*,\1,i p" $INET_hosts)
+      name=$(${SED-sed} -n "/^[ \t]*$addr/ s,.*$addr[ \t]\+[-_0-9a-z]\+\.\([-_0-9a-z\.]\+\).*,\1,i p" $INET_hosts)
       test "$name" && test "$name" != localhost && break
     done
   fi
@@ -447,9 +447,9 @@ inet_whois()
 
   local holder tech dns
 
-  holder=`echo "$text" | sed -n -e "$xholder" | sed -e '/^\s*$/d' -e 's/\r//g'`
-  tech=`echo "$text" | sed -n -e "$xtech" | sed -e '/^\s*$/d' -e 's/\r//g'`
-  dns=`echo "$text" | sed -n -e "$xdns" | sed -e '/^\s*$/d' -e 's/\r//g'`
+  holder=`echo "$text" | ${SED-sed} -n -e "$xholder" | ${SED-sed} -e '/^\s*$/d' -e 's/\r//g'`
+  tech=`echo "$text" | ${SED-sed} -n -e "$xtech" | ${SED-sed} -e '/^\s*$/d' -e 's/\r//g'`
+  dns=`echo "$text" | ${SED-sed} -n -e "$xdns" | ${SED-sed} -e '/^\s*$/d' -e 's/\r//g'`
 
   obj_set out holder "$holder"
   obj_set out tech "$tech"

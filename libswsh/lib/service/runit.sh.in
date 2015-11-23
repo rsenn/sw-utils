@@ -220,7 +220,7 @@ runit_getpid()
       *) set -- `runit_stat $*` ;;
   esac
 
-  echo "$*" | sed -n -e "/^[^:]\+: up (/ s/.*pid \([0-9]*\).*/\1/ p"
+  echo "$*" | ${SED-sed} -n -e "/^[^:]\+: up (/ s/.*pid \([0-9]*\).*/\1/ p"
 }
 
 #runit_getpid_boot()
@@ -252,7 +252,7 @@ runit_gettime()
 
   shift
 
-  time=$(array ${@-`runit_stat ${service}`} | sed -n '/^[0-9]\+$/ { N; p }')
+  time=$(array ${@-`runit_stat ${service}`} | ${SED-sed} -n '/^[0-9]\+$/ { N; p }')
 
   if test -n "$time"
   then
@@ -271,7 +271,7 @@ runit_getstatus()
   shift
 
   status=$(echo ${@-`runit_stat "$service"`} | \
-           sed 's|.*supervise not running|failure|;;
+           ${SED-sed} 's|.*supervise not running|failure|;;
                 s|.*file does not exist|disabled|;;
                 s|.*: ||;;
                 s| (.*||;;
@@ -589,7 +589,7 @@ runit_status()
   info=`runit_getinfo $1`
 
   # fancy colorful :)
-#  info=`echo ${info} | sed 's,^up,\\033[32;1mup\\033[0m,;;s,^down,\\033[31;1mdown\\033[0m,;;s,^disabled,\\033[33;disabled\\033[0m,'`
+#  info=`echo ${info} | ${SED-sed} 's,^up,\\033[32;1mup\\033[0m,;;s,^down,\\033[31;1mdown\\033[0m,;;s,^disabled,\\033[33;disabled\\033[0m,'`
 
   echo -e $1: ${info}
 }
