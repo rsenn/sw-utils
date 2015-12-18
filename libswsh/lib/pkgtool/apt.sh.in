@@ -24,15 +24,26 @@ test $lib_pkgtool_apt_sh || {
 # -------------------------------------------------------------------------
 apt_list()
 {
-	apt-cache dump | ${SED-sed} -n '/^Package:/ {
+ (CMD='apt-cache dump | sed -n "/^Package:/ {
 		s,^Package:\s*,,
 		N
-		/Version:/! { s,\n[^\n]*$,, }
+		/Version:/! { s,\n[^\n]*\$,, }
 		/Version:/ { s,\(:[^:]*\)\?\n\s*Version:\s*\(.*\),-\2\1, }
 		p
-  }'
+  }"'
 
-  #apt_search ".*"
+	while :; do
+		case "$1" in
+			-V | --noversion) VERSION="false"; shift ;;
+			*) break ;;
+		esac
+	done
+
+	[ "$VERSION" = false ] && CMD="$CMD | sed '
+	/:[^-.:]\+\$/  s,-[0-9]\+:\?[^-:]*-\?[^-:]*:\([^-.:]\+\)\$,:\1, 
+	/:[^-.:]\+\$/! s,-[0-9]\+:\?[^-:]*-\?[^-:]*\$,,'"
+
+	eval "$CMD")
 }
 
 # apt_search [-q] <search-tokens...>
@@ -44,7 +55,7 @@ apt_search()
  (filter="cat" IFS=" "
   case $1 in
     -q) 
-      filter="${SED-sed} s/\s.*//"
+      filter="sed s/\s.*//"
       shift 
     ;;
   esac
@@ -66,7 +77,7 @@ apt_match()
   esac
     for tok
     do
-      (apt_search ${arg+"$arg"} "$tok" | ${GREP-grep} "$tok")
+      (apt_search ${arg+"$arg"} "$tok" | grep "$tok")
     done
 
  #(for pkg; do apt_search $arg "$pkg"; done) | (IFS="|"; egrep "($*)")
@@ -158,7 +169,7 @@ apt_rdeps()
     pp='s/^[^ ]*: //; s/ /\n/g; p'
   fi
 
-  apt-cache rdepends "$@" | ${SED-sed} -n -e "/^[^ ]/ {
+  apt-cache rdepends "$@" | sed -n -e "/^[^ ]/ {
     :st
     N
     /\\nReverse Depends:[^\\n]*\$/ {
@@ -186,11 +197,11 @@ apt_deps()
     if info=`apt-cache show "$pkg" 2>/dev/null` &&
        test -n "$info"
     then
-      echo "$info" | ${SED-sed} -n "/^Depends:/ {
+      echo "$info" | sed -n "/^Depends:/ {
         s/^Depends:\s*//
         s/, /\n/g
         p
-      }" | ${SED-sed} "s/\s.*//"
+      }" | sed "s/\s.*//"
     else
       errormsg "Unable to locate package $pkg"
     fi

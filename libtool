@@ -12,7 +12,7 @@ reload_cmds="\$LD\$reload_flag -o \$output\$reload_objs"
 old_archive_cmds="\$AR \$AR_FLAGS \$oldlib\$oldobjs~\$RANLIB \$tool_oldlib"
 
 # A language specific compiler.
-CC="x86_64-redhat-linux-g++"
+CC="x86_64-unknown-linux-gnu-g++"
 
 # Is the compiler the GNU compiler?
 with_gcc=yes
@@ -27,7 +27,7 @@ pic_flag=" -fPIC -DPIC"
 wl="-Wl,"
 
 # Compiler flag to prevent dynamic linking.
-link_static_flag=""
+link_static_flag="-static"
 
 # Does compiler simultaneously support -c and -o options?
 compiler_c_o="yes"
@@ -39,10 +39,10 @@ build_libtool_need_lc=no
 allow_libtool_libs_with_static_runtimes=no
 
 # Compiler flag to allow reflexive dlopens.
-export_dynamic_flag_spec="\${wl}--export-dynamic"
+export_dynamic_flag_spec="\$wl--export-dynamic"
 
 # Compiler flag to generate shared objects directly from archives.
-whole_archive_flag_spec="\${wl}--whole-archive\$convenience \${wl}--no-whole-archive"
+whole_archive_flag_spec="\$wl--whole-archive\$convenience \$wl--no-whole-archive"
 
 # Whether the compiler copes with passing no objects directly.
 compiler_needs_object="no"
@@ -54,8 +54,8 @@ old_archive_from_new_cmds=""
 old_archive_from_expsyms_cmds=""
 
 # Commands used to build a shared archive.
-archive_cmds="\$CC \$pic_flag -shared -nostdlib \$predep_objects \$libobjs \$deplibs \$postdep_objects \$compiler_flags \${wl}-soname \$wl\$soname -o \$lib"
-archive_expsym_cmds="\$CC \$pic_flag -shared -nostdlib \$predep_objects \$libobjs \$deplibs \$postdep_objects \$compiler_flags \${wl}-soname \$wl\$soname \${wl}-retain-symbols-file \$wl\$export_symbols -o \$lib"
+archive_cmds="\$CC \$pic_flag -shared -nostdlib \$predep_objects \$libobjs \$deplibs \$postdep_objects \$compiler_flags \$wl-soname \$wl\$soname -o \$lib"
+archive_expsym_cmds="\$CC \$pic_flag -shared -nostdlib \$predep_objects \$libobjs \$deplibs \$postdep_objects \$compiler_flags \$wl-soname \$wl\$soname \$wl-retain-symbols-file \$wl\$export_symbols -o \$lib"
 
 # Commands used to build a loadable module if different from building
 # a shared archive.
@@ -73,18 +73,18 @@ no_undefined_flag=""
 
 # Flag to hardcode $libdir into a binary during linking.
 # This must work even if $libdir does not exist
-hardcode_libdir_flag_spec="\${wl}-rpath \${wl}\$libdir"
+hardcode_libdir_flag_spec="\$wl-rpath \$wl\$libdir"
 
 # Whether we need a single "-rpath" flag with a separated argument.
 hardcode_libdir_separator=""
 
-# Set to "yes" if using DIR/libNAME${shared_ext} during linking hardcodes
+# Set to "yes" if using DIR/libNAME$shared_ext during linking hardcodes
 # DIR into the resulting binary.
 hardcode_direct=no
 
-# Set to "yes" if using DIR/libNAME${shared_ext} during linking hardcodes
+# Set to "yes" if using DIR/libNAME$shared_ext during linking hardcodes
 # DIR into the resulting binary and the resulting library dependency is
-# "absolute",i.e impossible to change by setting ${shlibpath_var} if the
+# "absolute",i.e impossible to change by setting $shlibpath_var if the
 # library is relocated.
 hardcode_direct_absolute=no
 
@@ -133,17 +133,17 @@ file_list_spec=""
 hardcode_action=immediate
 
 # The directories searched by this compiler when creating a shared library.
-compiler_lib_search_dirs="/usr/lib/gcc/x86_64-redhat-linux/4.9.2 /usr/lib/gcc/x86_64-redhat-linux/4.9.2/../../../../lib64 /lib/../lib64 /usr/lib/../lib64 /usr/lib/gcc/x86_64-redhat-linux/4.9.2/../../.."
+compiler_lib_search_dirs="/usr/lib/gcc/x86_64-unknown-linux-gnu/5.2.0 /usr/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../../lib /lib/../lib /usr/lib/../lib /usr/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../.."
 
 # Dependencies to place before and after the objects being linked to
 # create a shared library.
-predep_objects="/usr/lib/gcc/x86_64-redhat-linux/4.9.2/../../../../lib64/crti.o /usr/lib/gcc/x86_64-redhat-linux/4.9.2/crtbeginS.o"
-postdep_objects="/usr/lib/gcc/x86_64-redhat-linux/4.9.2/crtendS.o /usr/lib/gcc/x86_64-redhat-linux/4.9.2/../../../../lib64/crtn.o"
+predep_objects="/usr/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../../lib/crti.o /usr/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/crtbeginS.o"
+postdep_objects="/usr/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/crtendS.o /usr/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../../lib/crtn.o"
 predeps=""
 postdeps="-lstdc++ -lm -lgcc_s -lc -lgcc_s"
 
 # The library search path used internally by the compiler when linking
 # a shared library.
-compiler_lib_search_path="-L/usr/lib/gcc/x86_64-redhat-linux/4.9.2 -L/usr/lib/gcc/x86_64-redhat-linux/4.9.2/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/usr/lib/gcc/x86_64-redhat-linux/4.9.2/../../.."
+compiler_lib_search_path="-L/usr/lib/gcc/x86_64-unknown-linux-gnu/5.2.0 -L/usr/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../../../lib -L/lib/../lib -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-unknown-linux-gnu/5.2.0/../../.."
 
 # ### END LIBTOOL TAG CONFIG: CXX
