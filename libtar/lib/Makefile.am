@@ -22,5 +22,5 @@ libtar_la_SOURCES = \
     util.c \
     wrapper.c
 
-libtar_la_LDFLAGS = -rpath $(libdir) -no-undefined -version-number 1:2:11
+libtar_la_LDFLAGS = -no-undefined -rpath $(libdir) -version-number 1:2:11
 libtar_la_LIBADD = ../listhash/liblisthash.la ../compat/libcompat.la $(ZLIB_LIBS)

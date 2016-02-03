@@ -341,9 +341,11 @@ lib/devel/toolchain/icl.sh
 lib/distrib/Makefile
 lib/distrib/centos.sh
 lib/distrib/cygwin.sh
+lib/distrib/darwin.sh
 lib/distrib/debian.sh
 lib/distrib/gentoo.sh
 lib/distrib/lsb.sh
+lib/distrib/macosx.sh
 lib/distrib/mandrake.sh
 lib/distrib/mingw.sh
 lib/distrib/msys.sh
