@@ -108,7 +108,7 @@ rubyforge_url()
 
     if test -n "$rurl"; then
       rurl=`http_head "${rurl%%/*}" "/${rurl#*/}" |
-            sed -n -e 's,\r,,g' -e '/^Location:/ s,Location:\s*,,p'`
+            ${SED-sed} -n -e 's,\r,,g' -e '/^Location:/ s,Location:\s*,,p'`
       pushv urls "$rurl"
       echo "$rurl"
     fi
@@ -215,7 +215,7 @@ rubyforge_categories()
   
   rubyforge_html "$project" | 
   xml_getvalue 'tr bgcolor="#[0-9A-F]\+"><td valign="top" nowrap><small' |
-  sed -n -e "/^<b>\[/p" |
+  ${SED-sed} -n -e "/^<b>\[/p" |
   while read category
   do
     case $category in
@@ -240,7 +240,7 @@ rubyforge_info()
 {
  (xml=`rubyforge_xml "$1"`
   desc_short=`rubyforge_description "$xml" "short"`
-  desc_full=`rubyforge_description "$xml" "full" | sed -e "s,^\s*\$,.," -e "s,^, ,"`
+  desc_full=`rubyforge_description "$xml" "full" | ${SED-sed} -e "s,^\s*\$,.," -e "s,^, ,"`
   package=`rubyforge_url "$xml" "tgz" "bz2" "zip"`
 
   echo "Project: $1

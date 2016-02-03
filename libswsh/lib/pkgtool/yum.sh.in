@@ -1,0 +1,149 @@
+#!/bin/sh
+#
+# pkgtool/yum.sh: yum package tool abstraction
+#
+# $Id: yum.sh.in 936 2009-03-28 07:48:41Z enki $
+# -------------------------------------------------------------------------
+test $lib_pkgtool_yum_sh || {
+
+# Set any directory variable needed and not yet set
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# Load dependency modules
+# -------------------------------------------------------------------------
+. $shlibdir/util.sh
+. $shlibdir/std/array.sh
+
+YUM_cmd="yum"
+
+# yum_list
+#
+# List all known packages...
+# -------------------------------------------------------------------------
+yum_list()
+{
+  (while :; do case "$1" in
+		-V | --no-version*) NOVER=true; shift ;;
+	  *) break ;;
+  esac; done
+  $YUM_cmd list "${@:-all}" 2>/dev/null | (IFS=" $tabstop"
+  while read -r NAME VERSION INFO; do
+
+		[ -z "$VERSION" -a -z "$INFO" ] && read -r VERSION INFO
+    ARCH=${NAME##*.}
+    NAME=${NAME%.*}
+    #var_dump NAME VERSION ARCH 1>&2
+    [ "$NAME" = "$ARCH" ] && continue
+    [ "$NAME" = "Loaded" -a "$VERSION" = "plugins:" -a "$ARCH" = "Loaded" ] && continue
+		[ "$NOVER" = true ] &&
+      printf "%s.%s\n" "$NAME" "$ARCH" ||
+      printf "%s-%s.%s\n" "$NAME" "$VERSION" "$ARCH"
+  done) )
+}
+
+# yum_search [-q] <search-tokens...>
+#
+# Search for a package...
+# -------------------------------------------------------------------------
+yum_search()
+{
+ (filter="1d ;; 2d" IFS=" "
+  case $1 in
+    -q) 
+      filter="${filter:+$filter ;; }s/\s\+:\s\+.*//"
+      shift 
+    ;;
+  esac
+	filter="$filter ;; /^[^ ].* : / {
+	  s|\s\+:\s\+| - |
+		:lp
+		N
+		/\\n[ \\t][^\\n]*\$/ b lp
+		s|\\n[\\.\\t ]\\+:\\s*| |g
+		P
+		D
+	}
+	/^===============================/d
+	\\|^\\s*\$|d
+	\$ d"
+	[ -z "$*" ] && set -- all
+	$YUM_cmd search "$@" | sed "$filter")
+}
+
+# yum_match <search-token>
+#
+# Search for a package by name.
+# -------------------------------------------------------------------------
+yum_match()
+{
+  :
+}
+
+# yum_install <package-masks...>
+# -------------------------------------------------------------------------
+yum_install()
+(
+  :
+)
+
+# yum_info <package-names...>
+#
+# Search for a package by name.
+# -------------------------------------------------------------------------
+yum_info()
+{
+	:
+}
+
+# yum_dep_cache 
+#
+# Show dependency cache
+# -------------------------------------------------------------------------
+yum_dep_cache()
+{
+	:
+}
+
+# yum_rdeps <package-names...>
+#
+# Show reverse dependencies
+# -------------------------------------------------------------------------
+yum_rdeps()
+{
+	:
+}
+
+# yum_deps <package-name>
+#
+# Show dependencies
+# -------------------------------------------------------------------------
+yum_deps()
+{
+	$YUM_cmd deplist "$@" | sed -n "1d
+  s/^/$SPACE/
+  s/ [^ ]*$//
+  s/package: //p
+  s/provider: //p 
+" | uniq
+}
+
+# yum_deps_recursive <package-names...>
+#
+# Show dependencies
+# -------------------------------------------------------------------------
+yum_deps_recursive()
+{ 
+	yum_deps "$@" | (IFS="
+"; while read -r DEP; do
+     SPACE=${DEP%%[! ]}
+     echo "$DEP"
+     yum_deps "${DEP#$SPACE}"
+   done)
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_pkgtool_yum_sh=:;}

@@ -1,0 +1,60 @@
+#!/bin/sh
+#
+# distrib/macosx.sh: Mac OS X distribution detection and handling of distribution-specific things.
+#
+# $Id: macosx.sh.in 655 2008-09-12 00:21:46Z enki $
+# ------------------------------------------------------------------------- 
+test $lib_distrib_macosx_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/distrib/darwin.sh
+
+# is_macosx [macosx-release-file]
+#
+# Checks whether the underlying distribution is an Mac OS X. 
+# ---------------------------------------------------------------------------
+is_macosx()
+{
+  is_darwin
+}
+
+# macosx_relfile [macosx-release-file]
+#
+# Print the path to the Mac OS X  release file.
+# ---------------------------------------------------------------------------
+macosx_relfile() 
+{
+  echo 
+}
+
+# macosx_release [macosx-release-file]
+#
+# Get Mac OS X release information 
+# ---------------------------------------------------------------------------
+macosx_release() 
+{
+  darwin_release "$@"
+}
+
+# macosx_pkgmgr
+#
+# The kind of package manager used by Mac OS X distributions.
+# ---------------------------------------------------------------------------
+macosx_pkgmgr()
+{
+  echo 
+}
+
+# macosx_mirrors
+# ---------------------------------------------------------------------------
+macosx_mirrors()
+{
+  echo
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_distrib_macosx_sh=:;}

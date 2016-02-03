@@ -23,7 +23,7 @@
 # -------------------------------------------------------------------------
 if_list()
 {
-  ifconfig 2>&1 | sed -n "s/^\(${1-[^ ]\+}${1+[^ ]*}\) \+.*/\1/p"
+  ifconfig 2>&1 | ${SED-sed} -n "s/^\(${1-[^ ]\+}${1+[^ ]*}\) \+.*/\1/p"
 }
 
 # if_get_addr <iface> [addr|mask|bcast...]
@@ -40,10 +40,16 @@ if_get_addr()
   esac
   set --
   for WHAT in $WHAT; do
-    set -- "$@" `
+    A=`
       ifconfig "$DEV" | 
-      sed -n -e "s/.*${WHAT}:\([.0-9]\+\).*/\1/ip"
+      ${SED-sed} -n -e "s/.*${WHAT}[: ]\([.0-9]\+\).*/\1/ip"
     `
+    test -z "$A" -a "$WHAT" = addr && A=`
+      ifconfig "$DEV" | 
+      ${SED-sed} -n -e "s/.*inet[: ]\([.0-9]\+\).*/\1/ip"
+    `
+    test -n "$A" &&
+    set -- "$@" "$A"
   done
   echo "$*")
 }
@@ -75,7 +81,7 @@ if_set_addr()
 # -------------------------------------------------------------------------
 if_get_routes()
 {
-  ip route list dev "$1" | sed \
+  ip route list dev "$1" | ${SED-sed} \
     -e "s,\s*proto\s*.*,," \
     -e "s,\s*metric\s*.*,," \
     -e "s, via , ," | 

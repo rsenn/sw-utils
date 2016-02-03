@@ -28,7 +28,7 @@ test -n "$lib_shdoc_sh" || {
 shdoc_titles()
 {
   local IFS=" $nl"
-  sed -n "/^#!/ {
+  ${SED-sed} -n "/^#!/ {
     n
     n
     :lp
@@ -70,7 +70,7 @@ shdoc_lookup()
   local fn=$1
 
   shift
-  sed -n "/^#/ {
+  ${SED-sed} -n "/^#/ {
             :lp
             N
 

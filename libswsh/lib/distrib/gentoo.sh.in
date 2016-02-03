@@ -85,7 +85,7 @@ gentoo_pkgmgr()
 gentoo_distfiles()
 {
   www_links "http://distfiles.gentoo.org/distfiles/" |
-  command grep '/distfiles/[^.]'
+  command ${GREP-grep} '/distfiles/[^.]'
 }
 
 # --- eof ---------------------------------------------------------------------

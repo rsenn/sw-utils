@@ -60,7 +60,7 @@ googlecode_description()
   while [ "$#" -gt 0 ]; do
     case $1 in
       short)
-        echo "$html" | xml_getvalue "a href=\"/p/$project/\"[^>]*" | sed "/^$project\$/d"
+        echo "$html" | xml_getvalue "a href=\"/p/$project/\"[^>]*" | ${SED-sed} "/^$project\$/d"
       ;;
       full)
         echo "$html" | xml_getvalue "div id=wikicontent[^>]*" | html_width=75 html_text
@@ -71,7 +71,7 @@ googlecode_description()
 
 #  return 0
 #  
-  local pipe='sed -n -e "$expr"'
+  local pipe='${SED-sed} -n -e "$expr"'
 
   if [ -n "$1" -a "$1" != - ]; then
     pipe="googlecode_dump \"\$@\" | $pipe"

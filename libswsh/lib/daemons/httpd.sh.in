@@ -44,7 +44,7 @@ httpd_conf_read()
 # -------------------------------------------------------------------------
 httpd_conf_includes()
 {
-  sed -n -e "/^[ \t]*include[ \t]\+/ {
+  ${SED-sed} -n -e "/^[ \t]*include[ \t]\+/ {
       s,^[ \t]*include[ \t]\+,, ; \,^/,! s,^,$prefix/, ; p
     }" "$@"
 }
@@ -69,7 +69,7 @@ httpd_conf_files()
 # -------------------------------------------------------------------------
 httpd_module_list()
 {
-  httpd_conf_read ${2+"$2"} | sed -n -e \
+  httpd_conf_read ${2+"$2"} | ${SED-sed} -n -e \
     "/\#*[ \t]*${1-LoadModule}[a-z]*[ \t]\+.*\.s\?[aco]/I {
       s,^\(\#\?\).*dModule[ \t]\+\(.*\.s\?[aco]\)$,\2 \1,
       p
@@ -82,7 +82,7 @@ httpd_module_list()
 # -------------------------------------------------------------------------
 httpd_module_isloaded()
 {
-  httpd_conf_read ${2+"$2"} | grep -q "LoadModule[ \t]\+${1+.*$1.*}$"
+  httpd_conf_read ${2+"$2"} | ${GREP-grep} -q "LoadModule[ \t]\+${1+.*$1.*}$"
 }
 
 # httpd_module_file <module> [config...]
@@ -95,9 +95,9 @@ httpd_module_file()
 
   shift
 
-  grep -H "LoadModule[ \t]\+${module+.*$module.*}$" `httpd_conf_files "$@"` | \
-    grep -v ':[ \t]*#' | \
-    sed 's,:.*,,' | sort -u | tail -n1
+  ${GREP-grep} -H "LoadModule[ \t]\+${module+.*$module.*}$" `httpd_conf_files "$@"` | \
+    ${GREP-grep} -v ':[ \t]*#' | \
+    ${SED-sed} 's,:.*,,' | sort -u | tail -n1
 }
 
 # httpd_module_dst <DSO>
@@ -135,8 +135,8 @@ httpd_module_dso()
 httpd_module_ctor()
 {
   $bindir/objdump -T ${1+"$1"} | \
-    grep 'g.*DO.*\.data.*00000064.*Base' | \
-    sed 's,^.*Base[ \t]\+,,'
+    ${GREP-grep} 'g.*DO.*\.data.*00000064.*Base' | \
+    ${SED-sed} 's,^.*Base[ \t]\+,,'
 }
 
 # httpd_module_add <DSO> [constructor] [config...]
@@ -167,9 +167,9 @@ httpd_module_add()
 httpd_vhost_list()
 {
   httpd_conf_read ${1+"$1"} | \
-    grep -v '^[ \t]*#' | \
-    grep '<VirtualHost[ \t]\+' | \
-    sed 's,<VirtualHost[ \t]\+\(.*\)>,\1,'
+    ${GREP-grep} -v '^[ \t]*#' | \
+    ${GREP-grep} '<VirtualHost[ \t]\+' | \
+    ${SED-sed} 's,<VirtualHost[ \t]\+\(.*\)>,\1,'
 }
 
 # httpd_listen_list [config]
@@ -179,9 +179,9 @@ httpd_vhost_list()
 httpd_listen_list()
 {
   httpd_conf_read ${1+"$1"} | \
-    grep -v '^[ \t]*#' | \
-    grep 'Listen[ \t]\+' | \
-    sed 's,Listen[ \t]\+\(.*\),\1,'
+    ${GREP-grep} -v '^[ \t]*#' | \
+    ${GREP-grep} 'Listen[ \t]\+' | \
+    ${SED-sed} 's,Listen[ \t]\+\(.*\),\1,'
 }
 
 # httpd_listener_exists <vhost> [config]
@@ -190,7 +190,7 @@ httpd_listen_list()
 # -------------------------------------------------------------------------
 httpd_listen_exists()
 {
-  httpd_listen_list $2 | grep -q "^$1\$"
+  httpd_listen_list $2 | ${GREP-grep} -q "^$1\$"
 }
 
 # httpd_listen_add <config> <listener>
@@ -212,9 +212,9 @@ httpd_listen_add()
 httpd_servername_list()
 {
   httpd_conf_read ${1+"$1"} | \
-    grep -v '^[ \t]*#' | \
-    grep 'ServerName[ \t]\+' | \
-    sed 's,ServerName[ \t]\+\(.*\),\1,'
+    ${GREP-grep} -v '^[ \t]*#' | \
+    ${GREP-grep} 'ServerName[ \t]\+' | \
+    ${SED-sed} 's,ServerName[ \t]\+\(.*\),\1,'
 }
 
 # httpd_listener_exists <vhost> [config]
@@ -223,7 +223,7 @@ httpd_servername_list()
 # -------------------------------------------------------------------------
 httpd_servername_exists()
 {
-  httpd_servername_list "$2" | grep -q "^$1\$"
+  httpd_servername_list "$2" | ${GREP-grep} -q "^$1\$"
 }
 
 # httpd_vhost_exists <vhost> [config]
@@ -232,7 +232,7 @@ httpd_servername_exists()
 # -------------------------------------------------------------------------
 httpd_vhost_exists()
 {
-  httpd_vhost_list "$2" | grep -q "^$1\$"
+  httpd_vhost_list "$2" | ${GREP-grep} -q "^$1\$"
 }
 
 # httpd_vhost_file <vhost> [config...]
@@ -243,9 +243,9 @@ httpd_vhost_file()
 {
   local vhost=$1
   shift
-  grep -H "<VirtualHost[ \t]\+$1>" `httpd_conf_files "$@"` | \
-    grep -v ':[ \t]*#' | \
-    sed 's,:.*,,'
+  ${GREP-grep} -H "<VirtualHost[ \t]\+$1>" `httpd_conf_files "$@"` | \
+    ${GREP-grep} -v ':[ \t]*#' | \
+    ${SED-sed} 's,:.*,,'
 }
 
 # httpd_vhost_add <config> <vhost> <contents>
@@ -417,7 +417,7 @@ httpd_section_exists()
 {
   local pattern=`httpd_section_pattern "$1"`
   shift
-  grep -q "^$pattern\$" `httpd_conf_files "$@"`
+  ${GREP-grep} -q "^$pattern\$" `httpd_conf_files "$@"`
 }
 
 # httpd_section_list [config]
@@ -425,13 +425,13 @@ httpd_section_exists()
 httpd_section_list()
 {
   local pattern=$(httpd_section_pattern '\(.*\)')
-  sed -n '\°^'"$pattern"'$° { s°^'"$pattern"'$°\1°; s°[ \t]\+° °; \°^/°! p; }' \
+  ${SED-sed} -n '\°^'"$pattern"'$° { s°^'"$pattern"'$°\1°; s°[ \t]\+° °; \°^/°! p; }' \
     `httpd_conf_files "$@"`
 }
 
-# httpd_section_sed <section> <sed-script> <sed-script if not found> [config]
+# httpd_section_sed <section> <${SED-sed}-script> <${SED-sed}-script if not found> [config]
 #
-# perform sed commands while the whole section is in pattern space
+# perform ${SED-sed} commands while the whole section is in pattern space
 # -------------------------------------------------------------------------
 httpd_section_sed()
 {
@@ -440,7 +440,7 @@ httpd_section_sed()
   local script=$2
   local alt=$3
   shift 3
-  sed ${1-'-n'} ${1+'-i'} -e \
+  ${SED-sed} ${1-'-n'} ${1+'-i'} -e \
     ':st; \°^[ \t\n]*$° { N; b st }
      \°^[ \t\n]*'"$start"'$° {
       :lp; N; \°\n'"$end"'$°! b lp
@@ -452,9 +452,9 @@ httpd_section_sed()
     }' `httpd_conf_files "$@"`
 }
 
-# httpd_section_editline <section> <sed-script> [config]
+# httpd_section_editline <section> <${SED-sed}-script> [config]
 #
-# perform sed commands while a line of the section is in pattern space
+# perform ${SED-sed} commands while a line of the section is in pattern space
 # -------------------------------------------------------------------------
 httpd_section_editline()
 {
@@ -462,7 +462,7 @@ httpd_section_editline()
   local end=$(httpd_section_pattern "/`httpd_section_key "$1"`")
   local script=$2
   shift 2
-  sed ${1-'-n'} ${1+'-i'} -e \
+  ${SED-sed} ${1-'-n'} ${1+'-i'} -e \
     '\°^[ \t\n]*'"$start"'$° {
       :lp; n
       \°^'"$end"'$°! {
@@ -480,9 +480,9 @@ httpd_section_keys()
   httpd_section_editline "$section" "s,^[ \t]*\([a-zA-Z0-9]\+\).*$,\1," ${2:+"$2"}
 }
 
-# httpd_section_editkey <section> <key> <sed-script> <sed-script if not found> [config]
+# httpd_section_editkey <section> <key> <${SED-sed}-script> <${SED-sed}-script if not found> [config]
 #
-# perform sed commands while a key of the section is in pattern space
+# perform ${SED-sed} commands while a key of the section is in pattern space
 # -------------------------------------------------------------------------
 httpd_section_editkey()
 {
@@ -492,7 +492,7 @@ httpd_section_editkey()
   local script=$3
   local alt=$4
   shift 4
-  sed ${1-'-n'} ${1+'-i'} -e \
+  ${SED-sed} ${1-'-n'} ${1+'-i'} -e \
     ':st; \°^'"$start"'$° {
       :lp; n
       \°^'"$end"'$°! {

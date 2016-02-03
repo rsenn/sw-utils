@@ -19,7 +19,7 @@ svn_status()
 
   shift
 
-  svn status "$@" | sed -n \
+  svn status "$@" | ${SED-sed} -n \
     -e "s/^[$flags]......//p"
 }
 

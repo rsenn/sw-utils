@@ -453,6 +453,7 @@ setup_install()
   setup_spawn -c "test ! -d '${bindir=$prefix/bin}'" $INSTALL_DIR "$bindir"
 
   setup_spawn $INSTALL_EXEC "src/sw" "$bindir"
+  setup_spawn $LN -sf "$shlibdir/require.sh" "$bindir"
 
   for script in src/*/[!A-Z]*.in; do
     setup_spawn $INSTALL_EXEC "${script%.in}" "$bindir"

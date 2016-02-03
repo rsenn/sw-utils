@@ -1,0 +1,101 @@
+#!/bin/sh
+#
+# pkgtool/zypper.sh: zypper package tool abstraction
+#
+# $Id: zypper.sh.in 936 2009-03-28 07:48:41Z enki $
+# -------------------------------------------------------------------------
+test $lib_pkgtool_zypper_sh || {
+
+# Set any directory variable needed and not yet set
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# Load dependency modules
+# -------------------------------------------------------------------------
+. $shlibdir/util.sh
+. $shlibdir/std/array.sh
+
+# zypper_list
+#
+# List all known packages...
+# -------------------------------------------------------------------------
+zypper_list()
+{
+   zypper packages |(IFS="|"; while read -r P REPO NAME VERSION ARCH; do  (IFS=" ";  set -- $NAME $VERSION $ARCH; printf "%s-%s.%s\n" "$1" "$2" "$3"); done)
+}
+
+# zypper_search [-q] <search-tokens...>
+#
+# Search for a package...
+# -------------------------------------------------------------------------
+zypper_search()
+{
+	:
+}
+
+# zypper_match <search-token>
+#
+# Search for a package by name.
+# -------------------------------------------------------------------------
+zypper_match()
+{
+  :
+}
+
+# zypper_install <package-masks...>
+# -------------------------------------------------------------------------
+zypper_install()
+(
+  :
+)
+
+# zypper_info <package-names...>
+#
+# Search for a package by name.
+# -------------------------------------------------------------------------
+zypper_info()
+{
+	:
+}
+
+# zypper_dep_cache 
+#
+# Show dependency cache
+# -------------------------------------------------------------------------
+zypper_dep_cache()
+{
+	:
+}
+
+# zypper_rdeps <package-names...>
+#
+# Show reverse dependencies
+# -------------------------------------------------------------------------
+zypper_rdeps()
+{
+	:
+}
+
+# zypper_deps <package-name>
+#
+# Show dependencies
+# -------------------------------------------------------------------------
+zypper_deps()
+{
+	:
+}
+
+# zypper_deps_recursive <package-names...>
+#
+# Show dependencies
+# -------------------------------------------------------------------------
+zypper_deps_recursive()
+{ 
+	:
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_pkgtool_zypper_sh=:;}

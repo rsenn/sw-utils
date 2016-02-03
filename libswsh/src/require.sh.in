@@ -84,10 +84,10 @@ if type complete >/dev/null; then
 
       if [ -n "$cur" -a "$cur" = "${cur%/*}" ]; then
         libs=$libs'
-  '`cd "$shlibdir" && find */ -name "*.sh" | sed 's,.*/,,'`
+  '`cd "$shlibdir" && find */ -name "*.sh" | ${SED-sed} 's,.*/,,'`
       fi
 
-      COMPREPLY=$(compgen -W "`echo "$libs" | sed 's,\.sh$,,'`" -- $cur)
+      COMPREPLY=$(compgen -W "`echo "$libs" | ${SED-sed} 's,\.sh$,,'`" -- $cur)
 
       if [ ${#COMPREPLY[@]} = 1 ]; then
         case ${COMPREPLY[0]} in
@@ -97,7 +97,7 @@ if type complete >/dev/null; then
         if [ ! -f "$shlibdir/${COMPREPLY[0]}.sh" ]; then
           COMPREPLY=$(cd "$shlibdir" && 
             find */ -name "${COMPREPLY[0]}.sh" | 
-            sed 's,\.sh$,,'
+            ${SED-sed} 's,\.sh$,,'
           )
         fi
       fi

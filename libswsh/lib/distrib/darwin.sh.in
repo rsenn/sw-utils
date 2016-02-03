@@ -1,0 +1,45 @@
+#!/bin/sh
+#
+# distrib/darwin.sh: Darwin detection
+#
+# $Id: darwin.sh.in 655 2008-09-12 00:21:46Z enki $
+# ------------------------------------------------------------------------- 
+test $lib_distrib_darwin_sh || {
+
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${sysconfdir:="@sysconfdir@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/util.sh
+. $shlibdir/std/str.sh
+
+# is_darwin [darwin-release-file]
+#
+# Is it an LSB conform distribution?
+# ---------------------------------------------------------------------------
+is_darwin()
+{
+  case `uname -o`:`gcc -dumpmachine` in
+    Darwin*:* | *:*-darwin*) return 0 ;;
+    esac
+    return 1
+}
+
+# darwin_relfile [darwin-release-file]
+# ---------------------------------------------------------------------------
+darwin_relfile()
+{
+  echo k
+}
+
+# darwin_release [darwin-release-file]
+# ---------------------------------------------------------------------------
+darwin_release()
+{
+  echo
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_distrib_darwin_sh=:;}

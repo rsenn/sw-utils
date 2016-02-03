@@ -19,7 +19,7 @@
 
 # Static variables
 # ---------------------------------------------------------------------------
-DISTRIB_known="cygwin ubuntu debian gentoo centos mandrake redhat lsb slackware msys mingw"
+DISTRIB_known="cygwin ubuntu debian gentoo centos mandrake redhat slackware msys mingw opensuse macosx darwin lsb"
 
 # distrib_list
 #
@@ -37,7 +37,7 @@ distrib_list()
 
 distrib_flavour()
 {
-				sed '\|^\s*#|d; \|^\s*$|d; s,^\s*,,' </etc/apt/sources.list | awk '{ print $3 }'
+				${SED-sed} '\|^\s*#|d; \|^\s*$|d; s,^\s*,,' </etc/apt/sources.list | awk '{ print $3 }'
 }
 
 # distrib_relfile
@@ -65,7 +65,7 @@ distrib_detect()
  (distrib=
   IFS=" ""
 "
-  for name in `distrib_list`
+  for name in $DISTRIB_known #`distrib_list`
   do
     . $shlibdir/distrib/$name.sh
 
@@ -116,11 +116,13 @@ distrib_canonical()
 
   id=`distrib_get id`
 
-	if [ "$(type -t "${id}_canonical")" = function ]; then
-					${id}_canonical "$@"
+  i=$(str_tolower "$id")
+
+	if [ "$(type -t "${i}_canonical")" = function ]; then
+					${i}_canonical "$@"
 	else
 
-					release=`distrib_get release | sed 's,[^.0-9A-Za-z],-,g'`
+					release=`distrib_get release | ${SED-sed} 's,[^.0-9A-Za-z],-,g'`
 
 					echo `str_tolower "${id%%[!A-Za-z0-9_]*}"`"${release:+-$release}"
 	fi

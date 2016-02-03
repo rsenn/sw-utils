@@ -297,7 +297,6 @@ lib/buildsys/plmake.sh
 lib/buildsys/pysetup.sh
 lib/buildsys/autotools/Makefile
 lib/class/Makefile
-lib/class/cache.sh
 lib/class/tempfile.sh
 lib/code/Makefile
 lib/code/bin.sh
@@ -341,12 +340,15 @@ lib/devel/toolchain/icl.sh
 lib/distrib/Makefile
 lib/distrib/centos.sh
 lib/distrib/cygwin.sh
+lib/distrib/darwin.sh
 lib/distrib/debian.sh
 lib/distrib/gentoo.sh
 lib/distrib/lsb.sh
+lib/distrib/macosx.sh
 lib/distrib/mandrake.sh
 lib/distrib/mingw.sh
 lib/distrib/msys.sh
+lib/distrib/opensuse.sh
 lib/distrib/redhat.sh
 lib/distrib/slackware.sh
 lib/distrib/ubuntu.sh
@@ -376,6 +378,8 @@ lib/pkgmgr/dpkg.sh
 lib/pkgmgr/rpm.sh
 lib/pkgtool/Makefile
 lib/pkgtool/apt.sh
+lib/pkgtool/yum.sh
+lib/pkgtool/zypper.sh
 lib/ports/Makefile
 lib/ports/deb.sh
 lib/service/Makefile

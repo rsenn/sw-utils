@@ -261,7 +261,7 @@ service_getpid()
       *) set -- `service_stat $*` ;;
   esac
 
-  echo "$*" | sed -n -e "/^[^:]\+: up (/ s/.*pid \([0-9]*\).*/\1/ p"
+  echo "$*" | ${SED-sed} -n -e "/^[^:]\+: up (/ s/.*pid \([0-9]*\).*/\1/ p"
 }
 
 #service_getpid_boot()
@@ -293,7 +293,7 @@ service_gettime()
 
   shift
 
-  time=$(array ${@-`service_stat ${service}`} | sed -n '/^[0-9]\+$/ { N; p }')
+  time=$(array ${@-`service_stat ${service}`} | ${SED-sed} -n '/^[0-9]\+$/ { N; p }')
 
   if test -n "$time"
   then
@@ -312,7 +312,7 @@ service_getstatus()
   shift
 
   status=$(echo ${@-`service_stat "$service"`} | \
-           sed 's|.*supervise not running|failure|;;
+           ${SED-sed} 's|.*supervise not running|failure|;;
                 s|.*file does not exist|disabled|;;
                 s|.*: ||;;
                 s| (.*||;;
@@ -630,7 +630,7 @@ service_status()
   info=`service_getinfo $1`
 
   # fancy colorful :)
-#  info=`echo ${info} | sed 's,^up,\\033[32;1mup\\033[0m,;;s,^down,\\033[31;1mdown\\033[0m,;;s,^disabled,\\033[33;disabled\\033[0m,'`
+#  info=`echo ${info} | ${SED-sed} 's,^up,\\033[32;1mup\\033[0m,;;s,^down,\\033[31;1mdown\\033[0m,;;s,^disabled,\\033[33;disabled\\033[0m,'`
 
   echo -e $1: ${info}
 }
@@ -790,7 +790,7 @@ service_install()
     cp "$rcfile" "$rcfile.backup"
   fi
 
-  if ! grep -q "^$entry_search$" $rcfile
+  if ! ${GREP-grep} -q "^$entry_search$" $rcfile
   then
     case $target in
       *freebsd*)
@@ -800,7 +800,7 @@ service_install()
         text_append "$comment_add$newline$entry_add" $rcfile
         ;;
       *)
-        if ! grep -q "^$end_of_search$" $rcfile; then
+        if ! ${GREP-grep} -q "^$end_of_search$" $rcfile; then
           text_append "$comment_add$newline$entry_add" $rcfile
         else
           text_insert_before "$comment_add$newline$entry_add" "^$end_of_search$" ${rcfile}
@@ -823,7 +823,7 @@ service_uninstall()
 
   service_rcfile
 
-  if grep -q "^${entry_search}$" "$rcfile"
+  if ${GREP-grep} -q "^${entry_search}$" "$rcfile"
   then
     text_remove "^${entry_search}$" "$rcfile"
     text_remove "^${comment_search}$" "$rcfile"
@@ -839,7 +839,7 @@ service_uninstall()
 
 service_mustbeinstalled()
 {
-  if ! grep -q "^${entry_search}$" "$rcfile"
+  if ! ${GREP-grep} -q "^${entry_search}$" "$rcfile"
   then
     msg "svscanboot not in ${rcfile}, use nexsvc --install"
     return 1
@@ -850,7 +850,7 @@ service_mustbeinstalled()
 
 service_isinstalled()
 {
-  grep -q "^${entry_search}$" "$rcfile"
+  ${GREP-grep} -q "^${entry_search}$" "$rcfile"
 }
 
 # rehash init [1]

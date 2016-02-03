@@ -15,7 +15,7 @@ reg_query()
  (KEY=`_reg_key_name "$1"`
 
   reg query "$KEY" 2>&1 |
-  sed \
+  ${SED-sed} \
     -e "/^!/ { d; n; }" \
     -e "/^\\s*\$/ { d; n; }"
   )
@@ -39,9 +39,9 @@ reg_key_exists()
 reg_key_contains()
 {
  (KEY=`_reg_key_name "$1"`
-  PATTERN=`echo "$KEY" | sed -e 's,\\\\,\\\\\\\\,g'`
+  PATTERN=`echo "$KEY" | ${SED-sed} -e 's,\\\\,\\\\\\\\,g'`
 
-  OUT=`reg query "$KEY" 2>/dev/null | sed -n "s/^$PATTERN\\\\\\\\//p"`
+  OUT=`reg query "$KEY" 2>/dev/null | ${SED-sed} -n "s/^$PATTERN\\\\\\\\//p"`
   
   [ -n "$OUT" ])
 }

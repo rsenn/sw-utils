@@ -159,7 +159,7 @@ srcdist_mime()
     if ! var_isset 'srcdist_mime'; then
       srcdist_mime=$(
         cd $srcdist_dir && 
-	find * -print0 | xargs -0 file -i | sed -e 's,:\s\+,:,'
+	find * -print0 | xargs -0 file -i | ${SED-sed} -e 's,:\s\+,:,'
       )
     fi
 
@@ -257,15 +257,15 @@ srcdist_dumptext()
   local text ln description lineno skip='false' heading='true'
 
   local a=`array_match 'srcdist_textfiles' '*AUTHOR*'`
-  array_for_each a 'echo "?:" && grep -n "" "?"'
+  array_for_each a 'echo "?:" && ${GREP-grep} -n "" "?"'
 
   { array_for_each srcdist_textfiles 'echo "?:" && case ? in
-      *.pc.in|*.pc|*.lsm) grep -n "" "?" ;;
-      *akefile|*/Makefile.am|*/Makefile.in) script_comments "?" | grep -n "" ;;
-      *) text_unwrap "?" | grep -n "" ;;
+      *.pc.in|*.pc|*.lsm) ${GREP-grep} -n "" "?" ;;
+      *akefile|*/Makefile.am|*/Makefile.in) script_comments "?" | ${GREP-grep} -n "" ;;
+      *) text_unwrap "?" | ${GREP-grep} -n "" ;;
     esac'
-    array_for_each srcdist_htmlfiles 'echo "?:" && html_text "?" | grep -n ""'
-  } | grep -iE "$expr" | tee ".text"
+    array_for_each srcdist_htmlfiles 'echo "?:" && html_text "?" | ${GREP-grep} -n ""'
+  } | ${GREP-grep} -iE "$expr" | tee ".text"
 }
 
 # SRCDIST_meta

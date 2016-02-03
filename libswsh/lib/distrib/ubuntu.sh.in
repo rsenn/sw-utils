@@ -57,7 +57,7 @@ ubuntu_pkgmgr()
 ubuntu_mirrors()
 {
   http_get "https://launchpad.net/ubuntu/+archivemirrors" | 
-  xml_get a href | sed -n '/:\/\/.*\/.*[Uu]buntu/p'
+  xml_get a href | ${SED-sed} -n '/:\/\/.*\/.*[Uu]buntu/p'
 }
 
 # --- eof ---------------------------------------------------------------------

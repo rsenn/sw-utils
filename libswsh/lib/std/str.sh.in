@@ -83,7 +83,7 @@ str_decamelize()
 {
   local str sep=${2-"_"}
   
-  str=$(echo "$1" | sed ":st
+  str=$(echo "$1" | ${SED-sed} ":st
     s/\([^${sep}]\)\([A-Z][a-z]\)/\1${sep}\2/g
     s/\([^${sep}]\)\([A-Z]\+\)\$/\1${sep}\2/g
     
@@ -126,7 +126,7 @@ str_random()
 # -------------------------------------------------------------------------
 str_to_list()
 {
-  echo "$@" | sed "s/./&\\n/g ;; s,\",\\\",g" | sed -n -e "/.\\+/ p"
+  echo "$@" | ${SED-sed} "s/./&\\n/g ;; s,\",\\\",g" | ${SED-sed} -n -e "/.\\+/ p"
 }
 
 # str_quote <str>
@@ -201,13 +201,13 @@ str_replace()
   echo ${1//$2/$3}
 }
 
-# str_sed <string> [sed-arguments]
+# str_sed <string> [${SED-sed}-arguments]
 # ---------------------------------------------------------------------------
 str_sed()
 {
   local S="$1"
   shift
-  echo "$S" | sed "$@"
+  echo "$S" | ${SED-sed} "$@"
 }
 
 # str_rate <string> [pattern...]
@@ -369,7 +369,7 @@ str_split()
   local _a__ _s__="$1"
   for _a__ in $_s__; do
     shift
-    eval "$1='`echo "$_a__" | sed "s,','\\\\'',g"`'"
+    eval "$1='`echo "$_a__" | ${SED-sed} "s,','\\\\'',g"`'"
   done
 }
 

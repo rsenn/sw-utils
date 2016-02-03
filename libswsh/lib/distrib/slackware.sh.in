@@ -77,7 +77,7 @@ slackware_pkgmgr()
 # ---------------------------------------------------------------------------
 slackware_mirrors()
 {
-  sed -n '\|://| { s,^#\s*,,; /slackware\(64\)\?-[.0-9]\+/ p }' \
+  ${SED-sed} -n '\|://| { s,^#\s*,,; /slackware\(64\)\?-[.0-9]\+/ p }' \
     </etc/slackpkg/mirrors
 }
 
@@ -85,7 +85,7 @@ slackware_mirrors()
 # ---------------------------------------------------------------------------
 slackware_version()
 {
-  slackware_mirrors | sed -n 's,.*-\([0-9][.0-9]*\)/\?$,\1,p' | head -n1
+  slackware_mirrors | ${SED-sed} -n 's,.*-\([0-9][.0-9]*\)/\?$,\1,p' | head -n1
 }
 
 # slackware_host
