@@ -21,7 +21,7 @@ rpm_files()
   local pkg arg cmd='rpm -q -l' flt= IFS="
 "
   case $1 in
-    -p) flt='| sed "s|^|$pkg: |"' && shift ;;
+    -p) flt='| ${SED-sed} "s|^|$pkg: |"' && shift ;;
   esac
 
   for pkg 
@@ -65,7 +65,7 @@ rpm_installed()
       *.rpm) rpm=`rpm -q -p "$rpm" 2>/dev/null` ;;
     esac
 
-    st=`rpm -q "$rpm" | sed -e '/ is not installed$/d'`
+    st=`rpm -q "$rpm" | ${SED-sed} -e '/ is not installed$/d'`
   
     test -z "$st" && return 1
   done
@@ -82,7 +82,7 @@ rpm_info()
   esac        
 
   rpm -q --info "$@" | \
-    sed \
+    ${SED-sed} \
       -e "/^$capn\( $capn\)\? *:/ {
             s/^\($capn\)\( $capn\)\? *\?:/\1\2:/
             s/ \+ \($capn\)\( $capn\)\?:/\n\1\2:/ 

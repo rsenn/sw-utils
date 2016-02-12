@@ -43,7 +43,7 @@ named_conf_read()
 # -------------------------------------------------------------------------
 named_conf_includes()
 {
-  sed -n -e "/^[ \t]*include[ \t]\+/ {
+  ${SED-sed} -n -e "/^[ \t]*include[ \t]\+/ {
       s,^[ \t]*include[ \t]\+,, ; \,^/,! s,^,$prefix/, ; p
     }" "$@"
 }
@@ -68,7 +68,7 @@ named_conf_files()
 # -------------------------------------------------------------------------
 named_module_list()
 {
-  named_conf_read ${2+"$2"} | sed -n -e \
+  named_conf_read ${2+"$2"} | ${SED-sed} -n -e \
     "/\#*[ \t]*${1-LoadModule}[a-z]*[ \t]\+.*\.s\?[aco]/I {
       s,^\(\#\?\).*dModule[ \t]\+\(.*\.s\?[aco]\)$,\2 \1,
       p
@@ -81,7 +81,7 @@ named_module_list()
 # -------------------------------------------------------------------------
 named_module_isloaded()
 {
-  named_conf_read ${2+"$2"} | grep -q "LoadModule[ \t]\+${1+.*$1.*}$"
+  named_conf_read ${2+"$2"} | ${GREP-grep} -q "LoadModule[ \t]\+${1+.*$1.*}$"
 }
 
 # named_module_file <module> [config...]
@@ -94,9 +94,9 @@ named_module_file()
 
   shift
 
-  grep -H "LoadModule[ \t]\+${module+.*$module.*}$" `named_conf_files "$@"` | \
-    grep -v ':[ \t]*#' | \
-    sed 's,:.*,,' | sort -u | tail -n1
+  ${GREP-grep} -H "LoadModule[ \t]\+${module+.*$module.*}$" `named_conf_files "$@"` | \
+    ${GREP-grep} -v ':[ \t]*#' | \
+    ${SED-sed} 's,:.*,,' | sort -u | tail -n1
 }
 
 # named_module_dst <DSO>
@@ -134,8 +134,8 @@ named_module_dso()
 named_module_ctor()
 {
   $bindir/objdump -T ${1+"$1"} | \
-    grep 'g.*DO.*\.data.*00000064.*Base' | \
-    sed 's,^.*Base[ \t]\+,,'
+    ${GREP-grep} 'g.*DO.*\.data.*00000064.*Base' | \
+    ${SED-sed} 's,^.*Base[ \t]\+,,'
 }
 
 # named_module_add <DSO> [constructor] [config...]
@@ -166,9 +166,9 @@ named_module_add()
 named_vhost_list()
 {
   named_conf_read ${1+"$1"} | \
-    grep -v '^[ \t]*#' | \
-    grep '<VirtualHost[ \t]\+' | \
-    sed 's,<VirtualHost[ \t]\+\(.*\)>,\1,'
+    ${GREP-grep} -v '^[ \t]*#' | \
+    ${GREP-grep} '<VirtualHost[ \t]\+' | \
+    ${SED-sed} 's,<VirtualHost[ \t]\+\(.*\)>,\1,'
 }
 
 # named_listen_list [config]
@@ -178,9 +178,9 @@ named_vhost_list()
 named_listen_list()
 {
   named_conf_read ${1+"$1"} | \
-    grep -v '^[ \t]*#' | \
-    grep 'Listen[ \t]\+' | \
-    sed 's,Listen[ \t]\+\(.*\),\1,'
+    ${GREP-grep} -v '^[ \t]*#' | \
+    ${GREP-grep} 'Listen[ \t]\+' | \
+    ${SED-sed} 's,Listen[ \t]\+\(.*\),\1,'
 }
 
 # named_listener_exists <vhost> [config]
@@ -189,7 +189,7 @@ named_listen_list()
 # -------------------------------------------------------------------------
 named_listen_exists()
 {
-  named_listen_list $2 | grep -q "^$1\$"
+  named_listen_list $2 | ${GREP-grep} -q "^$1\$"
 }
 
 # named_listen_add <config> <listener>
@@ -211,9 +211,9 @@ named_listen_add()
 named_servername_list()
 {
   named_conf_read ${1+"$1"} | \
-    grep -v '^[ \t]*#' | \
-    grep 'ServerName[ \t]\+' | \
-    sed 's,ServerName[ \t]\+\(.*\),\1,'
+    ${GREP-grep} -v '^[ \t]*#' | \
+    ${GREP-grep} 'ServerName[ \t]\+' | \
+    ${SED-sed} 's,ServerName[ \t]\+\(.*\),\1,'
 }
 
 # named_listener_exists <vhost> [config]
@@ -222,7 +222,7 @@ named_servername_list()
 # -------------------------------------------------------------------------
 named_servername_exists()
 {
-  named_servername_list "$2" | grep -q "^$1\$"
+  named_servername_list "$2" | ${GREP-grep} -q "^$1\$"
 }
 
 # named_vhost_exists <vhost> [config]
@@ -231,7 +231,7 @@ named_servername_exists()
 # -------------------------------------------------------------------------
 named_vhost_exists()
 {
-  named_vhost_list "$2" | grep -q "^$1\$"
+  named_vhost_list "$2" | ${GREP-grep} -q "^$1\$"
 }
 
 # named_vhost_file <vhost> [config...]
@@ -242,9 +242,9 @@ named_vhost_file()
 {
   local vhost=$1
   shift
-  grep -H "<VirtualHost[ \t]\+$1>" `named_conf_files "$@"` | \
-    grep -v ':[ \t]*#' | \
-    sed 's,:.*,,'
+  ${GREP-grep} -H "<VirtualHost[ \t]\+$1>" `named_conf_files "$@"` | \
+    ${GREP-grep} -v ':[ \t]*#' | \
+    ${SED-sed} 's,:.*,,'
 }
 
 # named_vhost_add <config> <vhost> <contents>
@@ -416,7 +416,7 @@ named_section_exists()
 {
   local pattern=`named_section_pattern "$1"`
   shift
-  grep -q "^$pattern\$" `named_conf_files "$@"`
+  ${GREP-grep} -q "^$pattern\$" `named_conf_files "$@"`
 }
 
 # named_section_list [config]
@@ -424,13 +424,13 @@ named_section_exists()
 named_section_list()
 {
   local pattern=$(named_section_pattern '\(.*\)')
-  sed -n '\°^'"$pattern"'$° { s°^'"$pattern"'$°\1°; s°[ \t]\+° °; \°^/°! p; }' \
+  ${SED-sed} -n '\°^'"$pattern"'$° { s°^'"$pattern"'$°\1°; s°[ \t]\+° °; \°^/°! p; }' \
     `named_conf_files "$@"`
 }
 
-# named_section_sed <section> <sed-script> <sed-script if not found> [config]
+# named_section_sed <section> <${SED-sed}-script> <${SED-sed}-script if not found> [config]
 #
-# perform sed commands while the whole section is in pattern space
+# perform ${SED-sed} commands while the whole section is in pattern space
 # -------------------------------------------------------------------------
 named_section_sed()
 {
@@ -439,7 +439,7 @@ named_section_sed()
   local script=$2
   local alt=$3
   shift 3
-  sed ${1-'-n'} ${1+'-i'} -e \
+  ${SED-sed} ${1-'-n'} ${1+'-i'} -e \
     ':st; \°^[ \t\n]*$° { N; b st }
      \°^[ \t\n]*'"$start"'$° {
       :lp; N; \°\n'"$end"'$°! b lp
@@ -451,9 +451,9 @@ named_section_sed()
     }' `named_conf_files "$@"`
 }
 
-# named_section_editline <section> <sed-script> [config]
+# named_section_editline <section> <${SED-sed}-script> [config]
 #
-# perform sed commands while a line of the section is in pattern space
+# perform ${SED-sed} commands while a line of the section is in pattern space
 # -------------------------------------------------------------------------
 named_section_editline()
 {
@@ -461,7 +461,7 @@ named_section_editline()
   local end=$(named_section_pattern "/`named_section_key "$1"`")
   local script=$2
   shift 2
-  sed ${1-'-n'} ${1+'-i'} -e \
+  ${SED-sed} ${1-'-n'} ${1+'-i'} -e \
     '\°^[ \t\n]*'"$start"'$° {
       :lp; n
       \°^'"$end"'$°! {
@@ -479,9 +479,9 @@ named_section_keys()
   named_section_editline "$section" "s,^[ \t]*\([a-zA-Z0-9]\+\).*$,\1," ${2:+"$2"}
 }
 
-# named_section_editkey <section> <key> <sed-script> <sed-script if not found> [config]
+# named_section_editkey <section> <key> <${SED-sed}-script> <${SED-sed}-script if not found> [config]
 #
-# perform sed commands while a key of the section is in pattern space
+# perform ${SED-sed} commands while a key of the section is in pattern space
 # -------------------------------------------------------------------------
 named_section_editkey()
 {
@@ -491,7 +491,7 @@ named_section_editkey()
   local script=$3
   local alt=$4
   shift 4
-  sed ${1-'-n'} ${1+'-i'} -e \
+  ${SED-sed} ${1-'-n'} ${1+'-i'} -e \
     ':st; \°^'"$start"'$° {
       :lp; n
       \°^'"$end"'$°! {

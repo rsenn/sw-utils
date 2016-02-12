@@ -23,7 +23,7 @@ bin_size()
 {
   local target=$2
 
-  ${target:+$target-}size ${1+"$1"} | sed -n \
+  ${target:+$target-}size ${1+"$1"} | ${SED-sed} -n \
     '/^[ \t]*[0-9]\+/ { 
       s, *[0-9]\+[ \t]\+[0-9]\+[ \t]\+[0-9]\+[ \t]\+\([0-9]\+\).*,\1, p 
     }'
@@ -46,7 +46,7 @@ bin_strings()
 # -------------------------------------------------------------------------
 bin_paths()
 {
-  bin_strings "$@" | sed -n "\:^/[^/]\+.*:p"
+  bin_strings "$@" | ${SED-sed} -n "\:^/[^/]\+.*:p"
 }
 
 # bin_reloc <path> <from> <to>
@@ -79,7 +79,7 @@ bin_reloc()
 # -------------------------------------------------------------------------
 bin_libs()
 {
-  readelf -a "$1" | sed -n 's/.*Shared library: \[\(.*\)\].*/\1/p'
+  readelf -a "$1" | ${SED-sed} -n 's/.*Shared library: \[\(.*\)\].*/\1/p'
 }
 
 # bin_libs <path>
@@ -92,13 +92,13 @@ bin_libs()
 
   case $filetype in
     *' ELF '*)
-      readelf -a "$1" | sed -n 's/.*Shared library: \[\(.*\)\].*/\1/p'
+      readelf -a "$1" | ${SED-sed} -n 's/.*Shared library: \[\(.*\)\].*/\1/p'
       ;;
       
     *MS-DOS*executable*PE*)
 
       i586-mingw32msvc-objdump -p "$1" | 
-        sed -n -e 's/^\s*DLL Name: //p' |
+        ${SED-sed} -n -e 's/^\s*DLL Name: //p' |
         sort -u
       ;;
   esac
@@ -110,7 +110,7 @@ bin_rpath()
 {
   local IFS="
 "
-  set -- $(readelf -a "$1" | sed -n \
+  set -- $(readelf -a "$1" | ${SED-sed} -n \
     -e '/(RPATH)/ s,.*\[\(.\+\)].*$,\1,p' \
     -e '/(RUNPATH)/ s,.*\[\(.\+\)].*$,\1,p')
     
@@ -125,7 +125,7 @@ bin_hexdump()
 {
   local size=`fs_size "$1"`
 
-  hexdump -ve "$((size))/1"' " %02x" "\n"' "$1" | sed \
+  hexdump -ve "$((size))/1"' " %02x" "\n"' "$1" | ${SED-sed} \
     -e 's, \+, ,g' \
     -e 's, $,,' \
     -e 's, ,\\x,g' \

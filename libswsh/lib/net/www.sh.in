@@ -43,7 +43,7 @@ www_dump()
 # -------------------------------------------------------------------------
 www_links()
 {
-  www_dump "$@" | sed -n 's,^\s*[0-9]\+\.\s\+\(.*\)$,\1,p'
+  www_dump "$@" | ${SED-sed} -n 's,^\s*[0-9]\+\.\s\+\(.*\)$,\1,p'
 }
 
 # www_recurse <url|->
@@ -64,7 +64,7 @@ www_trac()
 {
   local line='^\s*\[[0-9]\+\][0-9]\+ \? \?'
 
-  www_dump "$1" | sed -n -e "/^\\s*Line\\s*\$/ {
+  www_dump "$1" | ${SED-sed} -n -e "/^\\s*Line\\s*\$/ {
     :lp
     n
     /$line/ { s,$line,,p; b lp; }

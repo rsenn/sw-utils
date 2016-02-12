@@ -1086,7 +1086,7 @@ pkgmk_build()
     
     msg "Succeeded"
     rm -f "$PKGMK_package"
-    tar cvvs --no-recursion --use-compress-program="bzip2" --files-from=$SRC/FILES-SORTED -f "$PKGMK_package" | #>>$PKGMK_cwd/.log 2>&1
+    tar -c -vv --no-recursion --use-compress-program="bzip2" --files-from=$SRC/FILES-SORTED -f "$PKGMK_package" | #>>$PKGMK_cwd/.log 2>&1
     _archive_footprint_filter
   fi
     

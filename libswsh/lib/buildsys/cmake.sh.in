@@ -46,7 +46,7 @@ cmake_subdirs()
   test -n "$*" || set . 
   while [ "$#" -gt 0 ]; do
     cmake_check "$1" &&
-    sed -n \
+    ${SED-sed} -n \
    "/SUBDIR/ {
       s/^.*SUBDIR[A-Z]*//gi
       :lp /^\s*(/! { N; b lp; }
@@ -72,7 +72,7 @@ cmake_clean()
     dir=$1; shift; cmake_check "$dir" || continue
     set -- `cmake_subdirs "$dir"` "$@"
    (cd "$dir"
-    grep -q '^# CMAKE' Makefile 2>/dev/null && rm -f Makefile
+    ${GREP-grep} -q '^# CMAKE' Makefile 2>/dev/null && rm -f Makefile
     IFS="
  $IFS"
     for file in $cmake_generated; do
@@ -80,7 +80,7 @@ cmake_clean()
       out=$dir/$subdir/$file
       out=${out#./}
       test -f $file && echo ${out#/} && rm -f ${file#/}
-      test -d $file && (cd "$file" && find * 2>/dev/null) | sed "s:^:${out#./}/:" && rm -rf $file          
+      test -d $file && (cd "$file" && find * 2>/dev/null) | ${SED-sed} "s:^:${out#./}/:" && rm -rf $file          
     done)
   done
 }
@@ -96,7 +96,7 @@ cmake_check()
   case $1 in
     -p | --project) 
       set -f
-      cmd="grep -E ^[^#]*[Pp][Rr][Oo][Jj][Ee][Cc][Tt][\s\t]*\\([^)]+\\)"
+      cmd="${GREP-grep} -E ^[^#]*[Pp][Rr][Oo][Jj][Ee][Cc][Tt][\s\t]*\\([^)]+\\)"
       shift
     ;;
 
@@ -120,7 +120,7 @@ cmake_values()
   (for dir in "${@-.}"; do
     cmake_check "$dir" || return 1
    (cd "$dir"
-    cmake -LA . 2>&1 | sed -n '/^[_A-Za-z][_0-9A-Za-z]*:[_A-Z]\+=/p')
+    cmake -LA . 2>&1 | ${SED-sed} -n '/^[_A-Za-z][_0-9A-Za-z]*:[_A-Z]\+=/p')
   done)
 }
 

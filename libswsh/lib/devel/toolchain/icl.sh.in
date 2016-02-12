@@ -100,7 +100,7 @@ read_var()
 {
   local name=$1 && shift
 
-  sed -n "/^$name=/ {
+  ${SED-sed} -n "/^$name=/ {
     /^$name='[^']*'\$/    s/^$name='\([^']*\)'\$/\1/ p
     /^$name=\"[^\"]*\"\$/ s/^$name=\"\([^\"]*\)\"\$/\1/ p
     /^$name=[^'\"]*\$/    s/^$name=\([^'\"]*\)\$/\1/ p

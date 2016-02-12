@@ -297,7 +297,6 @@ lib/buildsys/plmake.sh
 lib/buildsys/pysetup.sh
 lib/buildsys/autotools/Makefile
 lib/class/Makefile
-lib/class/cache.sh
 lib/class/tempfile.sh
 lib/code/Makefile
 lib/code/bin.sh

@@ -24,6 +24,14 @@ cd "${1-$topdir}"
 m4dirs=`m4find`
 set -x
 
+AUTOMAKE_VERSION=` automake --version | sed -n '1 { s,.*) ,, ; s,\([0-9]\+\)\.\([0-9]\+\).*,\1.\2, ; p }' `
+
+for SCRIPT in install-sh config.sub config.guess; do
+	if [ ! -e build/gnu/"$SCRIPT" ]; then 
+		cp -vf /usr/share/automake-$AUTOMAKE_VERSION/"$SCRIPT" build/gnu
+	fi
+done
+
 type glibtoolize 2>/dev/null >/dev/null && LIBTOOLIZE=glibtoolize || LIBTOOLIZE=libtoolize
 $LIBTOOLIZE --force --copy --automake
 rm -f aclocal.m4; aclocal $includedirs

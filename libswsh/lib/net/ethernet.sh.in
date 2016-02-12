@@ -23,13 +23,13 @@ ethernet_interfaces()
   local proc="/proc/net/dev"
 
   if test -f "$proc"; then
-    sed -e "{
+    ${SED-sed} -e "{
       1d
       2d
       s,^[ \t]*\(eth.*\):.*,\1,
     }" "$proc"
   else
-    ifconfig -a | sed -n -e "/^\$/d" -e "/^[ \t]\+/! {
+    ifconfig -a | ${SED-sed} -n -e "/^\$/d" -e "/^[ \t]\+/! {
       s,[ \t:]\+.*,,
       p
     }" | sort -u
@@ -42,7 +42,7 @@ ethernet_interfaces()
 # -------------------------------------------------------------------------
 ethernet_address()
 {
-  ifconfig ${1:--a} | sed -n "/HWaddr/ {
+  ifconfig ${1:--a} | ${SED-sed} -n "/HWaddr/ {
     s/^.*\\($ethernet_mask\\).*\$/\\1/i; p
   }"
 }
@@ -53,7 +53,7 @@ ethernet_address()
 # -------------------------------------------------------------------------
 ethernet_name()
 {
-  ifconfig -a | sed -n "{
+  ifconfig -a | ${SED-sed} -n "{
     :lp
     /\\n\$/! N
     /\\n\$/ { d; b lp; }
@@ -66,7 +66,7 @@ ethernet_name()
 # -------------------------------------------------------------------------
 ethernet_list()
 {
-  ifconfig -a | sed -n "/HWaddr/ {
+  ifconfig -a | ${SED-sed} -n "/HWaddr/ {
     s/^\([^ ]\+\) \+[^ ].*\($ethernet_mask\)\$/\1 \2/i; p
   }"
 }

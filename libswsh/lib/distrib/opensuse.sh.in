@@ -1,48 +1,61 @@
 #!/bin/sh
 #
-# distrib/opensuse.sh: openSUSE based distribution detection.
+# distrib/opensuse.sh: openSuSE distribution detection and handling of distribution-specific things.
 #
 # $Id: opensuse.sh.in 655 2008-09-12 00:21:46Z enki $
 # ------------------------------------------------------------------------- 
 test $lib_distrib_opensuse_sh || {
 
 : ${prefix:="@prefix@"}
-: ${sysconfdir:="@sysconfdir@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+. $shlibdir/distrib/lsb.sh
 
 # is_opensuse [opensuse-release-file]
 #
-# Checks whether the underlying distribution is a opensuse based one.
+# Checks whether the underlying distribution is an Mac OS X. 
 # ---------------------------------------------------------------------------
 is_opensuse()
 {
-	grep -q NAME=openSUSE "$(opensuse_relfile)"
+  test -f "$ROOT"/etc/SuSE-release
 }
 
 # opensuse_relfile [opensuse-release-file]
 #
-# Prints the opensuse release file name.
+# Print the path to the Mac OS X (LSB) release file.
 # ---------------------------------------------------------------------------
-opensuse_relfile()
+opensuse_relfile() 
 {
-  echo $ROOT/etc/os-release
+  echo "${@-$ROOT/etc/SuSE-release}"
 }
 
 # opensuse_release [opensuse-release-file]
 #
-# Reads information from a opensuse release file (/etc/opensuse-release).
+# Get Mac OS X release information via the common LSB release information.
 # ---------------------------------------------------------------------------
 opensuse_release() 
 {
-	sed "s|VERSION_ID=|release=| ;; s|ID=|id=|" "$(opensuse_relfile)"
+  lsb_release "$@"
 }
 
 # opensuse_pkgmgr
 #
-# The kind of package manager used by opensuse based distributions.
+# The kind of package manager used by Mac OS X distributions.
 # ---------------------------------------------------------------------------
 opensuse_pkgmgr()
 {
   echo 'rpm'
+}
+
+# opensuse_mirrors
+# ---------------------------------------------------------------------------
+opensuse_mirrors()
+{
+	http_get "http://mirrors.opensuse.org/" |
+	xml_get 'tr [^>]*' |
+	xml_get  a href
 }
 
 # --- eof ---------------------------------------------------------------------

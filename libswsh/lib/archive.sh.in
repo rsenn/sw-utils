@@ -293,7 +293,7 @@ archive_unpack()
       cpio) cpio --quiet -udmiv 2>/dev/null ;;
       tar)
         IFS="$newline" \
-        eval "tar ${strip:+--strip-components=\"\$strip\"} ${exclude} --no-same-owner -xv${d:+|sed -e "s:^:${d%/}/:"}" \
+        eval "tar ${strip:+--strip-components=\"\$strip\"} ${exclude} --no-same-owner -xv${d:+|${SED-sed} -e "s:^:${d%/}/:"}" \
           2>/dev/null
       ;;
       *) errormsg "No such container type $cont." ;;
@@ -337,14 +337,14 @@ archive_list()
   archive_decompress "$1" |
   case $cont in
     cpio) cpio -udmt 2>/dev/null ;;
-    tar) IFS="$newline" eval "tar -tf ${strip:+--strip-components=$strip} ${exclude} -${d:+|sed s:^:$d/:}" 2>/dev/null ;;
+    tar) IFS="$newline" eval "tar -tf ${strip:+--strip-components=$strip} ${exclude} -${d:+|${SED-sed} s:^:$d/:}" 2>/dev/null ;;
     *) ${cont}_list "$a" 2>/dev/null ;;
   esac)
 }
 
 archive_files()
 {
-  archive_list "$@" | sed -n '\,/$,! p'
+  archive_list "$@" | ${SED-sed} -n '\,/$,! p'
 }
 
 archive_empty()
@@ -359,7 +359,7 @@ archive_empty()
 # -------------------------------------------------------------------------
 archive_rootdir()
 {
-  archive_list "$@" | sed "s,/.*,," | uniq
+  archive_list "$@" | ${SED-sed} "s,/.*,," | uniq
 }
 
 # pack archive from the specified destination path
@@ -452,7 +452,7 @@ archive_diff()
 
   local IFS="$newline"
 
-  diff $args -ruN "$t1${d1:+/$d1}" "$t2${d2:+/$d2}" | sed -e "s: $t1/: :" -e "s: $t2/: :"
+  diff $args -ruN "$t1${d1:+/$d1}" "$t2${d2:+/$d2}" | ${SED-sed} -e "s: $t1/: :" -e "s: $t2/: :"
 
 #  echo rm -rf "$t1" "$t2"
 }

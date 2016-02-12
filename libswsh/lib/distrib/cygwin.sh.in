@@ -18,7 +18,7 @@ test $lib_distrib_cygwin_sh || {
 is_cygwin()
 {
   case `uname -o`:`gcc -dumpmachine` in
-    Cygwin:*-cygwin-*) return 0 ;;
+    Cygwin:*-cygwin) return 0 ;;
   esac
   return 1
 }
@@ -44,6 +44,17 @@ cygwin_version()
   fi)
 }
 
+# cygwin_canonical
+# ---------------------------------------------------------------------------
+cygwin_canonical()
+{
+  case `uname -m` in
+    x86_64) bits=64 ;;
+    *) bits=32 ;;
+  esac
+  echo cygwin${bits}
+}
+
 # cygwin_release
 #
 # Get Cygwin release information
@@ -53,8 +64,13 @@ cygwin_release()
  (id=Cygwin 
   release=`cygwin_version`
   description="Cygwin $release"
+  case `uname -m` in
+    x86_64) bits=64 ;;
+    *) bits=32 ;;
+  esac
+  canonical=cygwin${bits}
 
-  var_dump id release description)
+  var_dump id release description canonical)
 }
 
 # cygwin_pkgmgr

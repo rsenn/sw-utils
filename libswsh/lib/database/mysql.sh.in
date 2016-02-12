@@ -191,7 +191,7 @@ mysql_daemon()
 # ----------------------------------------------------------------------------
 mysql_databases()
 {
-  mysql_query 'show databases' | sed -n \
+  mysql_query 'show databases' | ${SED-sed} -n \
   '/^Database$/ {
     :lp
     n
@@ -205,7 +205,7 @@ mysql_databases()
 mysql_binlogs()
 {
   local binlog=${1-'mysql-bin'}
-  sed \
+  ${SED-sed} \
     "s,^\.\/,$prefix/db/," \
     "$prefix/db/$binlog.index"
 }

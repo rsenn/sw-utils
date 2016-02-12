@@ -535,7 +535,7 @@ array_sort()
 array_subst()
 {
   local IFS="$ARRAY_s"
-  var_set "$1" "`array_print "$1" | sed -e "s°$2°$3°$4"`"
+  var_set "$1" "`array_print "$1" | ${SED-sed} -e "s°$2°$3°$4"`"
 }
 
 # for_each <array-name> <commands>
@@ -552,7 +552,7 @@ array_for_each()
   eval \
  'for array_e in ${'$array_n'}
   do
-    '`echo "$*" | sed 's,?,${array_e},g'`'
+    '`echo "$*" | ${SED-sed} 's,?,${array_e},g'`'
   done'
 }
 
@@ -573,7 +573,7 @@ array_sed()
   local IFS="$ARRAY_s" array_n=${1:?$ARRAY_nn}
 
   shift
-  array_print "$array_n" | sed "$@"
+  array_print "$array_n" | ${SED-sed} "$@"
 }
 
 # -------------------------------------------------------------------------

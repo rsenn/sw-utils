@@ -26,7 +26,7 @@ NOBUILD_xnodocs='([MR]akefile|/\.)'
 # -------------------------------------------------------------------------
 nobuild_scan()
 {
-  nobuild_find "$@" | sed -e "s,/[^/]\+$,," | sort -u
+  nobuild_find "$@" | ${SED-sed} -e "s,/[^/]\+$,," | sort -u
 }
 
 # nobuild_find [directories...]
@@ -37,7 +37,7 @@ nobuild_find()
 {
  (set -f
   IFS=" "
-  find "${@:-.}" -type f | sed -e "s,^\.\/,,")
+  find "${@:-.}" -type f | ${SED-sed} -e "s,^\.\/,,")
 }
 
 # nobuild_file [directory]
@@ -153,7 +153,7 @@ nobuild_extractdocs()
     strip=`expr $strip - 1`
   done
 
-  egrep "$xdocs" | egrep -v "$NOBUILD_xnodocs" | sed -e "s:^${xremove:-./}::" -e "/[Mm]akefile/d"
+  egrep "$xdocs" | egrep -v "$NOBUILD_xnodocs" | ${SED-sed} -e "s:^${xremove:-./}::" -e "/[Mm]akefile/d"
 }
 
 # nobuild_buildfn <vars...>

@@ -56,8 +56,8 @@ debian_relfile()
 # ---------------------------------------------------------------------------
 debian_sources()
 {
-#  grep -ERh '^[ \t]*deb(|-src)[ \t]' /etc/apt/sources.list{,.d} 2>/dev/null
-sed '\|^\s*#|d; \|^\s*$|d; s,^\s*,,' </etc/apt/sources.list
+#  ${GREP-grep} -ERh '^[ \t]*deb(|-src)[ \t]' /etc/apt/sources.list{,.d} 2>/dev/null
+${SED-sed} '\|^\s*#|d; \|^\s*$|d; s,^\s*,,' </etc/apt/sources.list
 }
 
 # debian_codename

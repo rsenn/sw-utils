@@ -19,7 +19,7 @@ default_target=''
 # -------------------------------------------------------------------------
 ruby_libs()
 {
-  sed -n -e "/^require\\s/ {
+  ${SED-sed} -n -e "/^require\\s/ {
     s,^require\s\+,,
     s,[ ;].*\$,,
 
