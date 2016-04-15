@@ -20,17 +20,47 @@ test $lib_pkgtool_yum_sh || {
 
 YUM_cmd="yum"
 
+yum_exec()
+{
+ (while :; do
+      case "$1" in
+          -V | --no*ver*) NO_VERSION=true; shift ;;
+          -A | --*arch*) CUT_ARCH=true; shift ;;
+          -F | --*ver*) NO_FEDORAVER=true; shift ;;
+      *) break ;;
+  esac
+  done
+  CMD='yum "$@"'
+EXPR=
+  [ "$NO_VERSION" = true ] && EXPR="${EXPR:+$EXPR ;; }s|-[0-9][0-9.]*-[0-9][0-9.]*\.|.|"
+  [ "$CUT_ARCH" = true ] && EXPR="${EXPR:+$EXPR ;; }s|\\.[^.]*\$||"
+  [ "$NO_FEDORAVER" = true ] && EXPR="${EXPR:+$EXPR ;; }s|\\.fc[0-9]\\+||"
+  [ -n "$EXPR"  ] && CMD="$CMD | sed '$EXPR'"
+  eval "$CMD")
+}
+
 # yum_list
 #
 # List all known packages...
 # -------------------------------------------------------------------------
 yum_list()
 {
-  (while :; do case "$1" in
-		-V | --no-version*) NOVER=true; shift ;;
-	  *) break ;;
-  esac; done
-  $YUM_cmd list "${@:-all}" 2>/dev/null | (IFS=" $tabstop"
+ (while :; do
+      case "$1" in
+          -V | --no*ver*) NO_VERSION=true; shift ;;
+          -A | --*arch*) CUT_ARCH=true; shift ;;
+          -F | --*ver*) NO_FEDORAVER=true; shift ;;
+      *) break ;;
+  esac
+  done
+  CMD='parse'
+EXPR=
+  [ "$NO_VERSION" = true ] && EXPR="${EXPR:+$EXPR ;; }s|-[0-9][0-9.]*-[0-9][0-9.]*\.|.|"
+  [ "$CUT_ARCH" = true ] && EXPR="${EXPR:+$EXPR ;; }s|\\.[^.]*\$||"
+  [ "$NO_FEDORAVER" = true ] && EXPR="${EXPR:+$EXPR ;; }s|\\.fc[0-9]\\+||"
+  [ -n "$EXPR"  ] && CMD="$CMD | sed '$EXPR'"
+
+  parse() { (IFS=" $tabstop"
   while read -r NAME VERSION INFO; do
 
 		[ -z "$VERSION" -a -z "$INFO" ] && read -r VERSION INFO
@@ -42,7 +72,9 @@ yum_list()
 		[ "$NOVER" = true ] &&
       printf "%s.%s\n" "$NAME" "$ARCH" ||
       printf "%s-%s.%s\n" "$NAME" "$VERSION" "$ARCH"
-  done) )
+  done); }
+  $YUM_cmd list "${@:-all}" 2>/dev/null |  eval "$CMD"
+  )
 }
 
 # yum_search [-q] <search-tokens...>

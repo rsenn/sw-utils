@@ -34,6 +34,27 @@ rpm_files()
   done
 }
 
+# rpm_exec
+# -------------------------------------------------------------------------
+rpm_exec()
+{
+ (while :; do
+      case "$1" in
+          -V | --no*ver*) NO_VERSION=true; shift ;;
+          -A | --*arch*) CUT_ARCH=true; shift ;;
+          -F | --*ver*) NO_FEDORAVER=true; shift ;;
+      *) break ;;
+  esac
+  done
+  CMD='rpm "$@"'
+EXPR=
+  [ "$NO_VERSION" = true ] && EXPR="${EXPR:+$EXPR ;; }s|-[0-9][0-9.]*-[0-9][0-9.]*\.|.|"
+  [ "$CUT_ARCH" = true ] && EXPR="${EXPR:+$EXPR ;; }s|\\.[^.]*\$||"
+  [ "$NO_FEDORAVER" = true ] && EXPR="${EXPR:+$EXPR ;; }s|\\.fc[0-9]\\+||"
+  [ -n "$EXPR"  ] && CMD="$CMD | sed '$EXPR'"
+  eval "$CMD")
+}
+
 # rpm_list [options...]
 #
 # List all installed packages.
@@ -42,13 +63,7 @@ rpm_files()
 # -------------------------------------------------------------------------
 rpm_list()
 {
-  local flags
-  
-#  case $1 in
-#    -a) flags="[a-z][a-z]" && shift ;;
-#  esac
-
-  rpm -q --all "$@"
+  rpm_exec -q --all "$@"
 }
 
 # rpm_installed [packages...]
