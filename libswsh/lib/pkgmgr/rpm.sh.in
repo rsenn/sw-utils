@@ -86,26 +86,30 @@ rpm_installed()
   done
 }
 
-# rpm_info <package>
+# rpm_info <package> 
 # -------------------------------------------------------------------------
 rpm_info()
 {
-  local capn="[A-Z][0-9A-Za-z]\+"
+( capn="[A-Z][0-9A-Za-z]\+"
 
-  case $1 in
-    *.rpm) set -- "-p" "$@" ;;
-  esac        
-
-  rpm -q --info "$@" | \
-    ${SED-sed} \
-      -e "/^$capn\( $capn\)\? *:/ {
+  EXPR="/^$capn\( $capn\)\? *:/ {
             s/^\($capn\)\( $capn\)\? *\?:/\1\2:/
             s/ \+ \($capn\)\( $capn\)\?:/\n\1\2:/ 
-          }" \
-      -e "/^$capn\( $capn\)\? *:/! {
+          } ;; 
+          /^$capn\( $capn\)\? *:/! {
             /^--\+$/d
             s/^/ /
           }"
+          P="$1"
+          shift
+          CMD="rpm -q --info \$P |  ${SED-sed} \$SEDARGS -e '$EXPR'"
+      case $P in
+        *.rpm) P="-p
+$P" ;;
+      esac        
+      [ -n "$1" ]  &&  CMD="$CMD | info_get \"$1\""
+  
+  eval "$CMD")
 }
 
 # rpm_description <package>
