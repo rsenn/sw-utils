@@ -48,7 +48,7 @@ rpm_exec()
   done
   CMD='rpm "$@"'
 EXPR=
-  [ "$NO_VERSION" = true ] && EXPR="${EXPR:+$EXPR ;; }s|-[0-9][0-9.]*-[0-9][0-9.]*\.|.|"
+  [ "$NO_VERSION" = true ] && EXPR="${EXPR:+$EXPR ;; }s|-[0-9][[:alnum:].]*-[0-9][[:alnum:].]*\.|.|"
   [ "$CUT_ARCH" = true ] && EXPR="${EXPR:+$EXPR ;; }s|\\.[^.]*\$||"
   [ "$NO_FEDORAVER" = true ] && EXPR="${EXPR:+$EXPR ;; }s|\\.fc[0-9]\\+||"
   [ -n "$EXPR"  ] && CMD="$CMD | sed '$EXPR'"
