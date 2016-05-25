@@ -51,7 +51,7 @@ freshmeat_dump()
  
   for line in $page; do
     case $line in
-      *' About:') line=`echo "$line" | sed "s, About:,\n  &,"` ;;
+      *' About:') line=`echo "$line" | ${SED-sed} "s, About:,\n  &,"` ;;
       *'downloads for '*) title=${line##*'downloads for '} ;;
 
       '['* | '+'* | '*'*) ;;
@@ -162,7 +162,7 @@ freshmeat_description()
       SHORT_DESC=`
         http_get "$INFO_URL" |
         xml_get "dd" | 
-        sed -n -e "s/.*>Description[^:]*: //p"
+        ${SED-sed} -n -e "s/.*>Description[^:]*: //p"
       `
     ;;
   esac
@@ -209,19 +209,19 @@ freshmeat_url()
           xml_get "li [^>]*" | 
           case "$1" in
             archive|pkg) egrep ">(Tar/.*|Zip)<" ;;
-            t*bz*) grep ">Tar/BZ2<" ;;
-            t*gz*) grep ">Tar/GZ<" ;;
-            zip) grep ">Zip<" ;;
-            [Cc]hangelog) grep ">Changelog<" ;;
-            [Ww]ebsite | [Hh]ome*) grep ">Website<" ;;
-            [Cc][Vv][Ss]*) grep ">CVS tree<" ;;
-            [Mm]ore* | [Ii]nfo*) grep ">More Information<" ;;
+            t*bz*) ${GREP-grep} ">Tar/BZ2<" ;;
+            t*gz*) ${GREP-grep} ">Tar/GZ<" ;;
+            zip) ${GREP-grep} ">Zip<" ;;
+            [Cc]hangelog) ${GREP-grep} ">Changelog<" ;;
+            [Ww]ebsite | [Hh]ome*) ${GREP-grep} ">Website<" ;;
+            [Cc][Vv][Ss]*) ${GREP-grep} ">CVS tree<" ;;
+            [Mm]ore* | [Ii]nfo*) ${GREP-grep} ">More Information<" ;;
           esac
         ;;
       esac |
       xml_get a href
     `
-    RURL=`http_head "freshmeat.net" "$RURL" | sed -n -e 's,\r,,g' -e '/^Location:/ s,Location:\s*,,p'`
+    RURL=`http_head "freshmeat.net" "$RURL" | ${SED-sed} -n -e 's,\r,,g' -e '/^Location:/ s,Location:\s*,,p'`
     echo "$RURL"
     shift
   done)
@@ -231,7 +231,7 @@ freshmeat_url()
 freshmeat_search()
 {
  (base="http://$FRESHMEAT_host/search/?q="
-  query=`echo "$*" | sed "s, ,+,g"`
+  query=`echo "$*" | ${SED-sed} "s, ,+,g"`
 
   www_links "$base$query" | {
     n=0 prev=
@@ -308,7 +308,7 @@ freshmeat_categories()
   
   freshmeat_html "$project" | 
   xml_getvalue 'tr bgcolor="#[0-9A-F]\+"><td valign="top" nowrap><small' |
-  sed -n -e "/^<b>\[/p" |
+  ${SED-sed} -n -e "/^<b>\[/p" |
   while read category
   do
     case $category in
@@ -335,7 +335,7 @@ freshmeat_info()
 Project: $1
 Description: `freshmeat_description "$1" short`
 `freshmeat_description "$1" full |
-   sed -e "s,^\s*\$,.," -e "s,^, ,"`
+   ${SED-sed} -e "s,^\s*\$,.," -e "s,^, ,"`
 Homepage: `freshmeat_url "$1"`
 Package: `freshmeat_url "$1" tgz bz2 zip`
 Author: `freshmeat_get "$1" author_name`

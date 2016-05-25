@@ -8,7 +8,7 @@
 
 # rcat [options] [files...]
 #
-# A recursive 'cat' through grep .*
+# A recursive 'cat' through ${GREP-grep} .*
 # ---------------------------------------------------------------------------
 rcat()
 {
@@ -21,7 +21,7 @@ rcat()
     esac
     shift
   done
-  grep --color=no $opts '^' $args
+  ${GREP-grep} --color=no $opts '^' $args
 }
 
 # --- eof ---------------------------------------------------------------------

@@ -29,7 +29,7 @@ bash_builtins()
 '; test "$#" -gt 0 || set -- $libdir/bash/*.so
 for shobj; do
     echo "$shobj:" `objdump -T "$shobj" | \
-      sed -n '\,\s\.text\s.*[^\s]\+_builtin$, {
+      ${SED-sed} -n '\,\s\.text\s.*[^\s]\+_builtin$, {
         s,.*\s,, ;; s,_builtin$,, ;; p
       }'`
   done)

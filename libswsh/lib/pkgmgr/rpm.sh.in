@@ -21,7 +21,7 @@ rpm_files()
   local pkg arg cmd='rpm -q -l' flt= IFS="
 "
   case $1 in
-    -p) flt='| sed "s|^|$pkg: |"' && shift ;;
+    -p) flt='| ${SED-sed} "s|^|$pkg: |"' && shift ;;
   esac
 
   for pkg 
@@ -34,6 +34,27 @@ rpm_files()
   done
 }
 
+# rpm_exec
+# -------------------------------------------------------------------------
+rpm_exec()
+{
+ (while :; do
+      case "$1" in
+          -V | --no*ver*) NO_VERSION=true; shift ;;
+          -A | --*arch*) CUT_ARCH=true; shift ;;
+          -F | --*ver*) NO_FEDORAVER=true; shift ;;
+      *) break ;;
+  esac
+  done
+  CMD='rpm "$@"'
+EXPR=
+  [ "$NO_VERSION" = true ] && EXPR="${EXPR:+$EXPR ;; }s|-[0-9][[:alnum:].]*-[0-9][[:alnum:].]*\.|.|"
+  [ "$CUT_ARCH" = true ] && EXPR="${EXPR:+$EXPR ;; }s|\\.[^.]*\$||"
+  [ "$NO_FEDORAVER" = true ] && EXPR="${EXPR:+$EXPR ;; }s|\\.fc[0-9]\\+||"
+  [ -n "$EXPR"  ] && CMD="$CMD | sed '$EXPR'"
+  eval "$CMD")
+}
+
 # rpm_list [options...]
 #
 # List all installed packages.
@@ -42,13 +63,7 @@ rpm_files()
 # -------------------------------------------------------------------------
 rpm_list()
 {
-  local flags
-  
-#  case $1 in
-#    -a) flags="[a-z][a-z]" && shift ;;
-#  esac
-
-  rpm -q --all "$@"
+  rpm_exec -q --all "$@"
 }
 
 # rpm_installed [packages...]
@@ -65,32 +80,36 @@ rpm_installed()
       *.rpm) rpm=`rpm -q -p "$rpm" 2>/dev/null` ;;
     esac
 
-    st=`rpm -q "$rpm" | sed -e '/ is not installed$/d'`
+    st=`rpm -q "$rpm" | ${SED-sed} -e '/ is not installed$/d'`
   
     test -z "$st" && return 1
   done
 }
 
-# rpm_info <package>
+# rpm_info <package> 
 # -------------------------------------------------------------------------
 rpm_info()
 {
-  local capn="[A-Z][0-9A-Za-z]\+"
+( capn="[A-Z][0-9A-Za-z]\+"
 
-  case $1 in
-    *.rpm) set -- "-p" "$@" ;;
-  esac        
-
-  rpm -q --info "$@" | \
-    sed \
-      -e "/^$capn\( $capn\)\? *:/ {
+  EXPR="/^$capn\( $capn\)\? *:/ {
             s/^\($capn\)\( $capn\)\? *\?:/\1\2:/
             s/ \+ \($capn\)\( $capn\)\?:/\n\1\2:/ 
-          }" \
-      -e "/^$capn\( $capn\)\? *:/! {
+          } ;; 
+          /^$capn\( $capn\)\? *:/! {
             /^--\+$/d
             s/^/ /
           }"
+          P="$1"
+          shift
+          CMD="rpm -q --info \$P |  ${SED-sed} \$SEDARGS -e '$EXPR'"
+      case $P in
+        *.rpm) P="-p
+$P" ;;
+      esac        
+      [ -n "$1" ]  &&  CMD="$CMD | info_get \"$1\""
+  
+  eval "$CMD")
 }
 
 # rpm_description <package>

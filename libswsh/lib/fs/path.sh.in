@@ -115,7 +115,7 @@ path_collapse()
 {
   local IFS=$nl p=$1
 
-  echo "`echo "$p" | sed -e 's:/\+:/:g' -e 's:[^/]\+/\.\./:/:g'`"
+  echo "`echo "$p" | ${SED-sed} -e 's:/\+:/:g' -e 's:[^/]\+/\.\./:/:g'`"
 }
 
 # path_mask <path>

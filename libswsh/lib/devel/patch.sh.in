@@ -121,7 +121,7 @@ patch_find()
 
     if test -n "$o"
     then
-      echo "$o" | sed -e "s|^\([-+][-+][-+]\) \([^ ]\+\) \(.*\)$|\1 ${n:-${f#'*/'}} \3|"
+      echo "$o" | ${SED-sed} -e "s|^\([-+][-+][-+]\) \([^ ]\+\) \(.*\)$|\1 ${n:-${f#'*/'}} \3|"
     else
        if test `path_length "${f#'*/'}"` -gt 1
        then

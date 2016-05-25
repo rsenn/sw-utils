@@ -18,7 +18,7 @@ test $lib_crontab_sh || {
 # -------------------------------------------------------------------------
 crontab_list()
 {
-  $bindir/crontab -l $1 | grep -v '^$'
+  $bindir/crontab -l $1 | ${GREP-grep} -v '^$'
 }
 
 # delete crontab of a user

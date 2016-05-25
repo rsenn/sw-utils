@@ -44,7 +44,7 @@ lsb_relfile()
 lsb_release()
 {
 	command lsb_release ${@:-"-a"} |
-	sed \
+	${SED-sed} \
 		-e 's,:\s\+\(.*\),="\1",' \
 		-e 's,LSB Version,lsb_version,' \
 		-e 's,Distributor ID,id,' \

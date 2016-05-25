@@ -19,7 +19,7 @@ default_target=''
 # -------------------------------------------------------------------------
 perl_libs()
 {
-  sed -n -e "s/^use\\s/require /" -e "/^require\\s/ {
+  ${SED-sed} -n -e "s/^use\\s/require /" -e "/^require\\s/ {
     s,^require\s\+,,
     s,[ ;].*\$,,
 

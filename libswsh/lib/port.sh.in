@@ -256,7 +256,7 @@ port_match()
 port_find()
 {
   find "${@-$portsdir}" -type f -name Pkgfile | \
-       sed -e 's:/Pkgfile$::' \
+       ${SED-sed} -e 's:/Pkgfile$::' \
            -e "s:^$portsdir/::"
 }
 
@@ -525,14 +525,14 @@ port_localfiles()
 port_md5sum()
 {
   port_files "$1" | xargs -d "$nl" md5sum | \
-    sed -e 's|[ \t]\+.*[/\*]|  |' | \
+    ${SED-sed} -e 's|[ \t]\+.*[/\*]|  |' | \
     sort -k 2
 }
 
 # -------------------------------------------------------------------------
 port_header()
 {
-  sed -ns '1 {
+  ${SED-sed} -ns '1 {
     :lp
     /^#/! q
     s/^#\s\?//
@@ -616,7 +616,7 @@ port_unpack()
         #url_download "$download"
 
         if [ -n "$subdir" ]; then
-          find "${subdir##*:}" | grep -v '/\.'
+          find "${subdir##*:}" | ${GREP-grep} -v '/\.'
         fi
       ;;
     esac)
@@ -657,7 +657,7 @@ port_listsources()
 
   { for file in `port_files "$path"`; do
       if is_archive "$file"; then
-        { archive_list "$file" 2>/dev/null | sed -e "s|^\.\/||"; } || break
+        { archive_list "$file" 2>/dev/null | ${SED-sed} -e "s|^\.\/||"; } || break
       else
         echo ${file##*/}
       fi
@@ -720,7 +720,7 @@ port_get()
     # Property from comment header
     *:)
 
-      sed -n -e "/^#/! q" -e "/^#\s\?${pp%:}:/ {
+      ${SED-sed} -n -e "/^#/! q" -e "/^#\s\?${pp%:}:/ {
       s,^#\s\?${pp%:}:\s\?,,
         :lp
         p
@@ -734,7 +734,7 @@ port_get()
 
     # Variable property
     *)
-      true || pv=$(sed -n -e "/^[_a-z][_0-9a-z]*=/ {
+      true || pv=$(${SED-sed} -n -e "/^[_a-z][_0-9a-z]*=/ {
         /^${pp}=[('\"]/ {
           s/^${pp}=[('\"]//
           :lp ;; /[)'\"]/! { N; b lp; }
@@ -774,7 +774,7 @@ port_set()
   shift 2
 
   xval=`info_value "$@"`
-  pval=`echo "$xval" | sed "1! s,^,#  ,"`
+  pval=`echo "$xval" | ${SED-sed} "1! s,^,#  ,"`
 
   case $prop in
     *:)
@@ -783,7 +783,7 @@ port_set()
       mark="#\s\?${prop%:}:"
       replace="# $prop `escape_sed "$pval"`"
 
-      sed $opts \
+      ${SED-sed} $opts \
         -n -e ":st; {
           /^$mark/ {
             :lp; n; /^#\s\?[A-Z]\+ \?[^ \n]\+:/! b lp
@@ -1016,7 +1016,7 @@ port_getsources()
 # -------------------------------------------------------------------------
 port_rootdir()
 {
-  port_listsources "$1" | sed 's|/.*$|/|' | uniq
+  port_listsources "$1" | ${SED-sed} 's|/.*$|/|' | uniq
 }
 
 # port_srcdir [-c] <[category/]package|path>
@@ -1052,7 +1052,7 @@ port_deps()
 {
   local pf=`port_pkgfile "$1"`
 
-  port_get "$pf" depends | sed 's/,\s*/\n/g'
+  port_get "$pf" depends | ${SED-sed} 's/,\s*/\n/g'
 }
 
 # port_pkg2info <path>
@@ -1096,7 +1096,7 @@ port_info2pkg()
 # -------------------------------------------------------------------------
 port_template()
 {
-  sed -e "`subst_script "$@" 'build=:' '[_0-9a-z]\+='`" "$PORT_template"
+  ${SED-sed} -e "`subst_script "$@" 'build=:' '[_0-9a-z]\+='`" "$PORT_template"
 }
 
 # port_pkgs <[category/]package|path>
@@ -1392,7 +1392,7 @@ port_create()
         value=`
           str_ucfirst "$head"
           echo "$*" | html_text - | text_wrap - |
-          sed -e 's,^\s*$,.,' | sed -e 's,^,#  ,'
+          ${SED-sed} -e 's,^\s*$,.,' | ${SED-sed} -e 's,^,#  ,'
         `
         value=`html_dequote "$value"`
       ;;
@@ -1410,7 +1410,7 @@ port_create()
   if is_fn "${srcdist_buildsys}_buildfn"; then
     set -- "$@" srcdir="${srcdist_dir#$srcdist_tmp/}"
 
-    BUILDFN=`${srcdist_buildsys}_buildfn "$*" | sed -e "1! s,^,  ,"` IFS="
+    BUILDFN=`${srcdist_buildsys}_buildfn "$*" | ${SED-sed} -e "1! s,^,  ,"` IFS="
 "
      set -- "$@" build="$BUILDFN"
 #    set -- "$@" build="`implode '
@@ -1480,7 +1480,7 @@ port_vmask()
 {
   local version=`port_version "$1"`
 
-  echo "$version" | sed -e 's/[0-9]\+/\[0-9\]\\+/g' -e 's/\./\\./g' -e 's/[A-Za-z_]\+/\[A-Za-z_\]\*/'
+  echo "$version" | ${SED-sed} -e 's/[0-9]\+/\[0-9\]\\+/g' -e 's/\./\\./g' -e 's/[A-Za-z_]\+/\[A-Za-z_\]\*/'
 }
 
 # port_recheck <category/package>
@@ -1556,7 +1556,7 @@ port_recheck()
             part="${link#$proto://${url%/}/}"
 
 
-            v=`echo "${part%/}" | sed -ne "s|^$mask\$|\1|p"`
+            v=`echo "${part%/}" | ${SED-sed} -ne "s|^$mask\$|\1|p"`
 
             if test -n "$v"
             then

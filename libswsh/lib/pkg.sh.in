@@ -59,7 +59,7 @@ pkg_categories()
 pkg_hosts()
 {
  (cd "$pkgdir" &&
-  array */*/ | sed -e 's,/.*,,')
+  array */*/ | ${SED-sed} -e 's,/.*,,')
 }
 
 # pkg_packages [category] [mask]
@@ -142,7 +142,7 @@ pkg_files()
 
   test -f $pkgfull || return 1
 
-  tar -tjf $pkgfull | sed 's,^/,,'
+  tar -tjf $pkgfull | ${SED-sed} 's,^/,,'
   return 0
 }
 
@@ -152,7 +152,7 @@ pkg_guesspfx()
 {
   local r IFS="
 "
-  r=$(archive_list "$1" | sed -n \
+  r=$(archive_list "$1" | ${SED-sed} -n \
       -e 's:/bin/.*::p' \
       -e 's:/etc/.*::p' \
       -e 's:/include/.*::p' \
@@ -173,7 +173,7 @@ pkg_unpackto()
   local prefix=`pkg_guesspfx "$1" | head -n1` || return 1
   local n=`path_length "$prefix"`
 
-  tar -C "$2" -xvf "$1" | sed "s:^$prefix/::"
+  tar -C "$2" -xvf "$1" | ${SED-sed} "s:^$prefix/::"
 }
 
 # pkg_split <path>

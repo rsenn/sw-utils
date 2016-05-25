@@ -59,9 +59,9 @@ info_expr_match()
 # -------------------------------------------------------------------------
 info_pair()
 {
-  local key=`echo "${1%%:*}" | sed "s,[^-0-9A-Za-z],-,g"`
+  local key=`echo "${1%%:*}" | ${SED-sed} "s,[^-0-9A-Za-z],-,g"`
   shift
-  echo "$key: $*" | sed -e "s/^\s*\$/./" -e "1! s/^/ /"
+  echo "$key: $*" | ${SED-sed} -e "s/^\s*\$/./" -e "1! s/^/ /"
 }
 
 # info_list <files...>
@@ -70,7 +70,7 @@ info_pair()
 # -------------------------------------------------------------------------
 info_list()
 {
-  sed -n "/^[^\s\t ]\+:/ s/:.*//p" "$@"
+  ${SED-sed} -n "/^[^\s\t ]\+:/ s/:.*//p" "$@"
 }
 
 # info_value [value...]
@@ -118,7 +118,7 @@ local file=$1
   while test "$#" -gt 1
   do
     shift
-    if ! grep -q "^$v:" "$1"
+    if ! ${GREP-grep} -q "^$v:" "$1"
     then
       return 1
     fi
@@ -131,8 +131,8 @@ local file=$1
 # -------------------------------------------------------------------------
 info_get()
 {
-  sed -n ":st; /^${1%:}:/ {
-    s/^${1%:}:\s*//
+  ${SED-sed} -n ":st; /^${1%:}\s*:/ {
+    s/^${1%:}\s*:\s*//
     :lp
     N
     /\n[^ \n][^\n]*\$/ {
@@ -170,7 +170,7 @@ info_unset()
   local file=$1
   shift
   test "$file" = - && unset file
-  sed -e ":st
+  ${SED-sed} -e ":st
 `info_expr_key "n;b st" "$@"`
 `info_expr_ml`
 `info_expr_subst "$@"`

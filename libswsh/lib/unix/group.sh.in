@@ -17,35 +17,35 @@ group_file="/etc/group"
 # -------------------------------------------------------------------------
 group_list()
 {
-  sed 's,:.*,,' ${group_file}
+  ${SED-sed} 's,:.*,,' ${group_file}
 }
 
 # outputs group table
 # -------------------------------------------------------------------------
 group_table()
 {
-  sed "s,:.*:.*:\(.*\), '\1'," ${group_file}
+  ${SED-sed} "s,:.*:.*:\(.*\), '\1'," ${group_file}
 }
 
 # outputs a list of gids
 # -------------------------------------------------------------------------
 group_gids()
 {
-  sed -n 's,^[^:]*:[^:]*:\([0-9]\+\):.*$,\1,p' ${group_file} | sort -n
+  ${SED-sed} -n 's,^[^:]*:[^:]*:\([0-9]\+\):.*$,\1,p' ${group_file} | sort -n
 }
 
 # gets group name by id
 # ----------------------------------------------------------------------------
 group_name()
 {
-  grep "^.*:x:$1:" ${group_file} | sed 's,:.*,,'
+  ${GREP-grep} "^.*:x:$1:" ${group_file} | ${SED-sed} 's,:.*,,'
 }
 
 # checks if a group exists
 # -------------------------------------------------------------------------
 group_exists()
 {
-  grep -q "^$1:" ${group_file}
+  ${GREP-grep} -q "^$1:" ${group_file}
 }
 
 # searches /etc/group for groups matching the supplied masks

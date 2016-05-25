@@ -37,7 +37,7 @@ distrib_list()
 
 distrib_flavour()
 {
-				sed '\|^\s*#|d; \|^\s*$|d; s,^\s*,,' </etc/apt/sources.list | awk '{ print $3 }'
+				${SED-sed} '\|^\s*#|d; \|^\s*$|d; s,^\s*,,' </etc/apt/sources.list | awk '{ print $3 }'
 }
 
 # distrib_relfile
@@ -116,11 +116,13 @@ distrib_canonical()
 
   id=`distrib_get id`
 
-	if [ "$(type -t "${id}_canonical")" = function ]; then
-					${id}_canonical "$@"
+  i=$(str_tolower "$id")
+
+	if [ "$(type -t "${i}_canonical")" = function ]; then
+					${i}_canonical "$@"
 	else
 
-					release=`distrib_get release | sed 's,[^.0-9A-Za-z],-,g'`
+					release=`distrib_get release | ${SED-sed} 's,[^.0-9A-Za-z],-,g'`
 
 					echo `str_tolower "${id%%[!A-Za-z0-9_]*}"`"${release:+-$release}"
 	fi

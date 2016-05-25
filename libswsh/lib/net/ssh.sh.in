@@ -80,7 +80,7 @@ ssh_agent_sock()
   else
     type lsof 1>/dev/null 2>/dev/null &&
     lsof -p"$pid" |
-    sed -n -e '\, unix .* /tmp/ssh-, s,.* ,,p'
+    ${SED-sed} -n -e '\, unix .* /tmp/ssh-, s,.* ,,p'
   fi
 }
 
