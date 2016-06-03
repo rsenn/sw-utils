@@ -63,7 +63,7 @@ EXPR=
 # -------------------------------------------------------------------------
 rpm_list()
 {
-  rpm_exec -q --all "$@"
+  rpm_exec "$@" -q --all 
 }
 
 # rpm_installed [packages...]
