@@ -135,10 +135,10 @@ str_to_list()
 # -------------------------------------------------------------------------
 str_quote()
 {
-  case "$1" in
-    *["$cr$lf$ht$vt"]*) echo "\$'`str_escape "$1"`'" ;;
-    *"$squote"*) echo "\"`str_escape "$1"`\"" ;;
-    *) echo "'$1'" ;;
+  case "$**" in
+    *["$cr$lf$ht$vt"]*) echo "\$'`str_escape "$*"`'" ;;
+    *"$squote"*) echo "\"`str_escape "$*"`\"" ;;
+    *) echo "'$*'" ;;
   esac
 }
 
@@ -148,7 +148,7 @@ str_quote()
 # -------------------------------------------------------------------------
 str_escape()
 {
-  local s=$1
+  local s=$*
   case $s in
     *[$cr$lf$ht$vt$'\200']*)
       s=${s//$'\\'/'\\'}
