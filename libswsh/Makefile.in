@@ -399,7 +399,7 @@ am__DIST_COMMON = $(srcdir)/Makefile.in \
 	$(top_srcdir)/src/utils/tok/Makefile.in \
 	$(top_srcdir)/src/utils/tok/tokgrep.in \
 	$(top_srcdir)/src/utils/tok/toksubst.in AUTHORS COPYING \
-	INSTALL README config.guess config.sub
+	INSTALL README
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
