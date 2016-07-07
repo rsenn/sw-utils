@@ -67,7 +67,7 @@ dependency_tracking="disable"
 maintainer_mode="disable"
 
 set bash "$MYDIR/configure" \
-    --with-shell="$SHELL" \
+    --with-shell="$(realpath $SHELL |sed 's,/usr,,')" \
     --program-prefix="" \
     --program-suffix="" \
     --disable-debug \
