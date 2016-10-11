@@ -21,6 +21,8 @@ test $lib_net_www_curl_sh || {
 # curl related global variables
 # -------------------------------------------------------------------------
 : ${CURL:="curl"}
+: ${CURL_secure:=false}
+: ${CURL_location:=true}
 
 CURL_OPTIONS="timeout,data,user,passwd,secure,location,silent,form,header"
 
