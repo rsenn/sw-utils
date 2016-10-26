@@ -286,33 +286,35 @@ sourceforge_url()
 # -------------------------------------------------------------------------
 sourceforge_search()
 {
- (local base="http://sourceforge.net/search?words="
+ (local base="http://sourceforge.net/directory/?q="
+ q=${*//' '/+}
 
-  www_links "$base${*//' '/+}" | {
-  : ${n=0}
-  prev=
-  next=
-  while read url
-  do
+  url="$base${q}${n:+&page=$n}" 
+ debug "Fetching: $url" 
+  : ${n:=1}
+	http_get "$url" | xml_get a href | {
+ url= prev= next= name=
+  while read url;  do
     case $url in
-      */projects/*)
-         url=${url%/}
-         url=${url##*/}
+      */projects/*"/?source=directory")
+         url=${url%"/?source="*}
+         name=${url##*/}
         ;;
-      $base*offset=$((n+10))*)
-         test -z "$prev" && continue
-
-         next="${url#$base}"
+			*page=$((n+1)))
+				debug "Page link: $url" 
+         link=${url#$base}
+				  test -z "$prev" -o "$prev" = "$link"  && continue
+         next=$link
         ;;
       *)
         continue
         ;;
     esac
-    test "$url" = "$prev" && continue
-    test "$url" = "$base$next" || echo "$url"
-    prev=$url
+    test "$name" = "$prev" && continue
+    echo "$name"
+		prev=$name
   done
-  test -n "$next" && n=$((n+10)) sourceforge_search "$next"
+  test -n "$next" && n=$((n+1)) sourceforge_search "$q"
   })
 }
 
