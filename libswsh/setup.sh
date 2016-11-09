@@ -7,6 +7,12 @@ case `type echo`:`echo -e ...` in
   *) echo_e_arg="-e" ;;
 esac
 
+type basename >/dev/null 2>/dev/null || basename() {
+ (for ARG; do
+    echo "${ARG##*/}"
+  done)
+}
+
 # Be more Bourne compatible - stolen from GNU autoconf
 # ---------------------------------------------------------------------------
 DUALCASE=1; export DUALCASE # for MKS sh
