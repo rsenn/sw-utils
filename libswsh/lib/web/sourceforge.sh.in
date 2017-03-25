@@ -23,7 +23,7 @@
 : ${SOURCEFORGE_proto:="http"}
 : ${SOURCEFORGE_host:="sourceforge.net"}
 : ${SOURCEFORGE_proj_url:="$SOURCEFORGE_proto://$SOURCEFORGE_host/projects"}
-: ${SOURCEFORGE_mirrors:="switch heanet belnet puzzle"}
+: ${SOURCEFORGE_mirrors:="freefr netcologne netassist iweb superb excellmedia superb cytranet svwh nchc ufpr"}
 
 # -------------------------------------------------------------------------
 sourceforge_dump()
