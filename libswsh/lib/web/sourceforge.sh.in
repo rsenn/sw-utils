@@ -23,7 +23,7 @@
 : ${SOURCEFORGE_proto:="http"}
 : ${SOURCEFORGE_host:="sourceforge.net"}
 : ${SOURCEFORGE_proj_url:="$SOURCEFORGE_proto://$SOURCEFORGE_host/projects"}
-: ${SOURCEFORGE_mirrors:="freefr netcologne netassist iweb superb excellmedia superb cytranet svwh nchc ufpr"}
+: ${SOURCEFORGE_mirrors:="cytranet excellmedia freefr iweb nchc netassist netcologne superb superb-dca2 superb-sea2 svwh ufpr"}
 
 # -------------------------------------------------------------------------
 sourceforge_dump()
