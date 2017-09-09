@@ -26,6 +26,24 @@
 : ${SOURCEFORGE_mirrors:="cytranet excellmedia freefr iweb nchc netassist netcologne superb superb-dca2 superb-sea2 svwh ufpr"}
 
 # -------------------------------------------------------------------------
+sourceforge_get_mirrors()
+{
+  require http
+  require xml
+
+ (FILTERCMD='sed "s,<label for=\"mirror_\([^\"]*\)\">\([^<]*\).*,\1 \2,p" -n'
+	STDIN=`readlink /proc/self/fd/0`
+	case "$STDIN" in
+					*/pts/*) FILTERCMD="$FILTERCMD|format"; format() { IFS=" "; while read -r NAME DESC; do printf "%-20s %s\n" "$NAME" "$DESC";	done; } ;; 
+	esac
+	echo "$FILTERCMD" 1>&2
+	http_get "https://sourceforge.net/settings/mirror_choices?projectname=mingw&filename=Installer/mingw-get-setup.exe" |
+					eval "$FILTERCMD
+	"
+	)
+
+}
+# -------------------------------------------------------------------------
 sourceforge_dump()
 {
   local page IFS="$nl" name=$1 title=
