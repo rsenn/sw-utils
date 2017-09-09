@@ -23,7 +23,7 @@
 : ${SOURCEFORGE_proto:="http"}
 : ${SOURCEFORGE_host:="sourceforge.net"}
 : ${SOURCEFORGE_proj_url:="$SOURCEFORGE_proto://$SOURCEFORGE_host/projects"}
-: ${SOURCEFORGE_mirrors:="cytranet excellmedia freefr iweb nchc netassist netcologne superb superb-dca2 superb-sea2 svwh ufpr"}
+SOURCEFORGE_mirrors="netcologne${NL}kent${NL}10gbps-io${NL}netix${NL}vorboss${NL}iweb${NL}pilotfiber${NL}superb-dca2${NL}managedway${NL}gigenet${NL}newcontinuum${NL}excellmedia${NL}cfhcable${NL}astuteinternet${NL}versaweb${NL}phoenixnap${NL}ayera${NL}cytranet${NL}svwh${NL}jaist${NL}ncu${NL}nchc${NL}ufpr${NL}razaoinfo${NL}freefr"
 
 # -------------------------------------------------------------------------
 sourceforge_get_mirrors()
