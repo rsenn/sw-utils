@@ -263,7 +263,7 @@ sourceforge_url()
         c0=`str_index 0 "$project"`
         c1=`str_index 1 "$project"`
 
-        url="ftp://heanet.dl.sourceforge.net/mirrors/sourceforge/$c0/project/$c0$c1/$project/"
+        url="ftp://netix.dl.sourceforge.net/sourceforge/$c0/$c0$c1/$project/"
 #        url="http://heanet.dl.sourceforge.net/sourceforge/$project"
       ;;
       tgz)
@@ -281,6 +281,30 @@ sourceforge_url()
      echo "$url"
      shift
   done)
+}
+
+# -------------------------------------------------------------------------
+sourceforge_file() {
+ for URL; do 
+
+				 (case "$URL" in
+									*projects/*) PROJECT=${URL##*projects/}; PROJECT=${PROJECT%%[\?#&/]*} ;;
+                   *project/*) PROJECT=${URL##*project/}; PROJECT=${PROJECT%%[\?#&/]*} ;;
+									*/p/*) PROJECT=${URL#*project/}; PROJECT=${PROJECT%%[\?#&/]*} ;;
+					esac
+					case "$URL" in
+									*/files/*) FILE=${URL##*/files/}; FILE=${FILE%%[\?/#&/]*} ;;
+
+					esac
+					var_dump PROJECT FILE
+
+					OUTPUT=$(sourceforge_url "$PROJECT" download)
+					OUTPUT="${OUTPUT%/}/$FILE"
+
+					echo "$OUTPUT")
+	done
+
+
 }
 
 # -------------------------------------------------------------------------
