@@ -33,11 +33,11 @@ sourceforge_get_mirrors()
   require xml
 
  (FILTERCMD='sed "/mirror_autoselect/d; s,\t, ,g; s,^\s*,, ;  s,\s\+, ,; s,<label for=\"mirror_\([^\"]*\)\">\([^<]*\).*,\1 \2,p" -n'
-	echo "STDOUT=$STDOUT" 1>&2
+
 	case "$STDOUT" in
 					*/pts/*) FILTERCMD="$FILTERCMD|format"; format() { IFS=" "; while read -r NAME DESC; do printf "%-20s %s\n" "$NAME" "$DESC";	done; } ;; 
 	esac
-	echo "$FILTERCMD" 1>&2
+
 	http_get "https://sourceforge.net/settings/mirror_choices?projectname=mingw&filename=Installer/mingw-get-setup.exe" |
 					eval "$FILTERCMD
 	"
