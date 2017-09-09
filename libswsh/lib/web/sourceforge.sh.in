@@ -296,7 +296,6 @@ sourceforge_file() {
 									*/files/*) FILE=${URL##*/files/}; FILE=${FILE%/download}; FILE=${FILE%%[\?/#&]*} ;;
 
 					esac
-					var_dump PROJECT FILE
 
 					OUTPUT=$(sourceforge_url "$PROJECT" download)
 					OUTPUT="${OUTPUT%/}/$FILE"
