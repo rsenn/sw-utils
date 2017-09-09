@@ -28,12 +28,12 @@ SOURCEFORGE_mirrors="netcologne${NL}kent${NL}10gbps-io${NL}netix${NL}vorboss${NL
 # -------------------------------------------------------------------------
 sourceforge_get_mirrors()
 {
-	STDOUT=`realpath /proc/self/fd/2 || readlink /proc/self/fd/2`
+	STDOUT=`realpath /proc/self/fd/0 0<&2 || readlink /proc/self/fd/0 0<&2`
   require http
   require xml
 
- (FILTERCMD='sed "/mirror_autoselect/d; s,\t, ,g; s,^\s*,, ;  s,\s\+, ,; s,<label for=\"mirror_\([^\"]*\)\">\([^<]*\).*,\1 \2,p" -n'
- #var_dump STDOUT 1>&2
+ FILTERCMD='sed "/mirror_autoselect/d; s,\t, ,g; s,^\s*,, ;  s,\s\+, ,; s,<label for=\"mirror_\([^\"]*\)\">\([^<]*\).*,\1 \2,p" -n'
+ [ "$DEBUG" != true ] || var_dump STDOUT 1>&2
 	case "$STDOUT" in
 					/dev/tty* | /dev/pty* | /dev/pts/*) FILTERCMD="$FILTERCMD|format"; format() { IFS=" "; while read -r NAME DESC; do printf "%-20s %s\n" "$NAME" "$DESC";	done; } ;; 
 	esac
@@ -41,7 +41,7 @@ sourceforge_get_mirrors()
 	http_get "https://sourceforge.net/settings/mirror_choices?projectname=mingw&filename=Installer/mingw-get-setup.exe" |
 					eval "$FILTERCMD
 	"
-	)
+	
 
 }
 # -------------------------------------------------------------------------
