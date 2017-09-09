@@ -312,7 +312,7 @@ sourceforge_file() {
 									*/p/*) PROJECT=${URL#*project/}; PROJECT=${PROJECT%%[\?#&/]*} ;;
 					esac
 					case "$URL" in
-									*/files/*) FILE=${URL##*/files/}; FILE=${FILE%/download}; FILE=${FILE%%[\?/#&]*} ;;
+									*/files/*) FILE=${URL##*/files/}; FILE=${FILE%/download}; FILE=${FILE%%[\?#&]*} ;;
 
 					esac
 
