@@ -31,7 +31,7 @@ sourceforge_get_mirrors()
   require http
   require xml
 
- (FILTERCMD='sed "s,<label for=\"mirror_\([^\"]*\)\">\([^<]*\).*,\1 \2,p" -n'
+ (FILTERCMD='sed "/mirror_autoselect/d; s,<label for=\"mirror_\([^\"]*\)\">\([^<]*\).*,\1 \2,p" -n'
 	STDIN=`readlink /proc/self/fd/0`
 	case "$STDIN" in
 					*/pts/*) FILTERCMD="$FILTERCMD|format"; format() { IFS=" "; while read -r NAME DESC; do printf "%-20s %s\n" "$NAME" "$DESC";	done; } ;; 
