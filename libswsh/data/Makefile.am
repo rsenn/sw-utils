@@ -18,8 +18,7 @@ pkgdata_DATA = \
 
 # Templates for creating software-ports
 templatedir = $(pkgdatadir)/templates
-template_DATA = \
-    Pkgtemplate
+template_DATA = Pkgtemplate
 
 # Templates for the newfile(1) utility
 NEWFILE_TEMPLATES = \

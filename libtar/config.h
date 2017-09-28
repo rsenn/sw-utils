@@ -56,7 +56,7 @@
 #define HAVE_STRING_H 1
 
 /* Define if you have the strlcpy function */
-#define HAVE_STRLCPY 1
+/* #undef HAVE_STRLCPY */
 
 /* Define if you have the strmode function */
 /* #undef HAVE_STRMODE */
