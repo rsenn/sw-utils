@@ -268,13 +268,12 @@ lib/buildsys.sh
 lib/bytesize.sh
 lib/distrib.sh
 lib/fs.sh
-lib/pkg.sh
 lib/pkgmgr.sh
+lib/pkg.sh
 lib/port.sh
 lib/service.sh
 lib/shdoc.sh
 lib/swsh.sh
-lib/template.sh
 lib/term.sh
 lib/util.sh
 lib/xtra.sh
@@ -297,7 +296,6 @@ lib/buildsys/plmake.sh
 lib/buildsys/pysetup.sh
 lib/buildsys/autotools/Makefile
 lib/class/Makefile
-lib/class/tempfile.sh
 lib/code/Makefile
 lib/code/bin.sh
 lib/code/perl.sh

@@ -99,8 +99,8 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES = archive.sh buildsys.sh bytesize.sh distrib.sh \
-	fs.sh pkg.sh pkgmgr.sh port.sh service.sh shdoc.sh swsh.sh \
-	template.sh term.sh util.sh xtra.sh
+	fs.sh pkgmgr.sh pkg.sh port.sh service.sh shdoc.sh swsh.sh \
+	term.sh util.sh xtra.sh
 CONFIG_CLEAN_VPATH_FILES =
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -191,8 +191,8 @@ am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/archive.sh.in \
 	$(srcdir)/distrib.sh.in $(srcdir)/fs.sh.in $(srcdir)/pkg.sh.in \
 	$(srcdir)/pkgmgr.sh.in $(srcdir)/port.sh.in \
 	$(srcdir)/service.sh.in $(srcdir)/shdoc.sh.in \
-	$(srcdir)/swsh.sh.in $(srcdir)/template.sh.in \
-	$(srcdir)/term.sh.in $(srcdir)/util.sh.in $(srcdir)/xtra.sh.in
+	$(srcdir)/swsh.sh.in $(srcdir)/term.sh.in $(srcdir)/util.sh.in \
+	$(srcdir)/xtra.sh.in
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 am__relativize = \
   dir0=`pwd`; \
@@ -331,6 +331,7 @@ prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
 relprefix = @relprefix@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 servicedir = @servicedir@
 sharedstatedir = @sharedstatedir@
@@ -350,11 +351,11 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUBDIRS = algorithm archive buildsys class code compat compression daemons data database devel distrib djb fs net pkgmgr pkgtool ports service shell std sys term trace unix utils vcs web
-GENERATED_FILES = archive.sh buildsys.sh bytesize.sh distrib.sh fs.sh pkg.sh pkgmgr.sh port.sh service.sh shdoc.sh swsh.sh template.sh term.sh util.sh xtra.sh
-INPUT_FILES = archive.sh.in buildsys.sh.in bytesize.sh.in distrib.sh.in fs.sh.in pkg.sh.in pkgmgr.sh.in port.sh.in service.sh.in shdoc.sh.in swsh.sh.in template.sh.in term.sh.in util.sh.in xtra.sh.in
+GENERATED_FILES = archive.sh buildsys.sh bytesize.sh distrib.sh fs.sh pkgmgr.sh pkg.sh port.sh service.sh shdoc.sh swsh.sh term.sh util.sh xtra.sh
+INPUT_FILES = archive.sh.in buildsys.sh.in bytesize.sh.in distrib.sh.in fs.sh.in pkgmgr.sh.in pkg.sh.in port.sh.in service.sh.in shdoc.sh.in swsh.sh.in term.sh.in util.sh.in xtra.sh.in
 DISTRIBUTED_FILES = src.sh ui.sh
 pkgshdir = $(libdir)/sh
-pkgsh_DATA = archive.sh buildsys.sh bytesize.sh distrib.sh fs.sh pkg.sh pkgmgr.sh port.sh service.sh shdoc.sh src.sh swsh.sh template.sh term.sh ui.sh util.sh xtra.sh
+pkgsh_DATA = archive.sh buildsys.sh bytesize.sh distrib.sh fs.sh Makefile pkgmgr.sh pkg.sh port.sh service.sh shdoc.sh src.sh swsh.sh term.sh ui.sh util.sh xtra.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(DISTRIBUTED_FILES) $(INPUT_FILES)
 CLEANFILES = $(GENERATED_FILES) stamp-init
@@ -401,9 +402,9 @@ distrib.sh: $(top_builddir)/config.status $(srcdir)/distrib.sh.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 fs.sh: $(top_builddir)/config.status $(srcdir)/fs.sh.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
-pkg.sh: $(top_builddir)/config.status $(srcdir)/pkg.sh.in
-	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 pkgmgr.sh: $(top_builddir)/config.status $(srcdir)/pkgmgr.sh.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+pkg.sh: $(top_builddir)/config.status $(srcdir)/pkg.sh.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 port.sh: $(top_builddir)/config.status $(srcdir)/port.sh.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
@@ -412,8 +413,6 @@ service.sh: $(top_builddir)/config.status $(srcdir)/service.sh.in
 shdoc.sh: $(top_builddir)/config.status $(srcdir)/shdoc.sh.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 swsh.sh: $(top_builddir)/config.status $(srcdir)/swsh.sh.in
-	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
-template.sh: $(top_builddir)/config.status $(srcdir)/template.sh.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 term.sh: $(top_builddir)/config.status $(srcdir)/term.sh.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@

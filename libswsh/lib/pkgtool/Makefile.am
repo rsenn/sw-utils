@@ -6,7 +6,7 @@ INPUT_FILES = apt.sh.in yum.sh.in zypper.sh.in
 
 pkgshdir = $(libdir)/sh/pkgtool
 
-pkgsh_DATA = apt.sh yum.sh zypper.sh
+pkgsh_DATA = apt.sh Makefile yum.sh zypper.sh
 noinst_DATA = $(INPUT_FILES)
 EXTRA_DIST = $(INPUT_FILES)
 

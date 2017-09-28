@@ -263,6 +263,7 @@ prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
 relprefix = @relprefix@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 servicedir = @servicedir@
 sharedstatedir = @sharedstatedir@
@@ -282,7 +283,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 pkgshdir = $(libdir)/sh/net/server
-pkgsh_DATA = 
+pkgsh_DATA = Makefile
 EXTRA_DIST = 
 CONFIG_MAINTAINERCLEAN_FILES = Makefile.in
 all: all-am

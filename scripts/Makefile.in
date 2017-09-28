@@ -91,9 +91,9 @@ host_triplet = @host@
 target_triplet = @target@
 subdir = scripts
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/bzlib.m4 $(top_srcdir)/m4/db.m4 \
-	$(top_srcdir)/m4/libtar.m4 $(top_srcdir)/m4/pkgsrc.m4 \
-	$(top_srcdir)/m4/zlib.m4 $(top_srcdir)/build/gnu/libtool.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/m4/db.m4 \
+	$(top_srcdir)/m4/pkgsrc.m4 $(top_srcdir)/m4/zlib.m4 \
+	$(top_srcdir)/build/gnu/libtool.m4 \
 	$(top_srcdir)/build/gnu/ltoptions.m4 \
 	$(top_srcdir)/build/gnu/ltsugar.m4 \
 	$(top_srcdir)/build/gnu/ltversion.m4 \
@@ -176,12 +176,6 @@ AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
 BUILD_DEBUG = @BUILD_DEBUG@
 BUILD_OPT = @BUILD_OPT@
-BZLIB_CFLAGS = @BZLIB_CFLAGS@
-BZLIB_DIR = @BZLIB_DIR@
-BZLIB_ENABLE = @BZLIB_ENABLE@
-BZLIB_INC_DIR = @BZLIB_INC_DIR@
-BZLIB_LIBS = @BZLIB_LIBS@
-BZLIB_LIB_DIR = @BZLIB_LIB_DIR@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
@@ -221,13 +215,6 @@ LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
-LIBTAR_CFLAGS = @LIBTAR_CFLAGS@
-LIBTAR_DIR = @LIBTAR_DIR@
-LIBTAR_ENABLE = @LIBTAR_ENABLE@
-LIBTAR_INC_DIR = @LIBTAR_INC_DIR@
-LIBTAR_LIBS = @LIBTAR_LIBS@
-LIBTAR_LIB_DIR = @LIBTAR_LIB_DIR@
-LIBTAR_SUBDIR = @LIBTAR_SUBDIR@
 LIBTOOL = @LIBTOOL@
 LIPO = @LIPO@
 LN_S = @LN_S@
@@ -315,6 +302,7 @@ psdir = @psdir@
 rellocalstatedir = @rellocalstatedir@
 relprefix = @relprefix@
 relsysconfdir = @relsysconfdir@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 shlibdir = @shlibdir@

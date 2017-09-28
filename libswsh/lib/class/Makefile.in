@@ -98,7 +98,7 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
-CONFIG_CLEAN_FILES = tempfile.sh
+CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -147,9 +147,9 @@ am__uninstall_files_from_dir = { \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
 am__installdirs = "$(DESTDIR)$(pkgshdir)"
-DATA = $(noinst_DATA) $(pkgsh_DATA)
+DATA = $(pkgsh_DATA)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
-am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/tempfile.sh.in
+am__DIST_COMMON = $(srcdir)/Makefile.in
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 pkgdatadir = @pkgdatadir@
 ACLOCAL = @ACLOCAL@
@@ -263,6 +263,7 @@ prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
 relprefix = @relprefix@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 servicedir = @servicedir@
 sharedstatedir = @sharedstatedir@
@@ -281,13 +282,9 @@ templatedir = @templatedir@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-GENERATED_FILES = tempfile.sh
-INPUT_FILES = tempfile.sh.in
 pkgshdir = $(libdir)/sh/class
-pkgsh_DATA = tempfile.sh
-noinst_DATA = $(INPUT_FILES)
-EXTRA_DIST = $(INPUT_FILES)
-CLEANFILES = $(GENERATED_FILES) stamp-init
+pkgsh_DATA = Makefile
+EXTRA_DIST = 
 CONFIG_MAINTAINERCLEAN_FILES = Makefile.in
 all: all-am
 
@@ -321,8 +318,6 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-tempfile.sh: $(top_builddir)/config.status $(srcdir)/tempfile.sh.in
-	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 install-pkgshDATA: $(pkgsh_DATA)
 	@$(NORMAL_INSTALL)
 	@list='$(pkgsh_DATA)'; test -n "$(pkgshdir)" || list=; \
@@ -410,7 +405,6 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
-	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
@@ -498,12 +492,6 @@ uninstall-am: uninstall-pkgshDATA
 
 maintainer-clean-generic:
 	rm -f Makefile.am
-
-stamp-init: $(INPUT_FILES) $(top_builddir)/config.status
-	cd $(top_builddir) && ./config.status `for file in $(GENERATED_FILES); do echo lib/class/$$file; done`
-	touch $@
-
-$(GENERATED_FILES): stamp-init
 
 maintainer-clean-am: distclean-am maintainer-clean-generic
 	-rm -f $(CONFIG_MAINTAINERCLEAN_FILES)
