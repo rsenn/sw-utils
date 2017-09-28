@@ -301,9 +301,7 @@ INPUT_FILES = \
 pkgdata_DATA = \
   freshmeat_categories.txt
 
-template_DATA = \
-    Pkgtemplate
-
+template_DATA = Pkgtemplate
 
 # Templates for the newfile(1) utility
 NEWFILE_TEMPLATES = \
