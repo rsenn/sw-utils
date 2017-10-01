@@ -62,9 +62,9 @@ echo 1>&2
 case $PREFIX in 
   "/usr") sysconfdir="/etc" localstatedir="/var" bindir="/bin" ;;
 esac
-silent_rules="disable"
-dependency_tracking="disable"
-maintainer_mode="disable"
+: ${silent_rules="disable"}
+: ${dependency_tracking="disable"}
+: ${maintainer_mode="disable"}
 
 set bash "$MYDIR/configure" \
     --with-shell="$SHELL" \

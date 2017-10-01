@@ -167,3 +167,17 @@ dist-hook:
 	@list='$(BUILD_DIST_FILES)'; for p in $$list; do \
 		cp $(srcdir)/$$p $(distdir)/$$p; \
 	done
+
+slackpkg: 
+slackpkg: all
+	@set -x; distdir="_inst"; rm -rf $$distdir; \
+		$(MAKE) install DESTDIR="$$(realpath $$distdir)"; \
+		tar -cJf sw-utils-`date +%Y%m%d`-slackware.txz -C $$distdir .; \
+		rm -rf $$distdir
+
+
+inst-slackpkg: slackpkg
+	for x in /m*/*/pmagic/pmodules/; do \
+		rm -vf "$$x"/sw-utils-*.txz; \
+		cp -vf sw-utils-`date +%Y%m%d`-slackware.txz "$$x"; \
+  done
