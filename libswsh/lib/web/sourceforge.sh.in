@@ -282,7 +282,8 @@ sourceforge_url()
         c0=`str_index 0 "$project"`
         c1=`str_index 1 "$project"`
 
-        url="ftp://netix.dl.sourceforge.net/sourceforge/$c0/$c0$c1/$project/"
+        #url="ftp://netix.dl.sourceforge.net/sourceforge/$c0/$c0$c1/$project/"
+        url="ftp://kent.dl.sourceforge.net/sites/dl.sourceforge.net/pub/sourceforge/$c0/$c0$c1/$project/"
 #        url="http://heanet.dl.sourceforge.net/sourceforge/$project"
       ;;
       tgz)
