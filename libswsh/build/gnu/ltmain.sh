@@ -31,13 +31,8 @@
 
 PROGRAM=libtool
 PACKAGE=libtool
-<<<<<<< HEAD
 VERSION=2.4.6.40-6ca5
 package_revision=2.4.6.40
-=======
-VERSION=2.4.6
-package_revision=2.4.6
->>>>>>> 20de53a6f389ac2a880c71b6c5bf0f37413a14bf
 
 
 ## ------ ##
@@ -2277,7 +2272,7 @@ include the following information:
        autoconf:       `($AUTOCONF --version) 2>/dev/null |$SED 1q`
 
 Report bugs to <bug-libtool@gnu.org>.
-GNU libtool home page: <http://www.gnu.org/software/libtool/>.
+GNU libtool home page: <http://www.gnu.org/s/libtool/>.
 General help using GNU software: <http://www.gnu.org/gethelp/>."
     exit 0
 }
@@ -7492,8 +7487,8 @@ func_mode_link ()
       # -tp=*                Portland pgcc target processor selection
       # --sysroot=*          for sysroot support
       # -O*, -g*, -flto*, -fwhopr*, -fuse-linker-plugin GCC link-time optimization
+      # -specs=*             GCC specs files
       # -stdlib=*            select c++ std lib with clang
-<<<<<<< HEAD
       # -fsanitize=*         Clang/GCC memory and address sanitizer
       # -fuse-ld=*           Linker select flags for GCC
       -64|-mips[0-9]|-r[0-9][0-9]*|-xarch=*|-xtarget=*|+DA*|+DD*|-q*|-m*| \
@@ -7502,13 +7497,6 @@ func_mode_link ()
       -specs=*|-fsanitize=*|-fuse-ld=*)
         func_quote_arg pretty "$arg"
 	arg=$func_quote_arg_result
-=======
-      -64|-mips[0-9]|-r[0-9][0-9]*|-xarch=*|-xtarget=*|+DA*|+DD*|-q*|-m*| \
-      -t[45]*|-txscale*|-p|-pg|--coverage|-fprofile-*|-F*|@*|-tp=*|--sysroot=*| \
-      -O*|-g*|-flto*|-fwhopr*|-fuse-linker-plugin|-fstack-protector*|-stdlib=*)
-        func_quote_for_eval "$arg"
-	arg=$func_quote_for_eval_result
->>>>>>> 20de53a6f389ac2a880c71b6c5bf0f37413a14bf
         func_append compile_command " $arg"
         func_append finalize_command " $arg"
         func_append compiler_flags " $arg"
