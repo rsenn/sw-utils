@@ -14,7 +14,7 @@ test $lib_bytesize_sh || {
 
 # Load dependency modules
 # -------------------------------------------------------------------------
-. $shlibdir/math.sh
+. $shlibdir/std/math.sh
 
 # size_unit <size>
 # -------------------------------------------------------------------------
