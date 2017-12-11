@@ -11,7 +11,7 @@ test $lib_patch_sh || {
 : ${libdir:="@libdir@"}
 : ${shlibdir:="@shlibdir@"}
 
-. $shlibdir/path.sh
+. $shlibdir/fs/path.sh
 . $shlibdir/std/str.sh
 
 # patch_cmd [options] <patch> [dir]

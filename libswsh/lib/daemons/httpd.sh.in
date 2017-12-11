@@ -16,7 +16,7 @@ test $lib_httpd_sh || {
 : ${httpd_config:=$sysconfdir/httpd.conf}
 : ${httpd_libdir:="@httpd_libdir@"}
 
-. $shlibdir/path.sh
+. $shlibdir/fs/path.sh
 
 # httpd_conf_read [config]
 #

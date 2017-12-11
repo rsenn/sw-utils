@@ -15,7 +15,7 @@ test $lib_pkg_sh || {
 #: ${targetpkgdir:="@targetpkgdir@"}
 
 . $shlibdir/std/array.sh
-. $shlibdir/path.sh
+. $shlibdir/fs/path.sh
 . $shlibdir/fs/dir.sh
 . $shlibdir/port.sh
 

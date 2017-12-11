@@ -21,7 +21,7 @@ target=$current_target
 # load the necessary libraries
 # ---------------------------------------------------------------------------
 source $shlibdir/util.sh
-source $shlibdir/var.sh
+source $shlibdir/std/var.sh
 source $shlibdir/std/array.sh
 source $shlibdir/port.sh
 source $shlibdir/fs.sh

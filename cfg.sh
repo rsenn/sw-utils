@@ -94,3 +94,14 @@ trap 'finish' EXIT
 eval "$CMD; R=\$?"
 
 
+
+cfg32() {
+  case "$CC $*" in
+      *-m32*) host=i686-${host#*-} libdir=/usr/lib32 cpu=x86_64 ;;
+      *i[3-6]86*) host=i686-${host#*-} cpu=i386 ;;
+  esac
+  case "$host" in
+    i?86*) a=i686 cpu=i386 m="-m32" l="32" ;;
+    *) a=x86_64 cpu=x86_64 m="-m64" l="" ;;
+  esac
+}

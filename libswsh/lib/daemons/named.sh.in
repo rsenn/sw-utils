@@ -15,7 +15,7 @@ test $lib_named_sh || {
 # now set the default named config file
 : ${named_conf:="$sysconfdir/bind/named.conf"}
 
-. $shlibdir/path.sh
+. $shlibdir/fs/path.sh
 
 # named_conf_read [config]
 #
