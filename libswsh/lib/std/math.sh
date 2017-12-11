@@ -78,7 +78,7 @@ log1024()
 {
  (log=0 mul=1
   while :; do
-    [ `expr $mul * 1024` -gt "$1" ] && break
+    [ "$(( $mul * 1024))" -gt "$1" ] && break
     mul=`expr $mul * 1024`
     log=`expr $log + 1`
   done
