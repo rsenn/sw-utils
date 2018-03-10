@@ -43,7 +43,7 @@ avg()
 {
  (sum=0
   for val; do
-    sum=`expr $sum + $val`
+    sum=$((sum + val))
   done
   expr $sum / $#)
 }
@@ -53,9 +53,9 @@ avg()
 log10()
 {
  (log=0 mul=1
-  while [ "`expr $mul \* 10 `" -le "$1" ]; do
-    mul=`expr $mul \* 10`
-    log=`expr $log + 1`
+  while [ $((mul * 10)) -le "$1" ]; do
+    mul=$((mul * 10))
+    log=$((log + 1))
   done
   echo $log)
 }
@@ -65,9 +65,9 @@ log10()
 log2()
 {
  (log=0 mul=1
-  while [ "`expr $mul \* 2`" -le "$1" ]; do
-    mul=`expr $mul \* 2`
-    log=`expr $log + 1`
+  while [ $((mul * 2)) -le "$1" ]; do
+    mul=$((mul * 2))
+    log=$((log + 1))
   done
   echo $log)
 }
@@ -94,8 +94,8 @@ exp10()
   base=${2-1}
 
   while [ ${exp} -gt 0 ]; do
-    val=`expr $val \* 10`
-    exp=`expr $exp - 1`
+    val=$((val * 10))
+    exp=$((exp - 1))
   done
 
   expr $val \* $base)
