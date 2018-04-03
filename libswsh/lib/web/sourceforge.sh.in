@@ -23,7 +23,7 @@
 : ${SOURCEFORGE_proto:="http"}
 : ${SOURCEFORGE_host:="sourceforge.net"}
 : ${SOURCEFORGE_proj_url:="$SOURCEFORGE_proto://$SOURCEFORGE_host/projects"}
-SOURCEFORGE_mirrors="netcologne${NL}kent${NL}10gbps-io${NL}netix${NL}vorboss${NL}iweb${NL}pilotfiber${NL}superb-dca2${NL}managedway${NL}gigenet${NL}newcontinuum${NL}excellmedia${NL}cfhcable${NL}astuteinternet${NL}versaweb${NL}phoenixnap${NL}ayera${NL}cytranet${NL}svwh${NL}jaist${NL}ncu${NL}nchc${NL}ufpr${NL}razaoinfo${NL}freefr"
+SOURCEFORGE_mirrors="netcologne${nl}kent${nl}10gbps-io${nl}netix${nl}vorboss${nl}iweb${nl}pilotfiber${nl}superb-dca2${nl}managedway${nl}gigenet${nl}newcontinuum${nl}excellmedia${nl}cfhcable${nl}astuteinternet${nl}versaweb${nl}phoenixnap${nl}ayera${nl}cytranet${nl}svwh${nl}jaist${nl}ncu${nl}nchc${nl}ufpr${nl}razaoinfo${nl}freefr"
 
 # -------------------------------------------------------------------------
 sourceforge_get_mirrors()
