@@ -1,0 +1,240 @@
+#!/bin/sh
+#
+# pkgtool/pacman.sh: pacman package tool abstraction
+#
+# $Id: pacman.sh.in 936 2009-03-28 07:48:41Z enki $
+# -------------------------------------------------------------------------
+test $lib_pkgtool_pacman_sh || {
+
+# Set any directory variable needed and not yet set
+# -------------------------------------------------------------------------
+: ${prefix:="@prefix@"}
+: ${exec_prefix:="@exec_prefix@"}
+: ${libdir:="@libdir@"}
+: ${shlibdir:="@shlibdir@"}
+
+# Load dependency modules
+# -------------------------------------------------------------------------
+. $shlibdir/util.sh
+. $shlibdir/std/array.sh
+
+# pacman_list
+#
+# List all known packages...
+# -------------------------------------------------------------------------
+pacman_list()
+{
+ (CMD='${PACMAN-pacman} -Ss | sed -n "/^[^ ]/p"'
+
+	while :; do
+		case "$1" in
+			-V | --noversion) VERSION="false"; shift ;;
+			*) break ;;
+		esac
+	done
+
+    [ "$VERSION" = false ] && CMD="$CMD | sed 's| .*||'"
+
+	eval "$CMD")
+}
+
+# pacman_search [-q] <search-tokens...>
+#
+# Search for a package...
+# -------------------------------------------------------------------------
+pacman_search()
+{
+ (filter="cat" IFS=" "
+  case $1 in
+    -q) 
+      filter="sed s/\s.*//"
+      shift 
+    ;;
+  esac
+  ${PACMAN-pacman} -Ss "$@" | $filter)
+}
+
+# pacman_match <search-token>
+#
+# Search for a package by name.
+# -------------------------------------------------------------------------
+pacman_match()
+{
+ (unset arg
+  IFS=" ""
+";case $1 in
+    -q) arg="$1"
+        shift
+    ;;
+  esac
+    for tok
+    do
+      (pacman_search ${arg+"$arg"} "$tok" | grep "$tok")
+    done
+
+ #(for pkg; do pacman_search $arg "$pkg"; done) | (IFS="|"; egrep "($*)")
+ )
+}
+
+# pacman_install <package-masks...>
+# -------------------------------------------------------------------------
+pacman_install()
+(
+  IFS="
+"  
+  unset PACKAGES
+
+  for PATTERN; do
+    if is_pattern "$PATTERN"; then
+      PACKAGES="${PACKAGES+$PACKAGES$IFS}`pacman_match -q "$PATTERN"`"
+    else
+      PACKAGES="${PACKAGES+$PACKAGES$IFS}$PATTERN"
+    fi
+  done
+
+  ${PACMAN-pacman} -S $PACKAGES
+)
+
+# pacman_info <package-names...>
+#
+# Search for a package by name.
+# -------------------------------------------------------------------------
+pacman_info()
+{
+  CMD='${PACMAN-pacman} -Qi "$@"'
+  [ $# -gt 1 ] &&
+    CMD="$CMD | while read -r LINE; do
+    case \$LINE in
+      Package:*) PKG=\${LINE#*Name: } ;;
+    esac
+    echo \"\$PKG: \$LINE\"
+  done"
+  eval "$CMD"
+}
+
+# pacman_rdeps <package-names...>
+#
+# Show reverse dependencies
+# -------------------------------------------------------------------------
+pacman_rdeps()
+{
+  require info
+  for PKG; do
+    pacman -Qi "$PKG" | info_get "Required By" | sed "s|\\s\\+| |g ; s|^|$PKG: |"
+  done
+}
+
+# pacman_deps <package-name>
+#
+# Show dependencies
+# -------------------------------------------------------------------------
+pacman_deps()
+{
+  require info
+  for PKG; do
+    pacman -Qi "$PKG" | info_get "Depends On" | sed "s|\\s\\+| |g ; s|^|$PKG: |"
+  done
+}
+
+# pacman_deps_recursive <package-names...>
+#
+# Show dependencies
+# -------------------------------------------------------------------------
+pacman_deps_recursive()
+{
+  local dep IFS="
+"" "
+  [ "${deps-unset}" = unset ] && local deps=
+#  test "${depth-unset}" = unset && local depth=0
+  local depth=$((depth + 1))
+
+  if [ "${WS-unset}" = unset ]; then
+    local WS=
+  elif [ "${WS+set}" = set ]; then
+    local WS=${indent-"  "}"$WS"
+  fi
+
+  for dep in `pacman_deps "$@"`
+  do
+    if ! array_isin deps "$dep"
+    then
+      echo "$WS$dep"
+      array_push deps "$dep"
+      
+      if test "$maxdepth" && test "$maxdepth" -lt "$depth"
+      then
+        continue
+      fi
+      pacman_deps_recursive "$dep"
+    fi
+  done
+
+}
+
+# pacman_deps_recursive2 <package-names...>
+#
+# Show dependencies (reverse order)
+# -------------------------------------------------------------------------
+pacman_deps_recursive2()
+{
+  local dep IFS="
+"" "
+  [ "${deps-unset}" = unset ] && local deps=
+#  test "${depth-unset}" = unset && local depth=0
+  local depth=$((depth + 1))
+
+  for dep in `pacman_deps "$@"`; do
+    if ! array_isin deps "$dep"
+    then
+
+      array_push deps "$dep"
+      
+      if test "$maxdepth" && test "$maxdepth" -lt "$depth"
+      then
+        continue
+      fi
+
+      pacman_deps_recursive2 "$dep"
+
+      echo "$dep"
+    fi
+  done
+
+}
+
+# pacman_deps_tree <package-names...>
+#
+# Show dependency tree
+# -------------------------------------------------------------------------
+pacman_deps_tree()
+{
+  local WS
+
+  for pkg in "$@"
+  do
+   (if pacman_deps "$pkg" 
+    then
+      echo "$pkg"
+    fi
+    WS=${indent-"  "}
+    pacman_deps_recursive "$pkg")
+  done
+}
+
+# pacman_deps_list <package-names...>
+#
+# Show dependency tree
+# -------------------------------------------------------------------------
+pacman_deps_list()
+{
+ (WS= INDENT= PKG=
+
+  for PKG in "$@"; do
+   (echo "$PKG"
+    WS=${INDENT-"  "}
+    pacman_deps_recursive2 "$PKG")
+  done)
+}
+
+# --- eof ---------------------------------------------------------------------
+lib_pkgtool_pacman_sh=:;}
