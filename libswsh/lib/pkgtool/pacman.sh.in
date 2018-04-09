@@ -133,7 +133,7 @@ pacman_deps()
   require info
   for PKG; do
     pacman -Qi "$PKG" | info_get "Depends On" | sed "s|\\s\\+| |g ; s|^|$PKG: |"
-  done
+  done 2>/dev/null
 }
 
 # pacman_deps_recursive <package-names...>
