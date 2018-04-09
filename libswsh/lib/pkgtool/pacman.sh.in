@@ -131,8 +131,10 @@ pacman_rdeps()
 pacman_deps()
 {
   require info
+  EXPR="s|\\s\\+| |g"
+  [ $# -gt 1 ] && EXPR="$EXPR; s|^|$PKG: |"
   for PKG; do
-    pacman -Qi "$PKG" | info_get "Depends On" | sed "s|\\s\\+| |g ; s|^|$PKG: |"
+    pacman -Qi "$PKG" | info_get "Depends On" | sed "$EXPR"
   done 2>/dev/null
 }
 
