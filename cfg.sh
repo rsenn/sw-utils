@@ -1,107 +1,83 @@
-#!/bin/sh
-
-while [ "$#" -gt 0 ]; do
-  case $1 in
-    --prefix) PREFIX="$2" ; shift ;; --prefix=*) PREFIX="${1#*=}" ;;
-	*) break ;;
-  esac
-  shift
-done
-
-IFS="$IFS:"
-SHELL=/bin/sh
-MYDIR=`dirname "$0"`
-MYNAME=`basename "$0"`
-ABSDIR=`cd "$MYDIR" && pwd`
-ABSPATH="$ABSDIR/$MYNAME"
-LOGFILE="cfg.log"
-
-finish() {
-	if [ -n "$SIG" ]; then
-		echo $SIG: `tail -n1 "$LOGFILE"` 1>&2
-		exit 127
-	elif [ "$R" != 0 ]; then
-		echo "ERROR: $CMD" 1>&2
-		tail "$LOGFILE"
-		exit $R
-	else
-		echo "SUCCESS" 1>&2
-	fi
+cfg() { 
+  build=$(gcc -dumpmachine)
+  : ${builddir=build/$build}
+  mkdir -p $builddir;
+  ( set -x; cd $builddir;
+  ../../configure \
+    ${prefix:+--prefix="$prefix"} \
+    ${sysconfdir:+--sysconfdir="$sysconfdir"} \
+    ${localstatedir:+--localstatedir="$localstatedir"} \
+    ${build:+--build="$build"} \
+    ${host:+--host="$host"} \
+    --disable-{silent-rules,dependency-tracking} \
+    --disable-rpath \
+    --enable-debug \
+    "$@")
 }
 
-for NAME in bash dash ash ksh; do
-  for DIR in $PATH; do
-    if [ -x "$DIR/$NAME" ]; then
-      SHELL="$DIR/$NAME"
-      break 2
-    fi
-  done
-done
+cfg-android() {
+  (: ${builddir=build/android}
+    cfg \
+   "$@")
+}
 
-HOST=`${CC-gcc} -dumpmachine 2>/dev/null`
+cfg-diet() {
+ (build=$(${CC:-gcc} -dumpmachine)
+  host=${build/-gnu/-dietlibc}
+  : ${builddir=build/$host}
+  : ${prefix=/opt/diet}
+  : ${libdir=/opt/diet/lib-${host%%-*}}
+  : ${bindir=/opt/diet/bin-${host%%-*}}
+  
+  CC="diet-gcc" \
+  PKG_CONFIG="$host-pkg-config" \
+  LIBS="${LIBS:+$LIBS }-liconv -lpthread" \
+  cfg \
+    "$@")
+}
 
-case $HOST in
-  *--*) HOST=`echo "$HOST" | sed "s,--,-unknown-,g"` ;;
-esac
+cfg-musl() {
+ (build=$(${CC:-gcc} -dumpmachine)
+  host=${build/-gnu/-musl}
+  host=${host/-pc-/-}
+  builddir=build/$host
+  prefix=/usr
+  includedir=/usr/include/$host
+  libdir=/usr/lib/$host
+  bindir=/usr/bin/$host
+  
+  CC=musl-gcc \
+  PKG_CONFIG=musl-pkg-config \
+  cfg \
+    "$@")
+}
 
-if [ -z "$PREFIX" ]; then
-	case $HOST in
-	  *-netbsdelf*) PREFIX=/usr/local ;;
-	  *)
-	    PREFIX=`
-	      ${CC-gcc} -print-search-dirs 2>/dev/null | 
-	      sed -ne '/^install:/ s|^install: \([^ ]\+\)/lib/.*|\1| p'
-	    `
-	  ;;
-	esac
-fi
+cfg-mingw() {
+ (build=$(gcc -dumpmachine)
+  host=${build%%-*}-w64-mingw32
+  prefix=/usr/$host/sys-root/mingw
+  
+  builddir=build/$host \
+  bindir=$prefix/bin \
+  libdir=$prefix/lib \
+  cfg \
+    "$@")
+}
 
-echo "Configuring for host $HOST and installation in $PREFIX ..." 1>&2
-echo 1>&2
+cfg-aarch64() {
+ (build=$(gcc -dumpmachine)
+  host=aarch64-linux-gnu
+  prefix=/usr/$host/sys-root/usr
+  
+  builddir=build/$host \
+  bindir=$prefix/bin \
+  libdir=$prefix/lib \
+  cfg \
+    "$@")
+}
 
-case $PREFIX in 
-  "/usr") sysconfdir="/etc" localstatedir="/var" bindir="/bin" ;;
-esac
-: ${silent_rules="disable"}
-: ${dependency_tracking="disable"}
-: ${maintainer_mode="disable"}
-
-set bash "$MYDIR/configure" \
-    --with-shell="$SHELL" \
-    --program-prefix="" \
-    --program-suffix="" \
-    --disable-debug \
-    --${silent_rules:-enable}-silent-rules \
-    --${dependency_tracking:-enable}-dependency-tracking \
-    --${maintainer_mode:-enable}-maintainer-mode \
-    --host="$HOST" \
-    --build="${build=$HOST}" \
-    --target="${target=$HOST}" \
-    --prefix="${PREFIX:-/usr}" \
-    --sysconfdir="${sysconfdir=$PREFIX/etc}" \
-    --localstatedir="${localstatedir=$PREFIX/var}" \
-    "$@"
-IFS=" "
-CMD="$*  >$LOGFILE 2>&1"
-echo "+ $CMD" 1>&2
-#set -x 
-for S in INT TERM QUIT; do
-	trap "SIG=$S" $S
-done
-trap 'finish' EXIT
-
-
-eval "$CMD; R=\$?"
-
-
-
-cfg32() {
-  case "$CC $*" in
-      *-m32*) host=i686-${host#*-} libdir=/usr/lib32 cpu=x86_64 ;;
-      *i[3-6]86*) host=i686-${host#*-} cpu=i386 ;;
-  esac
-  case "$host" in
-    i?86*) a=i686 cpu=i386 m="-m32" l="32" ;;
-    *) a=x86_64 cpu=x86_64 m="-m64" l="" ;;
-  esac
+cfg-termux() {
+  (builddir=build/termux
+    cfg \
+   "$@")
 }
