@@ -33,7 +33,6 @@
 . $shlibdir/util.sh
 . $shlibdir/std/array.sh
 . $shlibdir/shell/script.sh
-. $shlibdir/template.sh
 . $shlibdir/archive.sh
 . $shlibdir/archive/tar.sh
 . $shlibdir/data/config.sh
@@ -48,6 +47,7 @@
 . $shlibdir/shell/child.sh
 . $shlibdir/net/url.sh
 . $shlibdir/distrib.sh
+[ -e "$shlibdir/template.sh" ] && . "$shlibdir/template.sh"
 
 # ------------------------------------------------------------------------------
 readonly dirnames=(
