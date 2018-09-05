@@ -268,8 +268,8 @@ lib/buildsys.sh
 lib/bytesize.sh
 lib/distrib.sh
 lib/fs.sh
-lib/pkgmgr.sh
 lib/pkg.sh
+lib/pkgmgr.sh
 lib/port.sh
 lib/service.sh
 lib/shdoc.sh
@@ -376,6 +376,7 @@ lib/pkgmgr/dpkg.sh
 lib/pkgmgr/rpm.sh
 lib/pkgtool/Makefile
 lib/pkgtool/apt.sh
+lib/pkgtool/pacman.sh
 lib/pkgtool/yum.sh
 lib/pkgtool/zypper.sh
 lib/ports/Makefile

@@ -30,7 +30,7 @@ cmd_exec()
 
   verbose "Executing command${2:+ on $2}: $1"
 
-@DEBUG_TRUE@ debug "
+@DEBUG_TRUE@ debug ""
 
   eval "$exec")
 }
