@@ -285,13 +285,18 @@ sourceforge_url()
 
         #url="ftp://netix.dl.sourceforge.net/sourceforge/$c0/$c0$c1/$project/"
 
-        case "$((RANDOM % 5))" in
-          0) url="ftp://kent.dl.sourceforge.net/sites/dl.sourceforge.net/pub/sourceforge/$c0/$c0$c1/$project/" ;;
-          1) url="ftp://tenet.dl.sourceforge.net/sourceforge/$c0/$c0$c1/$project/" ;;
-          2) url="ftp://liquidtelecom.dl.sourceforge.net/sourceforge/$c0/$c0$c1/$project/" ;;
-          3) url="ftp://jaist.dl.sourceforge.net/pub/sourceforge/$c0/$c0$c1/$project/" ;;
-          4) url="ftp://nchc.dl.sourceforge.net/$c0/$c0$c1/$project/" ;;
-        esac
+#        case "$((RANDOM % 5))" in
+#          0) url="ftp://kent.dl.sourceforge.net/sites/dl.sourceforge.net/pub/sourceforge/$c0/$c0$c1/$project/" ;;
+#          1) url="sftp://tenet.dl.sourceforge.net/sourceforge/$c0/$c0$c1/$project/" ;;
+#          2) url="ftp://liquidtelecom.dl.sourceforge.net/sourceforge/$c0/$c0$c1/$project/" ;;
+#          3) url="ftp://jaist.dl.ourceforge.net/pub/sourceforge/$c0/$c0$c1/$project/" ;;
+#          4) url="ftp://nchc.dl.sourceforge.net/$c0/$c0$c1/$project/" ;;
+#        esac
+          url="${url:+$url$nl}ftp://kent.dl.sourceforge.net/sites/dl.sourceforge.net/pub/sourceforge/$c0/$c0$c1/$project/"
+          url="${url:+$url$nl}sftp://tenet.dl.sourceforge.net/sourceforge/$c0/$c0$c1/$project/"
+          url="${url:+$url$nl}ftp://liquidtelecom.dl.sourceforge.net/sourceforge/$c0/$c0$c1/$project/"
+          url="${url:+$url$nl}ftp://jaist.dl.ourceforge.net/pub/sourceforge/$c0/$c0$c1/$project/"
+          url="${url:+$url$nl}ftp://nchc.dl.sourceforge.net/$c0/$c0$c1/$project/"
 
 #        url="http://heanet.dl.sourceforge.net/sourceforge/$project"
       ;;
