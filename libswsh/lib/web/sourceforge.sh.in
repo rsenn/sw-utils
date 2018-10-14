@@ -260,56 +260,44 @@ sourceforge_project()
 
 # sourceforge_url <project-name> [url-types]
 # -------------------------------------------------------------------------
-sourceforge_url()
-{
-  local url out project mirror location
-  
- (project=$1 && shift
-  
-  test -z "$1" && set homepage
-  
-  while [ "$#" -gt 0 ]; do
-    url=
-    case $1 in
-      homepage)
-        url="http://${project}.sourceforge.net"
-      ;;
-
-      project)
-        url="http://sourceforge.net/projects/$project"
-      ;;
-
-      download|ftp)
-        c0=`str_index 0 "$project"`
-        c1=`str_index 1 "$project"`
-
-        #url="ftp://netix.dl.sourceforge.net/sourceforge/$c0/$c0$c1/$project/"
-
-        case "$((RANDOM % 5))" in
-          0) url="ftp://kent.dl.sourceforge.net/sites/dl.sourceforge.net/pub/sourceforge/$c0/$c0$c1/$project/" ;;
-          1) url="ftp://tenet.dl.sourceforge.net/sourceforge/$c0/$c0$c1/$project/" ;;
-          2) url="ftp://liquidtelecom.dl.sourceforge.net/sourceforge/$c0/$c0$c1/$project/" ;;
-          3) url="ftp://jaist.dl.sourceforge.net/pub/sourceforge/$c0/$c0$c1/$project/" ;;
-          4) url="ftp://nchc.dl.sourceforge.net/$c0/$c0$c1/$project/" ;;
-        esac
-
-#        url="http://heanet.dl.sourceforge.net/sourceforge/$project"
-      ;;
-      tgz)
-  install -d $ROOT/share/doc/squashfs-tools
-  install -d $ROOT/share/doc/squashfs-tools
-  install -m 644 INSTALL PERFORMANCE.README README COPYING CHANGES ACKNOWLEDGEMENTS $ROOT/share/doc/squashfs-tools
-  install -m 644 INSTALL PERFORMANCE.README README COPYING CHANGES ACKNOWLEDGEMENTS $ROOT/share/doc/squashfs-tools
-        url=`sourceforge_files "$project" | ${GREP-grep} -iE '(tgz|tar\.gz)'`
-      ;;
-      showfiles)
-        gid=`sourceforge_gid "$project"`
-        url="http://sourceforge.net/project/showfiles.php?group_id=$gid"
-      ;;
-     esac
-     echo "$url"
-     shift
-  done)
+sourceforge_url() 
+{ 
+    local url out project mirror location;
+    ( project=$1 && shift;
+    test -z "$1" && set homepage;
+    while [ "$#" -gt 0 ]; do
+        url=;
+        case $1 in 
+            homepage)
+                url="http://${project}.sourceforge.net"
+            ;;
+            project)
+                url="http://sourceforge.net/projects/$project"
+            ;;
+            download | ftp)
+                c0=`str_index 0 "$project"`;
+                c1=`str_index 1 "$project"`;
+                url="${url:+$url$nl}ftp://kent.dl.sourceforge.net/sites/dl.sourceforge.net/pub/sourceforge/$c0/$c0$c1/$project/";
+                url="${url:+$url$nl}ftp://tenet.dl.sourceforge.net/sourceforge/$c0/$c0$c1/$project/";
+                url="${url:+$url$nl}ftp://liquidtelecom.dl.sourceforge.net/sourceforge/$c0/$c0$c1/$project/";
+                url="${url:+$url$nl}ftp://jaist.dl.ourceforge.net/pub/sourceforge/$c0/$c0$c1/$project/";
+                url="${url:+$url$nl}ftp://nchc.dl.sourceforge.net/$c0/$c0$c1/$project/"
+            ;;
+            tgz)
+                install -d $ROOT/share/doc/squashfs-tools;
+                install -d $ROOT/share/doc/squashfs-tools;
+                install -m 644 INSTALL PERFORMANCE.README README COPYING CHANGES ACKNOWLEDGEMENTS $ROOT/share/doc/squashfs-tools;
+                install -m 644 INSTALL PERFORMANCE.README README COPYING CHANGES ACKNOWLEDGEMENTS $ROOT/share/doc/squashfs-tools;
+                url=`sourceforge_files "$project" | ${GREP-grep} -iE '(tgz|tar\.gz)'`
+            ;;
+            showfiles)
+                gid=`sourceforge_gid "$project"`;
+                url="http://sourceforge.net/project/showfiles.php?group_id=$gid"
+            ;;
+        esac;
+        echo "$url";
+        shift;
+    done )
 }
 
 # -------------------------------------------------------------------------
