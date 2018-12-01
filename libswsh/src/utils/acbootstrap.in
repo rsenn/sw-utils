@@ -1,4 +1,4 @@
-#!@BASH@
+#!@SHELL@
 #
 # Bootstraps GNU autotools source trees.
 #
