@@ -22,16 +22,16 @@ export AWK
 AC_PROG_LN_S
 AC_PROG_MKDIR_P
 
-dnl AC_ARG_WITH([shell-path], AC_HELP_STRING([--with-shell-path=PATHLIST], [Where to look for the shell]),
+dnl AC_ARG_WITH([shell-path], AS_HELP_STRING([--with-shell-path=PATHLIST],[Where to look for the shell]),
 dnl [SHELL_PATH="$withval"])
 
-AC_DEFINE_DIR([portsdir],[prefix/ports],[Define this to the directory where you store your ports tree])
-AC_DEFINE_DIR([pkgdir],[prefix/pkg],[Define this to the directory where you want to store built packages])
+dnl AC_DEFINE_DIR([portsdir],[prefix/ports],[Define this to the directory where you store your ports tree])
+dnl AC_DEFINE_DIR([pkgdir],[prefix/pkg],[Define this to the directory where you want to store built packages])
 
 # Check for required programs
 SHELLS=
 
-AC_ARG_WITH([shells],AC_HELP_STRING([--with-shells=LIST],[Specify the shells you want to use]),[SHELLS="$withval"])
+AC_ARG_WITH([shells],AS_HELP_STRING([--with-shells=LIST],[Specify the shells you want to use]),[SHELLS="$withval"])
 
 if test -z "$SHELLS"; then
   if test -z "$BASH" -o "`basename "$BASH"`" = sh; then
@@ -81,49 +81,49 @@ AC_CHECK_PROG([SHUNIT2],[shunit2],[shunit2])
 AM_CONDITIONAL([SHUNIT2],[test -n "$SHUNIT2"])
 
 # Check for the shflags Command Line Parser
-AC_CHECK_PATH([SHFLAGS],[shflags],[shflags])
+dnl AC_CHECK_PATH([SHFLAGS],[shflags],[shflags])
 AM_CONDITIONAL([SHFLAGS],[test -n "$SHFLAGS"])
 
 AC_CHECK_PROGS([NETCAT],[netcat nc])
 
 # Check for the "curl" utility, because we can provide data for it.
-AM_FIND_PROG([CURL],[curl])
-AM_FIND_PROG([WGET],[wget])
+AC_PATH_PROG([CURL],[curl])
+AC_PATH_PROG([WGET],[wget])
 
-AM_FIND_PROG([LYNX],[lynx])
-AM_FIND_PROG([LINKS],[links])
-AM_FIND_PROG([W3M],[w3m])
+AC_PATH_PROG([LYNX],[lynx])
+AC_PATH_PROG([LINKS],[links])
+AC_PATH_PROG([W3M],[w3m])
 
-AM_FIND_PROG([FTP],[ftp])
-AM_FIND_PROG([NCFTP],[ncftp])
-AM_FIND_PROG([LFTP],[lftp])
+AC_PATH_PROG([FTP],[ftp])
+AC_PATH_PROG([NCFTP],[ncftp])
+AC_PATH_PROG([LFTP],[lftp])
 
 # Check for archivers
-AM_FIND_PROG([SHAR],[shar])
-AM_FIND_PROG([TAR],[tar])
-AM_FIND_PROG([STAR],[star])
-AM_FIND_PROG([ZIP],[zip])
-AM_FIND_PROG([UNZIP],[unzip])
-AM_FIND_PROG([RAR],[rar])
-AM_FIND_PROG([UNRAR],[unrar])
+AC_PATH_PROG([SHAR],[shar])
+AC_PATH_PROG([TAR],[tar])
+AC_PATH_PROG([STAR],[star])
+AC_PATH_PROG([ZIP],[zip])
+AC_PATH_PROG([UNZIP],[unzip])
+AC_PATH_PROG([RAR],[rar])
+AC_PATH_PROG([UNRAR],[unrar])
 
 # Check for available compression utilities
-AM_FIND_PROG([COMPRESS],[compress])
-AM_FIND_PROG([GZIP],[gzip])
-AM_FIND_PROG([BZIP2],[bzip2])
-AM_FIND_PROG([LZMA],[lzma])
-AM_FIND_PROG([LZOP],[lzop])
+AC_PATH_PROG([COMPRESS],[compress])
+AC_PATH_PROG([GZIP],[gzip])
+AC_PATH_PROG([BZIP2],[bzip2])
+AC_PATH_PROG([LZMA],[lzma])
+AC_PATH_PROG([LZOP],[lzop])
 
 # Check for the "newfile" utility, because we can provide data for it.
-AM_FIND_PROG([NEWFILE],[newfile])
+AC_PATH_PROG([NEWFILE],[newfile])
 
 
-dnl AM_FIND_PROG([BLAH],[blah])
+dnl AC_PATH_PROG([BLAH],[blah])
 
 # Check for the sysprofile infrastructure, because we can install an 
 # automatically loaded require() function to include shell script modules
 AC_MSG_CHECKING([for shell profile dir])
-AC_ARG_WITH([profile-dir], AC_HELP_STRING([--with-profile-dir=PATH], [Put shell profile modules in PATH [[SYSCONFDIR/profile.d]]]),[dnl
+AC_ARG_WITH([profile-dir], AS_HELP_STRING([--with-profile-dir=PATH],[Put shell profile modules in PATH [[SYSCONFDIR/profile.d]]]),[dnl
 ac_cv_profiledir="$withval"; if test "$ac_cv_profiledir" = no; then ac_cv_profiledir=; fi
 ],[dnl
 
@@ -155,18 +155,18 @@ AC_SUBST([pkgdatadir],[\${datadir}/$PACKAGE_NAME])
 AC_SUBST([templatedir],[\${pkgdatadir}/data])
 
 # Find the actual shell
-dnl AC_ARG_WITH([shell], AC_HELP_STRING([--with-shell=PATH], [Shell interpreter]),
+dnl AC_ARG_WITH([shell], AS_HELP_STRING([--with-shell=PATH],[Shell interpreter]),
 dnl [SHELL="$withval" ac_cv_prog_SHELL="$SHELL"])
 
 # Find the package storage directory
-AC_ARG_WITH([pkg-dir], AC_HELP_STRING([--with-pkg-dir=PATH], [Store packages in PATH [[LOCALSTATEDIR/lib/pkg]]]),
+AC_ARG_WITH([pkg-dir], AS_HELP_STRING([--with-pkg-dir=PATH],[Store packages in PATH [[LOCALSTATEDIR/lib/pkg]]]),
 [PKG_DIR="$withval"], [PKG_DIR="\${localstatedir}/lib/pkg"])
 
-AC_ARG_ENABLE([debug], AC_HELP_STRING([--enable-debug], [Enable debug mode]),
+AC_ARG_ENABLE([debug], AS_HELP_STRING([--enable-debug],[Enable debug mode]),
 [ac_cv_debug="$withval"], [ac_cv_debug="no"])
 
 # Find the daemontools service directory
-AC_ARG_WITH([service-dir], AC_HELP_STRING([--with-service-dir=PATH], [Services root for svscan [[EXEC_PREFIX/service]]]),
+AC_ARG_WITH([service-dir], AS_HELP_STRING([--with-service-dir=PATH],[Services root for svscan [[EXEC_PREFIX/service]]]),
 [servicedir="$withval"], [case $prefix in 
   /usr | /) servicedir="/service" ;;
          *) servicedir="\${exec_prefix}/service" ;;
@@ -174,7 +174,7 @@ esac])
 AC_SUBST([servicedir])
 
 # Install a debug build?
-AC_ARG_ENABLE([debug], AC_HELP_STRING([--enable-debug], [Enable debug mode]),
+AC_ARG_ENABLE([debug], AS_HELP_STRING([--enable-debug],[Enable debug mode]),
 [ac_cv_debug="$withval"], [ac_cv_debug="no"])
 
 if test -n "$ac_cv_debug"; then
@@ -184,7 +184,7 @@ fi
 dnl DEFAULT_FLAGS_DEBUG="-g"
 dnl DEFAULT_FLAGS_OPT="-O2"
 dnl
-dnl AC_ARG_WITH([debug-flags], AC_HELP_STRING([--with-debug-flags], [Set compiler flags for debugging mode]) []$DEFAULT_FLAGS_DEBUG[],
+dnl AC_ARG_WITH([debug-flags], AS_HELP_STRING([--with-debug-flags],[Set compiler flags for debugging mode]) []$DEFAULT_FLAGS_DEBUG[],
 dnl [if test "$withval" = "yes"
 dnl then
 dnl   CFLAGS_DEBUG="$DEFAULT_FLAGS_DEBUG"
@@ -209,7 +209,7 @@ dnl CXXFLAGS_DEBUG=""
 dnl BUILD_DEBUG="no"
 dnl ])
 dnl
-dnl AC_ARG_WITH([optimization-flags], AC_HELP_STRING([--with-optimization-flags], [Set compiler optimization flags]) []$DEFAULT_FLAGS_OPT[],
+dnl AC_ARG_WITH([optimization-flags], AS_HELP_STRING([--with-optimization-flags],[Set compiler optimization flags]) []$DEFAULT_FLAGS_OPT[],
 dnl [if test -n "$withval" && test "$withval" != no && test "$withval" != "yes"
 dnl then
 dnl   CFLAGS_OPT="$withval"
@@ -237,7 +237,7 @@ dnl AC_SUBST([CFLAGS_OPT])
 dnl AC_SUBST([CXXFLAGS_OPT])
 dnl AC_SUBST([BUILD_OPT])
 dnl
-dnl AC_ARG_ENABLE([werror], AC_HELP_STRING([--enable-werror], [Treat warnings as errors]),
+dnl AC_ARG_ENABLE([werror], AS_HELP_STRING([--enable-werror],[Treat warnings as errors]),
 dnl [werror="$withval"], [werror="no"])
 dnl 
 

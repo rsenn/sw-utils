@@ -26,21 +26,21 @@ NEWFILE_TEMPLATES = \
     body.inc@swsh \
 		shflags.inc@sh
 
-if NEWFILE
-newfiletemplatedir = $(datadir)/newfile/templates
-newfiletemplate_DATA = $(NEWFILE_TEMPLATES)
-
-install-newfiletemplateDATA: $(newfiletemplate_DATA)
-	@$(NORMAL_INSTALL)
-	test -z "$(newfiletemplatedir)" || $(mkdir_p) "$(DESTDIR)$(newfiletemplatedir)"
-	@list='$(newfiletemplate_DATA)'; for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  f=$(am__strip_dir) \
-	  echo "sed -e 's:@pre""fix@:$(prefix):g' '$$d$$p' >'$(DESTDIR)$(newfiletemplatedir)/$$f'"; \
-	  sed -e "s:@pre""fix@:$(prefix):g" "$$d$$p" >"$(DESTDIR)$(newfiletemplatedir)/$$f"; \
-	done
-endif
-
+#if NEWFILE
+#newfiletemplatedir = $(datadir)/newfile/templates
+#newfiletemplate_DATA = $(NEWFILE_TEMPLATES)
+#
+#install-newfiletemplateDATA: $(newfiletemplate_DATA)
+#	@$(NORMAL_INSTALL)
+#	test -z "$(newfiletemplatedir)" || $(mkdir_p) "$(DESTDIR)$(newfiletemplatedir)"
+#	@list='$(newfiletemplate_DATA)'; for p in $$list; do \
+#	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+#	  f=$(am__strip_dir) \
+#	  echo "sed -e 's:@pre""fix@:$(prefix):g' '$$d$$p' >'$(DESTDIR)$(newfiletemplatedir)/$$f'"; \
+#	  sed -e "s:@pre""fix@:$(prefix):g" "$$d$$p" >"$(DESTDIR)$(newfiletemplatedir)/$$f"; \
+#	done
+#endif
+#
 am__CONFIG_DISTCLEAN_FILES = Makefile.in
   
 maintainer-clean-am: distclean-am maintainer-clean-generic
