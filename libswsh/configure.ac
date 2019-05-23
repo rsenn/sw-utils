@@ -260,9 +260,7 @@ dnl Output build files
 AC_CONFIG_FILES([Makefile
 build/Makefile
 build/cmake/Makefile
-build/gnu/Makefile
 doc/Makefile
-lib/Makefile
 lib/archive.sh
 lib/buildsys.sh
 lib/bytesize.sh

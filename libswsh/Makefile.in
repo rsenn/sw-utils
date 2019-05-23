@@ -96,49 +96,49 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
 	$(am__configure_deps) $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
-CONFIG_CLEAN_FILES = build/cmake/Makefile build/gnu/Makefile \
-	lib/Makefile lib/archive.sh lib/buildsys.sh lib/bytesize.sh \
-	lib/distrib.sh lib/fs.sh lib/pkg.sh lib/pkgmgr.sh lib/port.sh \
-	lib/service.sh lib/shdoc.sh lib/swsh.sh lib/term.sh \
-	lib/util.sh lib/xtra.sh lib/algorithm/Makefile \
-	lib/algorithm/fmt.sh lib/archive/Makefile lib/archive/cpio.sh \
-	lib/archive/deb.sh lib/archive/jar.sh lib/archive/rar.sh \
-	lib/archive/sevenzip.sh lib/archive/tar.sh lib/archive/zip.sh \
-	lib/buildsys/Makefile lib/buildsys/autotools.sh \
-	lib/buildsys/cmake.sh lib/buildsys/make.sh \
-	lib/buildsys/nobuild.sh lib/buildsys/plmake.sh \
-	lib/buildsys/pysetup.sh lib/buildsys/autotools/Makefile \
-	lib/class/Makefile lib/code/Makefile lib/code/bin.sh \
-	lib/code/perl.sh lib/code/ruby.sh lib/compat/Makefile \
-	lib/compat/declare.sh lib/compression/Makefile \
-	lib/compression/bzip2.sh lib/compression/gzip.sh \
-	lib/compression/lzma.sh lib/daemons/Makefile \
-	lib/daemons/crontab.sh lib/daemons/httpd.sh \
-	lib/daemons/named.sh lib/data/Makefile lib/data/config.sh \
-	lib/data/envdir.sh lib/data/html.sh lib/data/info.sh \
-	lib/data/list.sh lib/data/obj.sh lib/data/pdf.sh \
-	lib/data/reg.sh lib/data/text.sh lib/data/tree.sh \
-	lib/data/xml.sh lib/database/Makefile lib/database/mysql.bash \
-	lib/database/mysql.sh lib/devel/Makefile lib/devel/compiler.sh \
-	lib/devel/patch.sh lib/devel/scan.sh lib/devel/srcdist.sh \
-	lib/devel/toolchain.sh lib/devel/triplet.sh \
-	lib/devel/toolchain/Makefile lib/devel/toolchain/gcc.sh \
-	lib/devel/toolchain/icl.sh lib/distrib/Makefile \
-	lib/distrib/centos.sh lib/distrib/cygwin.sh \
-	lib/distrib/darwin.sh lib/distrib/debian.sh \
-	lib/distrib/gentoo.sh lib/distrib/lsb.sh lib/distrib/macosx.sh \
-	lib/distrib/mandrake.sh lib/distrib/mingw.sh \
-	lib/distrib/msys.sh lib/distrib/opensuse.sh \
-	lib/distrib/redhat.sh lib/distrib/slackware.sh \
-	lib/distrib/ubuntu.sh lib/djb/Makefile lib/djb/buffer.sh \
-	lib/fs/Makefile lib/fs/dir.sh lib/fs/file.sh lib/fs/hier.sh \
-	lib/fs/path.sh lib/net/Makefile lib/net/bridge.sh \
-	lib/net/cidr.sh lib/net/ethernet.sh lib/net/http.sh \
-	lib/net/if.sh lib/net/inet.sh lib/net/ip4.sh lib/net/ssh.sh \
-	lib/net/url.sh lib/net/www.sh lib/net/server/Makefile \
-	lib/net/www/Makefile lib/net/www/curl.sh lib/pkgmgr/Makefile \
-	lib/pkgmgr/dpkg.sh lib/pkgmgr/rpm.sh lib/ports/Makefile \
-	lib/ports/deb.sh lib/service/Makefile lib/service/runit.sh \
+CONFIG_CLEAN_FILES = build/cmake/Makefile lib/archive.sh \
+	lib/buildsys.sh lib/bytesize.sh lib/distrib.sh lib/fs.sh \
+	lib/pkg.sh lib/pkgmgr.sh lib/port.sh lib/service.sh \
+	lib/shdoc.sh lib/swsh.sh lib/term.sh lib/util.sh lib/xtra.sh \
+	lib/algorithm/Makefile lib/algorithm/fmt.sh \
+	lib/archive/Makefile lib/archive/cpio.sh lib/archive/deb.sh \
+	lib/archive/jar.sh lib/archive/rar.sh lib/archive/sevenzip.sh \
+	lib/archive/tar.sh lib/archive/zip.sh lib/buildsys/Makefile \
+	lib/buildsys/autotools.sh lib/buildsys/cmake.sh \
+	lib/buildsys/make.sh lib/buildsys/nobuild.sh \
+	lib/buildsys/plmake.sh lib/buildsys/pysetup.sh \
+	lib/buildsys/autotools/Makefile lib/class/Makefile \
+	lib/code/Makefile lib/code/bin.sh lib/code/perl.sh \
+	lib/code/ruby.sh lib/compat/Makefile lib/compat/declare.sh \
+	lib/compression/Makefile lib/compression/bzip2.sh \
+	lib/compression/gzip.sh lib/compression/lzma.sh \
+	lib/daemons/Makefile lib/daemons/crontab.sh \
+	lib/daemons/httpd.sh lib/daemons/named.sh lib/data/Makefile \
+	lib/data/config.sh lib/data/envdir.sh lib/data/html.sh \
+	lib/data/info.sh lib/data/list.sh lib/data/obj.sh \
+	lib/data/pdf.sh lib/data/reg.sh lib/data/text.sh \
+	lib/data/tree.sh lib/data/xml.sh lib/database/Makefile \
+	lib/database/mysql.bash lib/database/mysql.sh \
+	lib/devel/Makefile lib/devel/compiler.sh lib/devel/patch.sh \
+	lib/devel/scan.sh lib/devel/srcdist.sh lib/devel/toolchain.sh \
+	lib/devel/triplet.sh lib/devel/toolchain/Makefile \
+	lib/devel/toolchain/gcc.sh lib/devel/toolchain/icl.sh \
+	lib/distrib/Makefile lib/distrib/centos.sh \
+	lib/distrib/cygwin.sh lib/distrib/darwin.sh \
+	lib/distrib/debian.sh lib/distrib/gentoo.sh lib/distrib/lsb.sh \
+	lib/distrib/macosx.sh lib/distrib/mandrake.sh \
+	lib/distrib/mingw.sh lib/distrib/msys.sh \
+	lib/distrib/opensuse.sh lib/distrib/redhat.sh \
+	lib/distrib/slackware.sh lib/distrib/ubuntu.sh \
+	lib/djb/Makefile lib/djb/buffer.sh lib/fs/Makefile \
+	lib/fs/dir.sh lib/fs/file.sh lib/fs/hier.sh lib/fs/path.sh \
+	lib/net/Makefile lib/net/bridge.sh lib/net/cidr.sh \
+	lib/net/ethernet.sh lib/net/http.sh lib/net/if.sh \
+	lib/net/inet.sh lib/net/ip4.sh lib/net/ssh.sh lib/net/url.sh \
+	lib/net/www.sh lib/net/server/Makefile lib/net/www/Makefile \
+	lib/net/www/curl.sh lib/pkgmgr/Makefile lib/pkgmgr/dpkg.sh \
+	lib/pkgmgr/rpm.sh lib/ports/Makefile lib/ports/deb.sh \
+	lib/service/Makefile lib/service/runit.sh \
 	lib/service/daemontools/Makefile lib/service/runit/Makefile \
 	lib/shell/Makefile lib/shell/bash.sh lib/shell/child.sh \
 	lib/shell/cmd.sh lib/shell/emit.sh lib/shell/fn.sh \
@@ -245,11 +245,10 @@ CTAGS = ctags
 CSCOPE = cscope
 am__DIST_COMMON = $(srcdir)/Makefile.in \
 	$(top_srcdir)/build/cmake/Makefile.in \
-	$(top_srcdir)/build/gnu/Makefile.in \
 	$(top_srcdir)/build/gnu/config.guess \
 	$(top_srcdir)/build/gnu/config.sub \
 	$(top_srcdir)/build/gnu/install-sh \
-	$(top_srcdir)/build/gnu/missing $(top_srcdir)/lib/Makefile.in \
+	$(top_srcdir)/build/gnu/missing \
 	$(top_srcdir)/lib/algorithm/Makefile.in \
 	$(top_srcdir)/lib/algorithm/fmt.sh.in \
 	$(top_srcdir)/lib/archive.sh.in \
@@ -585,7 +584,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I build/gnu
-SUBDIRS = lib src data doc test
+SUBDIRS = data doc test
 DIST_SUBDIRS = build lib src data doc test
 EXTRA_DIST = \
   $(BUILD_FILES) \
@@ -669,10 +668,6 @@ $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	$(am__cd) $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
 $(am__aclocal_m4_deps):
 build/cmake/Makefile: $(top_builddir)/config.status $(top_srcdir)/build/cmake/Makefile.in
-	cd $(top_builddir) && $(SHELL) ./config.status $@
-build/gnu/Makefile: $(top_builddir)/config.status $(top_srcdir)/build/gnu/Makefile.in
-	cd $(top_builddir) && $(SHELL) ./config.status $@
-lib/Makefile: $(top_builddir)/config.status $(top_srcdir)/lib/Makefile.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 lib/archive.sh: $(top_builddir)/config.status $(top_srcdir)/lib/archive.sh.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@

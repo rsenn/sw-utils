@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I build/gnu
 
-SUBDIRS = lib src data doc test
+SUBDIRS =  data doc test
 
 DIST_SUBDIRS = build lib src data doc test
 
