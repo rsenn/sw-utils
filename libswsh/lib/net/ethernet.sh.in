@@ -36,6 +36,18 @@ ethernet_interfaces()
   fi
 }
 
+# ethernet_random
+# -------------------------------------------------------------------------
+ethernet_random() {
+  printf "%02x:%02x:%02x:%02x:%02x:%02x\n" \
+    $((RANDOM % 256)) \
+    $((RANDOM % 256)) \
+    $((RANDOM % 256)) \
+    $((RANDOM % 256)) \
+    $((RANDOM % 256)) \
+    $((RANDOM % 256)) 
+}
+
 # ethernet_address [interface]
 #
 # Get the MAC address of the specified ethernet interface.
