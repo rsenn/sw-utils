@@ -259,6 +259,7 @@ prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
 relprefix = @relprefix@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 servicedir = @servicedir@
 sharedstatedir = @sharedstatedir@
