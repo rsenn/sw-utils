@@ -7,12 +7,12 @@
 
 # Provide defaults for the required directory variables
 # ---------------------------------------------------------------------------
-prefix=`dirname "$0"`/..
-exec_prefix="$prefix"
-libdir="$exec_prefix/lib"
+shlibprefix=`dirname "$0"`/..
+exec_shlibprefix="$shlibprefix"
+libdir="$exec_shlibprefix/lib"
 shlibdir="$libdir/sh"
-sysconfdir="$prefix/etc"
-localstatedir="$prefix/var"
+sysconfdir="$shlibprefix/etc"
+localstatedir="$shlibprefix/var"
 program_name=`basename "$0"`
 
 case $program_name in
@@ -128,19 +128,19 @@ CC=${program_prefix:+$program_prefix-}gcc
 
 host=`${CC-gcc} -dumpmachine 2>/dev/null`
 build=`${BUILD_CC-gcc} -dumpmachine 2>/dev/null`
-prefix=`
+shlibprefix=`
   ${CC-gcc} -print-search-dirs 2>/dev/null | 
   sed -ne '/^install:/ s|^install: \([^ ]\+\)/lib/.*|\1| p'
 `
-bindir="$prefix/$host/bin"
-#libdir="$prefix/lib"
+bindir="$shlibprefix/$host/bin"
+#libdir="$shlibprefix/lib"
 
 pathmunge "$bindir"
 
 export PATH
 msg "PATH is $PATH" 
 
-# setup_pkgconfig <prefix> [host]
+# setup_pkgconfig <shlibprefix> [host]
 #
 # Setup proper paths for pkg-config(1)
 # ---------------------------------------------------------------------------
@@ -158,20 +158,20 @@ setup_pkgconfig()
 
   if [ "$PKG_CONFIG" ]; then
     msg "PKG_CONFIG is $PKG_CONFIG"
-  elif [ -d "$prefix${2:+/$2}/pkgconfig" ]; then
-    PKG_CONFIG_PATH="$prefix${2:+/$2}/pkgconfig${PKG_CONFIG_PATH+:$PKG_CONFIG_PATH}"
+  elif [ -d "$shlibprefix${2:+/$2}/pkgconfig" ]; then
+    PKG_CONFIG_PATH="$shlibprefix${2:+/$2}/pkgconfig${PKG_CONFIG_PATH+:$PKG_CONFIG_PATH}"
     msg "PKG_CONFIG_PATH is $PKG_CONFIG_PATH"
   fi
 }
 
 # ---------------------------------------------------------------------------
 
-setup_pkgconfig "$prefix" "$host"
+setup_pkgconfig "$shlibprefix" "$host"
 
-msg "Configuring for host $host and installation in $prefix ..."
+msg "Configuring for host $host and installation in $shlibprefix ..."
 msg
 
-case $prefix in
+case $shlibprefix in
   "/usr")
     sysconfdir="/etc"
     localstatedir="/var"
@@ -185,10 +185,10 @@ set -- "$ar_configure_script" \
       --host="$host" \
       --build="${build=$host}" \
       --target="${target=$host}" \
-      --prefix="$prefix" \
-      --sysconfdir="${sysconfdir=$prefix/etc}" \
-      --localstatedir="${localstatedir=$prefix/var}" \
-      --program-prefix="" \
+      --shlibprefix="$shlibprefix" \
+      --sysconfdir="${sysconfdir=$shlibprefix/etc}" \
+      --localstatedir="${localstatedir=$shlibprefix/var}" \
+      --program-shlibprefix="" \
       --program-suffix=""
 
 if grep -q "able[-_]dependency[-_]tracking" "$ar_configure_script"; then

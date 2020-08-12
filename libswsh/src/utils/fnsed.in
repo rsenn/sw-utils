@@ -14,8 +14,8 @@
 
 # set path variable defaults
 # --------------------------------------------------------------------------- 
-: ${prefix="@prefix@"}
-: ${exec_prefix="@exec_prefix@"}
+: ${shlibprefix="@prefix"}
+: ${exec_shlibprefix="@exec_shlibprefix@"}
 : ${libdir="@libdir@"}
 : ${shlibdir="$libdir/sh"}
 

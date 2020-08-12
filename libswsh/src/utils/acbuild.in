@@ -7,9 +7,9 @@
 
 # set default values for every directory not yet set 
 # ---------------------------------------------------------------------------
-: ${prefix="@prefix@"}
-: ${exec_prefix="@prefix@"}
-: ${libdir="${exec_prefix}/lib"}
+: ${shlibprefix="@prefix"}
+: ${exec_shlibprefix="@prefix"}
+: ${libdir="${exec_shlibprefix}/lib"}
 : ${shlibdir="$libdir/sh"}
 : ${sysconfdir="@sysconfdir@"}
 : ${localstatedir="@localstatedir@"}
