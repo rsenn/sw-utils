@@ -1,4 +1,3 @@
-
 #!/bin/sh
 #
 # util.sh: Common utility functions
@@ -624,18 +623,14 @@ bheader()
 #
 # Explodes a string into an array.
 # ---------------------------------------------------------------------------
-explode() {
-  [ ${#1} -le 1 -a $# -gt 1 ] && explode_1 "$@" || (S="$1" shift IFS="
-" [ $# -gt 0 ] && exec <$* $SED-sed "s|${S-//"/\"}|\n|g")
-}
+explode()
+{
+ (V=$1
+ IFS="$IFS$*"
 
-explode_1() {
-  (old_IFS="${IFS}"
-  IFS="$1"
-  shift
-  set -- $*
-  IFS="${old_IFS}"
-  echo "$*")
+  for VALUE in $V; do
+    echo "$VALUE"
+  done)
 }
 
 # implode <separator> [items]
@@ -670,19 +665,19 @@ implode()
 #
 # Reads input from stdin and
 # ---------------------------------------------------------------------------
-#inputf()
-#{
-#  local __line__ __cmds__
-#
-#  __line__=$IFS
-#  __cmds__="( set -- \$__line__; $*; )"
-#
-#  IFS="$__line__"
-#
-#  while read __line__; do
-#    eval "$__cmds__"
-#  done
-#}
+inputf()
+{
+  local __line__ __cmds__
+
+  __line__=$IFS
+  __cmds__="( set -- \$__line__; $*; )"
+
+  IFS="$__line__"
+
+  while read __line__; do
+    eval "$__cmds__"
+  done
+}
 
 # count [items...]
 #
