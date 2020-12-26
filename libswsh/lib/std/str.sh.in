@@ -54,11 +54,18 @@ str_toupper()
 
 # str_ucfirst <str>
 # -------------------------------------------------------------------------
-str_ucfirst()
-{
-  local r=${1#?}
-  local f=${1%$r}
-  echo "`str_toupper "$f"`$r"
+str_ucfirst() {
+ (r=${1#?}
+  f=${1%$r}
+  echo "`str_toupper "$f"`$r")
+}
+
+# str_lcfirst <str>
+# -------------------------------------------------------------------------
+str_ucfirst() {
+ (r=${1#?}
+  f=${1%$r}
+  echo "`str_tolower "$f"`$r")
 }
 
 # str_camelize <string> [separator]
