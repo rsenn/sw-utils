@@ -62,7 +62,7 @@ str_ucfirst() {
 
 # str_lcfirst <str>
 # -------------------------------------------------------------------------
-str_ucfirst() {
+str_lcfirst() {
  (r=${1#?}
   f=${1%$r}
   echo "`str_tolower "$f"`$r")
