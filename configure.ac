@@ -207,6 +207,8 @@ pkgmk/pkgmk.8
 pkgmk/pkgmk-buildcmd
 svadm/Makefile
 svadm/svadm
-libsw++/Makefile])
+libsw++/Makefile
+libswsh/Makefile
+libswsh/data/Makefile libswsh/doc/Makefile libswsh/build/Makefile libswsh/build/cmake/Makefile libswsh/test/data/Makefile libswsh/test/Makefile libswsh/lib/data/Makefile libswsh/lib/distrib/Makefile libswsh/lib/code/Makefile libswsh/lib/trace/Makefile libswsh/lib/vcs/Makefile libswsh/lib/sys/Makefile libswsh/lib/unix/Makefile libswsh/lib/devel/toolchain/Makefile libswsh/lib/devel/Makefile libswsh/lib/pkgmgr/Makefile libswsh/lib/ports/Makefile libswsh/lib/djb/Makefile libswsh/lib/Makefile libswsh/lib/algorithm/Makefile libswsh/lib/net/Makefile libswsh/lib/net/server/Makefile libswsh/lib/net/www/Makefile libswsh/lib/archive/Makefile libswsh/lib/compat/Makefile libswsh/lib/class/Makefile libswsh/lib/web/Makefile libswsh/lib/buildsys/Makefile libswsh/lib/buildsys/autotools/Makefile libswsh/lib/shell/Makefile libswsh/lib/term/color/Makefile libswsh/lib/term/Makefile libswsh/lib/fs/Makefile libswsh/lib/utils/Makefile libswsh/lib/pkgtool/Makefile libswsh/lib/service/daemontools/Makefile libswsh/lib/service/runit/Makefile libswsh/lib/service/Makefile libswsh/lib/database/Makefile libswsh/lib/std/Makefile libswsh/lib/compression/Makefile libswsh/lib/daemons/Makefile libswsh/src/Makefile libswsh/src/utils/tok/Makefile libswsh/src/utils/Makefile])
 
 AC_OUTPUT
