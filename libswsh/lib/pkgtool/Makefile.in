@@ -72,7 +72,6 @@ am__make_running_with_option = \
   test $$has_opt = yes
 am__make_dryrun = (target_option=n; $(am__make_running_with_option))
 am__make_keepgoing = (target_option=k; $(am__make_running_with_option))
-pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
 pkglibdir = $(libdir)/@PACKAGE@
 pkglibexecdir = $(libexecdir)/@PACKAGE@
@@ -91,22 +90,14 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-subdir = libswsh/lib/pkgtool
+subdir = lib/pkgtool
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/bzlib.m4 $(top_srcdir)/m4/db.m4 \
-	$(top_srcdir)/m4/libtar.m4 $(top_srcdir)/m4/pkgsrc.m4 \
-	$(top_srcdir)/m4/zlib.m4 $(top_srcdir)/build/gnu/libtool.m4 \
-	$(top_srcdir)/build/gnu/ltoptions.m4 \
-	$(top_srcdir)/build/gnu/ltsugar.m4 \
-	$(top_srcdir)/build/gnu/ltversion.m4 \
-	$(top_srcdir)/build/gnu/lt~obsolete.m4 \
-	$(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
-CONFIG_HEADER = $(top_builddir)/config.h
-CONFIG_CLEAN_FILES =
+CONFIG_CLEAN_FILES = apt.sh pacman.sh yum.sh zypper.sh
 CONFIG_CLEAN_VPATH_FILES =
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -157,86 +148,53 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(pkgshdir)"
 DATA = $(noinst_DATA) $(pkgsh_DATA)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
-am__DIST_COMMON = $(srcdir)/Makefile.in
+am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/apt.sh.in \
+	$(srcdir)/pacman.sh.in $(srcdir)/yum.sh.in \
+	$(srcdir)/zypper.sh.in
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+pkgdatadir = @pkgdatadir@
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
-AR = @AR@
+ASH = @ASH@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
-BUILD_DEBUG = @BUILD_DEBUG@
-BUILD_OPT = @BUILD_OPT@
-BZLIB_CFLAGS = @BZLIB_CFLAGS@
-BZLIB_DIR = @BZLIB_DIR@
-BZLIB_ENABLE = @BZLIB_ENABLE@
-BZLIB_INC_DIR = @BZLIB_INC_DIR@
-BZLIB_LIBS = @BZLIB_LIBS@
-BZLIB_LIB_DIR = @BZLIB_LIB_DIR@
-CC = @CC@
-CCDEPMODE = @CCDEPMODE@
-CFLAGS = @CFLAGS@
-CFLAGS_DEBUG = @CFLAGS_DEBUG@
-CFLAGS_OPT = @CFLAGS_OPT@
-CPP = @CPP@
-CPPFLAGS = @CPPFLAGS@
-CXX = @CXX@
-CXXCPP = @CXXCPP@
-CXXDEPMODE = @CXXDEPMODE@
-CXXFLAGS = @CXXFLAGS@
-CXXFLAGS_DEBUG = @CXXFLAGS_DEBUG@
-CXXFLAGS_OPT = @CXXFLAGS_OPT@
+BASH = @BASH@
+BZIP2 = @BZIP2@
+COMPRESS = @COMPRESS@
+CURL = @CURL@
 CYGPATH_W = @CYGPATH_W@
-DB_CFLAGS = @DB_CFLAGS@
-DB_LIBS = @DB_LIBS@
+DASH = @DASH@
 DEBUG = @DEBUG@
 DEFS = @DEFS@
-DEPDIR = @DEPDIR@
 DEVTODO = @DEVTODO@
-DLLTOOL = @DLLTOOL@
-DSYMUTIL = @DSYMUTIL@
-DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
-EGREP = @EGREP@
-EXEEXT = @EXEEXT@
-FGREP = @FGREP@
-GREP = @GREP@
+FTP = @FTP@
+GZIP = @GZIP@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
-LD = @LD@
-LDFLAGS = @LDFLAGS@
+KSH = @KSH@
+LFTP = @LFTP@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
-LIBTAR_CFLAGS = @LIBTAR_CFLAGS@
-LIBTAR_DIR = @LIBTAR_DIR@
-LIBTAR_ENABLE = @LIBTAR_ENABLE@
-LIBTAR_INC_DIR = @LIBTAR_INC_DIR@
-LIBTAR_LIBS = @LIBTAR_LIBS@
-LIBTAR_LIB_DIR = @LIBTAR_LIB_DIR@
-LIBTAR_SUBDIR = @LIBTAR_SUBDIR@
-LIBTOOL = @LIBTOOL@
-LIPO = @LIPO@
+LINKS = @LINKS@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
-LTVERSION = @LTVERSION@
-LT_SYS_LIBRARY_PATH = @LT_SYS_LIBRARY_PATH@
-MAINT = @MAINT@
+LYNX = @LYNX@
+LZMA = @LZMA@
+LZOP = @LZOP@
 MAKEINFO = @MAKEINFO@
-MANIFEST_TOOL = @MANIFEST_TOOL@
 MKDIR_P = @MKDIR_P@
-NM = @NM@
-NMEDIT = @NMEDIT@
-OBJDUMP = @OBJDUMP@
-OBJEXT = @OBJEXT@
-OTOOL = @OTOOL@
-OTOOL64 = @OTOOL64@
+NCFTP = @NCFTP@
+NETCAT = @NETCAT@
+NEWFILE = @NEWFILE@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
@@ -246,30 +204,28 @@ PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_DIR = @PKG_DIR@
-RANLIB = @RANLIB@
-SED = @SED@
+RAR = @RAR@
 SET_MAKE = @SET_MAKE@
+SH = @SH@
+SHAR = @SHAR@
 SHELL = @SHELL@
+SHELLS = @SHELLS@
+SHUNIT2 = @SHUNIT2@
+STAR = @STAR@
 STRIP = @STRIP@
+TAR = @TAR@
+UNRAR = @UNRAR@
+UNZIP = @UNZIP@
 VERSION = @VERSION@
-WERROR = @WERROR@
-ZLIB_CFLAGS = @ZLIB_CFLAGS@
-ZLIB_DIR = @ZLIB_DIR@
-ZLIB_ENABLE = @ZLIB_ENABLE@
-ZLIB_INC_DIR = @ZLIB_INC_DIR@
-ZLIB_LIBS = @ZLIB_LIBS@
-ZLIB_LIB_DIR = @ZLIB_LIB_DIR@
+W3M = @W3M@
+WGET = @WGET@
+ZIP = @ZIP@
+ZSH = @ZSH@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
-ac_ct_AR = @ac_ct_AR@
-ac_ct_CC = @ac_ct_CC@
-ac_ct_CXX = @ac_ct_CXX@
-ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
-am__include = @am__include@
 am__leading_dot = @am__leading_dot@
-am__quote = @am__quote@
 am__tar = @am__tar@
 am__untar = @am__untar@
 bindir = @bindir@
@@ -284,7 +240,6 @@ datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
-fakeroot = @fakeroot@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
@@ -305,23 +260,23 @@ pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
-rellocalstatedir = @rellocalstatedir@
 relprefix = @relprefix@
-relsysconfdir = @relsysconfdir@
 runstatedir = @runstatedir@
 sbindir = @sbindir@
+servicedir = @servicedir@
 sharedstatedir = @sharedstatedir@
 shlibdir = @shlibdir@
 srcdir = @srcdir@
-subdirs = @subdirs@
 swrel = @swrel@
 swroot = @swroot@
 sysconfdir = @sysconfdir@
+sysprofiledir = @sysprofiledir@
 target = @target@
 target_alias = @target_alias@
 target_cpu = @target_cpu@
 target_os = @target_os@
 target_vendor = @target_vendor@
+templatedir = @templatedir@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
@@ -336,7 +291,7 @@ CONFIG_MAINTAINERCLEAN_FILES = Makefile.in
 all: all-am
 
 .SUFFIXES:
-$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
+$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -345,9 +300,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__confi
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign libswsh/lib/pkgtool/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign lib/pkgtool/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign libswsh/lib/pkgtool/Makefile
+	  $(AUTOMAKE) --foreign lib/pkgtool/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \
@@ -360,17 +315,19 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 
-$(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
+$(top_srcdir)/configure:  $(am__configure_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-$(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
+$(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-
-mostlyclean-libtool:
-	-rm -f *.lo
-
-clean-libtool:
-	-rm -rf .libs _libs
+apt.sh: $(top_builddir)/config.status $(srcdir)/apt.sh.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+pacman.sh: $(top_builddir)/config.status $(srcdir)/pacman.sh.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+yum.sh: $(top_builddir)/config.status $(srcdir)/yum.sh.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+zypper.sh: $(top_builddir)/config.status $(srcdir)/zypper.sh.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 install-pkgshDATA: $(pkgsh_DATA)
 	@$(NORMAL_INSTALL)
 	@list='$(pkgsh_DATA)'; test -n "$(pkgshdir)" || list=; \
@@ -468,7 +425,7 @@ distclean-generic:
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
 clean: clean-am
 
-clean-am: clean-generic clean-libtool mostlyclean-am
+clean-am: clean-generic mostlyclean-am
 
 distclean: distclean-am
 	-rm -f Makefile
@@ -518,7 +475,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f Makefile
 mostlyclean: mostlyclean-am
 
-mostlyclean-am: mostlyclean-generic mostlyclean-libtool
+mostlyclean-am: mostlyclean-generic
 
 pdf: pdf-am
 
@@ -532,17 +489,17 @@ uninstall-am: uninstall-pkgshDATA
 
 .MAKE: install-am install-strip
 
-.PHONY: all all-am check check-am clean clean-generic clean-libtool \
-	cscopelist-am ctags-am distclean distclean-generic \
-	distclean-libtool distdir dvi dvi-am html html-am info info-am \
-	install install-am install-data install-data-am install-dvi \
-	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-pkgshDATA install-ps \
-	install-ps-am install-strip installcheck installcheck-am \
-	installdirs maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
-	ps ps-am tags-am uninstall uninstall-am uninstall-pkgshDATA
+.PHONY: all all-am check check-am clean clean-generic cscopelist-am \
+	ctags-am distclean distclean-generic distdir dvi dvi-am html \
+	html-am info info-am install install-am install-data \
+	install-data-am install-dvi install-dvi-am install-exec \
+	install-exec-am install-html install-html-am install-info \
+	install-info-am install-man install-pdf install-pdf-am \
+	install-pkgshDATA install-ps install-ps-am install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-generic pdf \
+	pdf-am ps ps-am tags-am uninstall uninstall-am \
+	uninstall-pkgshDATA
 
 .PRECIOUS: Makefile
 
