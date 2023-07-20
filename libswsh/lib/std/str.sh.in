@@ -78,7 +78,7 @@ str_camelize()
   
   for tok in $1
   do 
-    out="$out"`str_ucfirst "$tok"`
+    [ -n "$out" ] && out="$out"`str_ucfirst "$tok"` || out="$out$tok"
   done
   
   echo "$out"
