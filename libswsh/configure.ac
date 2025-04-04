@@ -259,7 +259,6 @@ AC_SUBST([shlibdir],['${libdir}/sh'])
 dnl Output build files
 AC_CONFIG_FILES([Makefile
 build/Makefile
-build/cmake/Makefile
 doc/Makefile
 lib/archive.sh
 lib/buildsys.sh

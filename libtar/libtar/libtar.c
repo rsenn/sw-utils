@@ -129,7 +129,8 @@ create(char *tarfile, char *rootdir, libtar_list_t *l)
 	{
 		pathname = (char *)libtar_listptr_data(&lp);
 		if (pathname[0] != '/' && rootdir != NULL)
-			snprintf(buf, sizeof(buf), "%s/%s", rootdir, pathname);
+#undef snprintf
+      snprintf(buf, sizeof(buf), "%s/%s", rootdir, pathname);
 		else
 			strlcpy(buf, pathname, sizeof(buf));
 		if (tar_append_tree(t, buf, pathname) != 0)

@@ -54,7 +54,7 @@
 
 /* varargs declarations: */
 
-#if defined(HAVE_STDARG_H)
+#if 1
 # include <stdarg.h>
 # define HAVE_STDARGS    /* let's hope that works everywhere (mj) */
 # define VA_LOCAL_DECL   va_list ap
@@ -678,7 +678,7 @@ static void dopr_outch (char *buffer, size_t *currlen, size_t maxlen, char c)
 }
 #endif /* !defined(HAVE_SNPRINTF) || !defined(HAVE_VSNPRINTF) */
 
-#ifndef HAVE_VSNPRINTF
+#if 0
 int mutt_vsnprintf (char *str, size_t count, const char *fmt, va_list args)
 {
   str[0] = 0;
@@ -687,7 +687,7 @@ int mutt_vsnprintf (char *str, size_t count, const char *fmt, va_list args)
 }
 #endif /* !HAVE_VSNPRINTF */
 
-#ifndef HAVE_SNPRINTF
+#if 0
 /* VARARGS3 */
 #ifdef HAVE_STDARGS
 int mutt_snprintf (char *str,size_t count,const char *fmt,...)

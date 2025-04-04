@@ -1,8 +1,8 @@
 dnl ### Normal initialization. ######################################
-AC_INIT([libtar], [1.2.11])
+AC_INIT([libtar],[1.2.11])
 AC_CONFIG_AUX_DIR([autoconf])
 AM_INIT_AUTOMAKE
-AC_PREREQ([2.57])
+AC_PREREQ([2.72])
 AC_CONFIG_HEADERS([config.h])
 AC_COPYRIGHT([[
 Copyright (c) 1998-2003 University of Illinois Board of Trustees
@@ -29,13 +29,21 @@ AC_PROG_RANLIB
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
-AC_PROG_LIBTOOL
+LT_INIT
 
 dnl ### Compiler characteristics. ##################################
 AC_C_CONST
 
 dnl ### Checks for header files. ###################################
-AC_HEADER_STDC
+m4_warn([obsolete],
+[The preprocessor macro 'STDC_HEADERS' is obsolete.
+  Except in unusual embedded environments, you can safely include all
+  C89 headers unconditionally.])dnl
+# Autoupdate added the next two lines to ensure that your configure
+# script's behavior did not change.  They are probably safe to remove.
+AC_CHECK_INCLUDES_DEFAULT
+AC_PROG_EGREP
+
 AC_CHECK_HEADERS([unistd.h sys/param.h])
 AC_HEADER_MAJOR
 AC_TYPE_MODE_T

@@ -3,8 +3,8 @@ AC_INIT([sw-utils],[0.9.7])
 AC_CANONICAL_TARGET
 dnl AC_CONFIG_MACRO_DIR([m4])
 dnl AC_CONFIG_AUX_DIR_DEFAULT([build/gnu])
-AM_INIT_AUTOMAKE
 AC_CONFIG_AUX_DIRS([build/gnu])
+AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([libsw++/pkgtool.cpp])
 
 
@@ -20,7 +20,7 @@ AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_LN_S
 #AC_PROG_TOUCH
-AM_PROG_LIBTOOL
+LT_INIT
 
 AC_CHECK_PROG([DEVTODO],[devtodo],[devtodo])
 
@@ -39,7 +39,7 @@ AM_CONDITIONAL([SYSTEM_LIBTAR], [test "$SYSTEM_LIBTAR" != no])
 
 AC_PATH_PROGS([SHELL],[sh bash zsh],[${SHELL_PATH:-$PATH}])
 
-AC_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADERS([config.h])
 
 
 
