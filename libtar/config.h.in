@@ -104,9 +104,6 @@
 /* Define if you want to use the makedev function */
 #undef NEED_MAKEDEV
 
-/* Define if you want to use the snprintf function */
-#undef NEED_SNPRINTF
-
 /* Define if you want to use the strdup function */
 #undef NEED_STRDUP
 

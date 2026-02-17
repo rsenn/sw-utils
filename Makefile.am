@@ -68,12 +68,12 @@ DISTCLEANFILES = \
   check-libs \
   $(target)-wrap
 
+pkgadd_LIBS = libsw++/libsw++.la 
+
 if SYSTEM_LIBTAR
-pkgadd_LDADD = $(LIBTAR_LIBS) $(BZLIB_LIBS) -lz
-pkgadd_LIBS = libsw++/libsw++.la 
+pkgadd_LDADD = $(pkgadd_LIBS) $(LIBTAR_LIBS) $(BZLIB_LIBS) -lz
 else
-pkgadd_LDADD = libtar/lib/libtar.la $(BZLIB_LIBS) -lz
-pkgadd_LIBS = libsw++/libsw++.la 
+pkgadd_LDADD = $(pkgadd_LIBS) libtar/lib/libtar.la $(BZLIB_LIBS) -lz
 endif
 #$(LIBTAR_LIBS) $(BZLIB_LIBS) $(ZLIB_LIBS)
 

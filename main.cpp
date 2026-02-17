@@ -55,7 +55,7 @@ int main(int argc, char** argv)
 	string name = basename(argv[0]);
 
 	try {
-		auto_ptr<pkgtool> util(select_utility(name));
+		shared_ptr<pkgtool> util(select_utility(name));
 
 		// Handle common options
 		for (int i = 1; i < argc; i++) {

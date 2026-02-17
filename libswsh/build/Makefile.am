@@ -1,5 +1,4 @@
 SUBDIRS = \
-  cmake \
 	gnu
 
 all-am:

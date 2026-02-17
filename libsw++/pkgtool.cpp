@@ -28,7 +28,7 @@
 #include <cstring>
 #include <cerrno>
 #include <csignal>
-#include <ext/stdio_filebuf.h>
+#include "stdio_filebuf.hpp"
 #include <pwd.h>
 #include <grp.h>
 #include <sys/types.h>
@@ -51,7 +51,7 @@
 #include <bzlib.h>
 #endif /* HAVE_BZLIB */
 
-using __gnu_cxx::stdio_filebuf;
+using std::stdio_filebuf;
 
 #ifdef HAVE_ZLIB
 static tartype_t gztype = {
