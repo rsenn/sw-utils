@@ -30,7 +30,7 @@
 #include <cstring>
 #include <cerrno>
 #include <csignal>
-//#include <ext/stdio_filebuf.h>
+#include "stdio_filebuf.hpp"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -46,7 +46,7 @@
 
 using namespace std;
 
-using __gnu_cxx::stdio_filebuf;
+using std::stdio_filebuf;
 
 pkgdb_dbm::pkgdb_dbm() {}
 pkgdb_dbm::~pkgdb_dbm() {}
