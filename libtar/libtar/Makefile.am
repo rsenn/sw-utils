@@ -8,7 +8,7 @@ AM_CPPFLAGS = \
   -I../listhash \
   -I$(top_srcdir)/listhash
 
-LDADD = -L../lib -ltar
+#LDADD = -L../lib -ltar
 
 libtar_SOURCES = libtar.c
 libtar_LIBS = $(LIBS)

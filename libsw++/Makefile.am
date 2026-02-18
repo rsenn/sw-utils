@@ -27,7 +27,8 @@ libsw___la_LDFLAGS = -no-undefined -version-number $(LTVERSION)
 if SYSTEM_LIBTAR
 libsw___la_LIBADD = $(LIBTAR_LIBS) $(BZLIB_LIBS) $(DB_LIBS) $(LIBS)
 else
-libsw___la_LIBADD = -L$(top_builddir)/libtar/lib -ltar $(BZLIB_LIBS) $(DB_LIBS) $(LIBS)
+#libsw___la_LIBADD = -L$(top_builddir)/libtar/lib -ltar $(BZLIB_LIBS) $(DB_LIBS) $(LIBS)
+libsw___la_LIBADD = $(top_builddir)/libtar/lib/libtar.la $(BZLIB_LIBS) $(DB_LIBS) $(LIBS)
 endif
 
 #$(ZLIB_LIBS)
