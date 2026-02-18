@@ -90,9 +90,7 @@ host_triplet = @host@
 target_triplet = @target@
 subdir = m4
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/bzlib.m4 $(top_srcdir)/m4/db.m4 \
-	$(top_srcdir)/m4/libtar.m4 $(top_srcdir)/m4/pkgsrc.m4 \
-	$(top_srcdir)/m4/zlib.m4 $(top_srcdir)/build/gnu/libtool.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/build/gnu/libtool.m4 \
 	$(top_srcdir)/build/gnu/ltoptions.m4 \
 	$(top_srcdir)/build/gnu/ltsugar.m4 \
 	$(top_srcdir)/build/gnu/ltversion.m4 \
@@ -311,9 +309,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__confi
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign m4/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu m4/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign m4/Makefile
+	  $(AUTOMAKE) --gnu m4/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \

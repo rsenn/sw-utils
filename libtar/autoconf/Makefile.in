@@ -89,12 +89,7 @@ build_triplet = @build@
 host_triplet = @host@
 subdir = autoconf
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/autoconf/libtool.m4 \
-	$(top_srcdir)/autoconf/ltoptions.m4 \
-	$(top_srcdir)/autoconf/ltsugar.m4 \
-	$(top_srcdir)/autoconf/ltversion.m4 \
-	$(top_srcdir)/autoconf/lt~obsolete.m4 \
-	$(top_srcdir)/compat/module.ac \
+am__aclocal_m4_deps = $(top_srcdir)/compat/module.ac \
 	$(top_srcdir)/listhash/module.ac $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
@@ -124,7 +119,7 @@ am__can_run_installinfo = \
   esac
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 am__DIST_COMMON = $(srcdir)/Makefile.in compile config.guess \
-	config.sub depcomp install-sh ltmain.sh missing
+	config.sub install-sh ltmain.sh missing
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
@@ -266,9 +261,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign autoconf/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu autoconf/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign autoconf/Makefile
+	  $(AUTOMAKE) --gnu autoconf/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \
