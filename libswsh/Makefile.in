@@ -406,8 +406,9 @@ am__DIST_COMMON = $(srcdir)/Makefile.in \
 	$(top_srcdir)/src/utils/tok/Makefile.in \
 	$(top_srcdir)/src/utils/tok/tokgrep.in \
 	$(top_srcdir)/src/utils/tok/toksubst.in AUTHORS COPYING \
-	INSTALL README build/gnu/config.guess build/gnu/config.sub \
-	build/gnu/install-sh build/gnu/ltmain.sh build/gnu/missing
+	ChangeLog INSTALL NEWS README build/gnu/config.guess \
+	build/gnu/config.sub build/gnu/install-sh build/gnu/ltmain.sh \
+	build/gnu/missing
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -640,15 +641,15 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
-	      echo ' cd $(srcdir) && $(AUTOMAKE) --foreign'; \
-	      $(am__cd) $(srcdir) && $(AUTOMAKE) --foreign \
+	      echo ' cd $(srcdir) && $(AUTOMAKE) --gnu'; \
+	      $(am__cd) $(srcdir) && $(AUTOMAKE) --gnu \
 		&& exit 0; \
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign Makefile
+	  $(AUTOMAKE) --gnu Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \
