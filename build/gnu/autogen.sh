@@ -28,7 +28,7 @@ set -x
 
 for SCRIPT in install-sh config.sub config.guess; do
 	if [ ! -e build/gnu/"$SCRIPT" ]; then 
-		cp -vf /usr/share/automake-$AUTOMAKE_VERSION/"$SCRIPT" build/gnu
+		cp -vf ${TERMUX_PREFIX:-/usr}/share/automake-$AUTOMAKE_VERSION/"$SCRIPT" build/gnu
 	fi
 done
 
